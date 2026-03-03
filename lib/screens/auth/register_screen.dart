@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:poket_mandi/screens/auth/kisan_register_screen.dart';
+import 'package:poket_mandi/screens/auth/vyapari_register_screen.dart';
 
 class RegisterScreen extends StatelessWidget {
   const RegisterScreen({super.key});
@@ -122,7 +124,15 @@ class RegisterScreen extends StatelessWidget {
                                 SizedBox(
                                   width: double.infinity,
                                   child: ElevatedButton(
-                                    onPressed: () {},
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) =>
+                                              const KisanRegisterScreen(),
+                                        ),
+                                      );
+                                    },
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: const Color(0xFF104f22),
                                       padding: const EdgeInsets.symmetric(
@@ -178,7 +188,15 @@ class RegisterScreen extends StatelessWidget {
                             child: SizedBox(
                               width: double.infinity,
                               child: ElevatedButton(
-                                onPressed: () {},
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          const VyapariRegisterScreen(),
+                                    ),
+                                  );
+                                },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFF104f22),
                                   padding: const EdgeInsets.symmetric(
