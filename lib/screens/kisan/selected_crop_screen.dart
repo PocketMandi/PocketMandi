@@ -15,108 +15,162 @@ class SelectedCropScreen extends StatefulWidget {
 }
 
 class _SelectedCropScreenState extends State<SelectedCropScreen> {
-  String selectedQuality = "";
+  String selectedQuality = "A";
+
+  final TextEditingController quantityController = TextEditingController();
+  final TextEditingController priceController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF4F6F5),
       body: Stack(
         children: [
-          /// Background
-          SizedBox.expand(
-            child: Image.asset("assets/images/login_bg.jpg", fit: BoxFit.cover),
+          /// 🌾 TOP HEADER IMAGE
+          Container(
+            height: 260,
+            decoration: BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage(widget.imagePath),
+                fit: BoxFit.cover,
+              ),
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(30),
+                bottomRight: Radius.circular(30),
+              ),
+            ),
           ),
 
-          Container(color: Colors.black.withOpacity(0.3)),
+          /// Dark overlay
+          Container(
+            height: 260,
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.35),
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(30),
+                bottomRight: Radius.circular(30),
+              ),
+            ),
+          ),
 
+          /// 🔙 Back Button
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 10,
+            left: 16,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.3),
+                shape: BoxShape.circle,
+              ),
+              child: IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+              ),
+            ),
+          ),
+
+          /// Content
           SafeArea(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  /// Back
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.arrow_back, color: Colors.white),
-                  ),
-
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 80),
 
                   /// Crop Title
-                  Center(
-                    child: Text(
-                      widget.cropName,
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
+                  Text(
+                    widget.cropName,
+                    style: const TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
                   ),
 
-                  const SizedBox(height: 15),
+                  const SizedBox(height: 40),
 
-                  /// Crop Image
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(15),
-                    child: Image.asset(widget.imagePath),
-                  ),
+                  /// White Form Card
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.08),
+                          blurRadius: 10,
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildLabel("Quantity"),
+                        _buildTextField(quantityController, "Enter quantity"),
 
-                  const SizedBox(height: 20),
+                        const SizedBox(height: 20),
 
-                  _buildLabel("Quantity *"),
-                  _buildTextField("Enter quantity"),
+                        _buildLabel("Quality Grade"),
+                        const SizedBox(height: 10),
 
-                  const SizedBox(height: 15),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            "A",
+                            "B",
+                            "C",
+                          ].map((grade) => _buildQualityChip(grade)).toList(),
+                        ),
 
-                  _buildLabel("Quality *"),
-                  Row(
-                    children: ["A", "B", "C"].map((grade) {
-                      return Row(
-                        children: [
-                          Checkbox(
-                            value: selectedQuality == grade,
-                            onChanged: (_) {
-                              setState(() {
-                                selectedQuality = grade;
-                              });
-                            },
+                        const SizedBox(height: 20),
+
+                        _buildUploadButton(
+                          "Upload / Capture Photo",
+                          Icons.camera_alt,
+                        ),
+
+                        const SizedBox(height: 12),
+
+                        _buildUploadButton(
+                          "Upload / Capture Video",
+                          Icons.videocam,
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        _buildLabel("Expected Price"),
+                        _buildTextField(
+                          priceController,
+                          "Enter expected price",
+                        ),
+
+                        const SizedBox(height: 25),
+
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: () {},
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF104f22),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text(
+                              "Submit",
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.white,
+                              ),
+                            ),
                           ),
-                          Text(
-                            grade,
-                            style: const TextStyle(color: Colors.white),
-                          ),
-                          const SizedBox(width: 10),
-                        ],
-                      );
-                    }).toList(),
-                  ),
-
-                  const SizedBox(height: 15),
-
-                  _buildUploadButton("Upload/Capture Photo", Icons.camera_alt),
-                  const SizedBox(height: 10),
-                  _buildUploadButton("Upload/Capture Video", Icons.videocam),
-
-                  const SizedBox(height: 15),
-
-                  _buildLabel("Expected Price"),
-                  _buildTextField("Enter expected price"),
-
-                  const SizedBox(height: 20),
-
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () {},
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF104f22),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      child: const Text("Submit"),
+                        ),
+                      ],
                     ),
                   ),
+
+                  const SizedBox(height: 30),
                 ],
               ),
             ),
@@ -129,17 +183,51 @@ class _SelectedCropScreenState extends State<SelectedCropScreen> {
   Widget _buildLabel(String text) {
     return Text(
       text,
-      style: const TextStyle(fontSize: 14, color: Colors.white),
+      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
     );
   }
 
-  Widget _buildTextField(String hint) {
+  Widget _buildTextField(TextEditingController controller, String hint) {
     return TextField(
+      controller: controller,
       decoration: InputDecoration(
         hintText: hint,
         filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+        fillColor: const Color(0xFFF3F3F3),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 15,
+          vertical: 14,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQualityChip(String grade) {
+    bool isSelected = selectedQuality == grade;
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          selectedQuality = grade;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF104f22) : Colors.grey.shade200,
+          borderRadius: BorderRadius.circular(30),
+        ),
+        child: Text(
+          grade,
+          style: TextStyle(
+            color: isSelected ? Colors.white : Colors.black,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ),
     );
   }
@@ -147,12 +235,16 @@ class _SelectedCropScreenState extends State<SelectedCropScreen> {
   Widget _buildUploadButton(String text, IconData icon) {
     return SizedBox(
       width: double.infinity,
-      child: ElevatedButton.icon(
+      child: OutlinedButton.icon(
         onPressed: () {},
-        icon: Icon(icon),
-        label: Text(text),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF2E4A32),
+        icon: Icon(icon, color: const Color(0xFF104f22)),
+        label: Text(text, style: const TextStyle(color: Color(0xFF104f22))),
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          side: const BorderSide(color: Color(0xFF104f22)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       ),
     );
