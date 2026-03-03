@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:poket_mandi/screens/kisan/add_new_crop_screen.dart';
+import 'package:poket_mandi/screens/kisan/selected_crop_screen.dart';
 
 class KisanDashboardScreen extends StatelessWidget {
   const KisanDashboardScreen({super.key});
@@ -15,94 +17,134 @@ class KisanDashboardScreen extends StatelessWidget {
   ];
 
   @override
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
+      backgroundColor: const Color(0xFFF5F5F5),
+      body: Column(
         children: [
-          // /// 🌾 Background
-          // SizedBox.expand(
-          //   child: Image.asset("assets/images/login_bg.jpg", fit: BoxFit.cover),
-          // ),
-
-          /// 🌫 Overlay
-          Container(color: Colors.black.withOpacity(0.35)),
-
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  /// 🔰 Logo
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      ClipOval(
-                        child: Image.asset(
-                          "assets/images/logof.png",
-                          width: 40,
-                          height: 40,
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      const Text(
-                        "PoketMandi",
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
+          /// ================= TOP HEADER =================
+          Stack(
+            children: [
+              /// Background Image
+              Container(
+                height: 260,
+                decoration: const BoxDecoration(
+                  image: DecorationImage(
+                    image: AssetImage("assets/images/login_bg.jpg"),
+                    fit: BoxFit.cover,
                   ),
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(30),
+                    bottomRight: Radius.circular(30),
+                  ),
+                ),
+              ),
 
-                  const SizedBox(height: 20),
+              /// Dark Overlay
+              Container(
+                height: 260,
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.35),
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(30),
+                    bottomRight: Radius.circular(30),
+                  ),
+                ),
+              ),
 
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Column(
                     children: [
-                      Image.asset("assets/images/farmer2.png", height: 80),
-
-                      Column(
+                      SizedBox(height: 30),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
+                          ClipOval(
+                            child: Image.asset(
+                              "assets/images/logof.png",
+                              width: 40,
+                              height: 40,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
                           const Text(
-                            "Kisan Dashboard",
+                            "PoketMandi",
                             style: TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
                             ),
                           ),
+                        ],
+                      ),
 
-                          const SizedBox(height: 5),
+                      const SizedBox(height: 15),
 
-                          const Text(
-                            "Welcome back, Kisan Ji",
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.white70,
-                            ),
+                      /// Farmer + Text
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Image.asset("assets/images/farmer2.png", height: 120),
+
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: const [
+                              const SizedBox(height: 8),
+                              Text(
+                                "Kisan Dashboard",
+                                style: TextStyle(
+                                  fontSize: 25,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              SizedBox(height: 5),
+                              Text(
+                                "Welcome back, Kisan Ji",
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.white70,
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
                     ],
                   ),
+                ),
+              ),
+            ],
+          ),
 
-                  const SizedBox(height: 20),
+          const SizedBox(height: 15),
+
+          /// ================= CROPS SECTION =================
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(25),
+                  topRight: Radius.circular(25),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 10),
 
                   const Text(
                     "Crops",
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
 
-                  const SizedBox(height: 10),
-
-                  /// 🌱 Crops Grid
+                  /// Grid
                   Expanded(
                     child: GridView.builder(
                       itemCount: crops.length,
@@ -115,29 +157,37 @@ class KisanDashboardScreen extends StatelessWidget {
                           ),
                       itemBuilder: (context, index) {
                         return _buildCropCard(
+                          context,
                           crops[index]["name"]!,
                           crops[index]["image"]!,
                         );
                       },
                     ),
                   ),
+                  const SizedBox(height: 15),
 
-                  /// Crop Not Listed Button
+                  /// Button
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const AddNewCropScreen(),
+                          ),
+                        );
+                      },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFF2EEDC),
-                        foregroundColor: Colors.black87,
+                        backgroundColor: const Color(0xFF104f22),
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                       child: const Text(
                         "Crop not listed?",
-                        style: TextStyle(fontSize: 14),
+                        style: TextStyle(color: Colors.white),
                       ),
                     ),
                   ),
@@ -152,30 +202,57 @@ class KisanDashboardScreen extends StatelessWidget {
     );
   }
 
-  /// 🌾 Crop Card Widget
-  Widget _buildCropCard(String name, String imagePath) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(10),
-      child: Stack(
-        children: [
-          Positioned.fill(child: Image.asset(imagePath, fit: BoxFit.cover)),
-
-          /// Dark overlay
-          Container(color: Colors.black.withOpacity(0.3)),
-
-          Positioned(
-            bottom: 8,
-            left: 8,
-            child: Text(
-              name,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
+  Widget _buildCropCard(BuildContext context, String name, String imagePath) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(15),
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) =>
+                SelectedCropScreen(cropName: name, imagePath: imagePath),
+          ),
+        );
+      },
+      child: Ink(
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(15)),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(15),
+                child: Image.asset(imagePath, fit: BoxFit.cover),
               ),
             ),
-          ),
-        ],
+
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(15),
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.black.withOpacity(0.1),
+                    Colors.black.withOpacity(0.6),
+                  ],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+              ),
+            ),
+
+            Positioned(
+              bottom: 10,
+              left: 12,
+              child: Text(
+                name,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
