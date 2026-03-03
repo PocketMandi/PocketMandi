@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:poket_mandi/screens/auth/otp_verification_screen.dart';
 import 'package:poket_mandi/screens/auth/register_screen.dart';
 
 class LoginScreen extends StatelessWidget {
@@ -147,7 +148,15 @@ class LoginScreen extends StatelessWidget {
                                   width: double.infinity,
                                   child: ElevatedButton(
                                     onPressed: () {
-                                      // TODO: Implement OTP Logic
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) =>
+                                              const OtpVerificationScreen(
+                                                phoneNumber: '7905280912',
+                                              ),
+                                        ),
+                                      );
                                     },
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: const Color(0xFF104f22),
