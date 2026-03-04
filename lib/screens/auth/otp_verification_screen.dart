@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:poket_mandi/screens/kisan/kisan_dashboard_screen.dart';
+import 'package:poket_mandi/screens/vyapari/vyapari_dashboard_screen.dart';
 
 class OtpVerificationScreen extends StatefulWidget {
   final String phoneNumber;
@@ -136,10 +137,16 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                           width: double.infinity,
                           child: ElevatedButton(
                             onPressed: () {
+                              // Navigator.push(
+                              //   context,
+                              //   MaterialPageRoute(
+                              //     builder: (_) => KisanDashboardScreen(),
+                              //   ),
+                              // );
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) => KisanDashboardScreen(),
+                                  builder: (_) => VyapariDashboardScreen(),
                                 ),
                               );
                             },
