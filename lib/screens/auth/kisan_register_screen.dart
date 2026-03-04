@@ -1,7 +1,63 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-class KisanRegisterScreen extends StatelessWidget {
+class KisanRegisterScreen extends StatefulWidget {
   const KisanRegisterScreen({super.key});
+
+  @override
+  State<KisanRegisterScreen> createState() => _KisanRegisterScreenState();
+}
+
+class _KisanRegisterScreenState extends State<KisanRegisterScreen> {
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController phoneController = TextEditingController();
+  final TextEditingController villageController = TextEditingController();
+  final TextEditingController districtController = TextEditingController();
+  final TextEditingController stateController = TextEditingController();
+
+  String? selectedDistrict;
+  String? selectedState;
+  bool isLoading = false;
+
+  Future<void> registerFarmer() async {
+    if (nameController.text.isEmpty ||
+        phoneController.text.isEmpty ||
+        villageController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please fill all fields")),
+      );
+      return;
+    }
+
+    setState(() => isLoading = true);
+
+    try {
+      await FirebaseFirestore.instance.collection("users").add({
+        "name": nameController.text,
+        "phone": phoneController.text,
+        "village": villageController.text,
+        "district": districtController.text.isEmpty ? "Lucknow" : districtController.text,
+        "state": stateController.text.isEmpty ? "Uttar Pradesh" : stateController.text,
+        "profileImage": "https://i.pravatar.cc/300",
+        "role": "farmer",
+        "isBlocked": false,
+        "kycStatus": "pending",
+        "createdAt": FieldValue.serverTimestamp(),
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Farmer Registered Successfully")),
+      );
+
+      Navigator.pop(context);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error: $e")),
+      );
+    }
+
+    setState(() => isLoading = false);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -157,7 +213,8 @@ class KisanRegisterScreen extends StatelessWidget {
                               const SizedBox(height: 20),
 
                               /// Name
-                              _buildTextField("Name *"),
+                              _buildTextField("Name *",
+                                  controller: nameController),
 
                               const SizedBox(height: 15),
 
@@ -165,22 +222,26 @@ class KisanRegisterScreen extends StatelessWidget {
                               _buildTextField(
                                 "Mobile Number *",
                                 isMobile: true,
+                                controller: phoneController,
                               ),
 
                               const SizedBox(height: 15),
 
                               /// Village
-                              _buildTextField("Village *"),
+                              _buildTextField("Village *",
+                                  controller: villageController),
 
                               const SizedBox(height: 15),
 
                               /// District
-                              _buildDropdown("Select District"),
+                              _buildTextField("District *",
+                                  controller: districtController),
 
                               const SizedBox(height: 15),
 
                               /// State
-                              _buildDropdown("Select State"),
+                              _buildTextField("State *",
+                                  controller: stateController),
 
                               const SizedBox(height: 15),
 
@@ -205,7 +266,7 @@ class KisanRegisterScreen extends StatelessWidget {
                               SizedBox(
                                 width: double.infinity,
                                 child: ElevatedButton(
-                                  onPressed: () {},
+                                  onPressed: isLoading ? null : registerFarmer,
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: const Color(0xFF104f22),
                                     padding: const EdgeInsets.symmetric(
@@ -215,13 +276,16 @@ class KisanRegisterScreen extends StatelessWidget {
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                   ),
-                                  child: const Text(
-                                    "Register",
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      color: Colors.white,
-                                    ),
-                                  ),
+                                  child: isLoading
+                                      ? const CircularProgressIndicator(
+                                          color: Colors.white)
+                                      : const Text(
+                                          "Register",
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            color: Colors.white,
+                                          ),
+                                        ),
                                 ),
                               ),
 
@@ -255,7 +319,8 @@ class KisanRegisterScreen extends StatelessWidget {
   }
 
   /// 🔹 Reusable TextField
-  Widget _buildTextField(String label, {bool isMobile = false}) {
+  Widget _buildTextField(String label,
+      {bool isMobile = false, required TextEditingController controller}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -289,6 +354,7 @@ class KisanRegisterScreen extends StatelessWidget {
               if (isMobile) const SizedBox(width: 8),
               Expanded(
                 child: TextField(
+                  controller: controller,
                   decoration: InputDecoration(
                     hintText: isMobile
                         ? "Enter mobile number"
