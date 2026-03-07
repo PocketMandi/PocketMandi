@@ -16,11 +16,14 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
   String farmerName = "Kisan";
   String farmerPhone = "";
   String farmerImage = "https://i.pravatar.cc/300";
+  List<Map<String, dynamic>> crops = [];
+  bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
     _loadFarmerData();
+    _loadCrops();
   }
 
   Future<void> _loadFarmerData() async {
@@ -41,6 +44,33 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
           farmerImage = data['profileImage'] ?? 'https://i.pravatar.cc/300';
         });
       }
+    }
+  }
+
+  Future<void> _loadCrops() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('user_id');
+
+    if (userId != null) {
+      final snapshot = await FirebaseDatabase.instance
+          .ref('farmers/$userId/add_new_crop')
+          .once();
+
+      if (snapshot.snapshot.value != null) {
+        final data = snapshot.snapshot.value as Map;
+        setState(() {
+          crops = data.values.map((e) => Map<String, dynamic>.from(e)).toList();
+          isLoading = false;
+        });
+      } else {
+        setState(() {
+          isLoading = false;
+        });
+      }
+    } else {
+      setState(() {
+        isLoading = false;
+      });
     }
   }
 
@@ -74,16 +104,7 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
     }
   }
 
-  final List<Map<String, String>> crops = const [
-    {"name": "Wheat", "image": "assets/images/login_bg.jpg"},
-    {"name": "Rice", "image": "assets/images/rice.jpg"},
-    {"name": "Tomato", "image": "assets/images/tomato.jpg"},
-    {"name": "Potato", "image": "assets/images/potato.jpg"},
-    {"name": "Chilli", "image": "assets/images/chilli.jpg"},
-    {"name": "Mustard", "image": "assets/images/mustard.jpg"},
-    {"name": "Cotton", "image": "assets/images/cotton.jpg"},
-    {"name": "Maize", "image": "assets/images/maize.jpg"},
-  ];
+
 
   @override
   Widget build(BuildContext context) {
@@ -280,29 +301,39 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
                   const SizedBox(height: 10),
 
                   const Text(
-                    "Crops",
+                    "My Crops",
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
 
                   /// Grid
                   Expanded(
-                    child: GridView.builder(
-                      itemCount: crops.length,
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            crossAxisSpacing: 12,
-                            mainAxisSpacing: 12,
-                            childAspectRatio: 1.6,
-                          ),
-                      itemBuilder: (context, index) {
-                        return _buildCropCard(
-                          context,
-                          crops[index]["name"]!,
-                          crops[index]["image"]!,
-                        );
-                      },
-                    ),
+                    child: isLoading
+                        ? const Center(child: CircularProgressIndicator(color: Color(0xFF104f22)))
+                        : crops.isEmpty
+                            ? const Center(
+                                child: Text(
+                                  "No crops added yet.\nAdd your first crop!",
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(fontSize: 16, color: Colors.grey),
+                                ),
+                              )
+                            : GridView.builder(
+                                itemCount: crops.length,
+                                gridDelegate:
+                                    const SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: 2,
+                                      crossAxisSpacing: 12,
+                                      mainAxisSpacing: 12,
+                                      childAspectRatio: 1.6,
+                                    ),
+                                itemBuilder: (context, index) {
+                                  return _buildCropCard(
+                                    context,
+                                    crops[index]["cropName"] ?? "Unknown",
+                                    crops[index]["imageUrl"] ?? "https://via.placeholder.com/300",
+                                  );
+                                },
+                              ),
                   ),
                   const SizedBox(height: 15),
 
@@ -310,13 +341,14 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.push(
+                      onPressed: () async {
+                        await Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (_) => const AddNewCropScreen(),
                           ),
                         );
+                        _loadCrops();
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF104f22),
@@ -361,7 +393,33 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
             Positioned.fill(
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(15),
-                child: Image.asset(imagePath, fit: BoxFit.cover),
+                child: imagePath.startsWith('http')
+                    ? Image.network(
+                        imagePath,
+                        fit: BoxFit.cover,
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return Container(
+                            color: const Color(0xFF104f22).withOpacity(0.3),
+                            child: const Center(
+                              child: CircularProgressIndicator(
+                                color: Color(0xFF104f22),
+                              ),
+                            ),
+                          );
+                        },
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            color: const Color(0xFF104f22),
+                            child: const Icon(
+                              Icons.agriculture,
+                              size: 50,
+                              color: Colors.white,
+                            ),
+                          );
+                        },
+                      )
+                    : Image.asset(imagePath, fit: BoxFit.cover),
               ),
             ),
 
