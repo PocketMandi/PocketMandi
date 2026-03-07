@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AddNewCropScreen extends StatefulWidget {
   const AddNewCropScreen({super.key});
@@ -8,11 +10,88 @@ class AddNewCropScreen extends StatefulWidget {
 }
 
 class _AddNewCropScreenState extends State<AddNewCropScreen> {
-  String selectedQuality = "A";
-
-  final TextEditingController nameController = TextEditingController();
+  List<Map<String, dynamic>> allCrops = [];
+  String? selectedCrop;
+  String? selectedUnit = "Kg";
+  Set<String> selectedQualities = {};
+  
   final TextEditingController quantityController = TextEditingController();
   final TextEditingController priceController = TextEditingController();
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCrops();
+  }
+
+  Future<void> _loadCrops() async {
+    final snapshot = await FirebaseDatabase.instance.ref('allcrops').once();
+    if (snapshot.snapshot.value != null) {
+      final data = snapshot.snapshot.value;
+      setState(() {
+        if (data is List) {
+          allCrops = data.where((e) => e != null).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+        } else if (data is Map) {
+          allCrops = data.values.where((e) => e != null).map((e) => Map<String, dynamic>.from(e)).toList();
+        }
+        isLoading = false;
+      });
+    } else {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _submitCrop() async {
+    if (selectedCrop == null ||
+        quantityController.text.isEmpty ||
+        selectedQualities.isEmpty ||
+        priceController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please fill all fields")),
+      );
+      return;
+    }
+
+    setState(() => isLoading = true);
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getString('user_id');
+      final userRole = prefs.getString('user_role');
+
+      if (userId != null && userRole != null) {
+        final collection = userRole == 'farmer' ? 'farmers' : 'traders';
+        final ref = FirebaseDatabase.instance
+            .ref('$collection/$userId/add_new_crop')
+            .push();
+
+        await ref.set({
+          "cropName": selectedCrop,
+          "quantity": quantityController.text,
+          "unit": selectedUnit,
+          "qualityGrades": selectedQualities.toList(),
+          "imageUrl": "https://via.placeholder.com/300",
+          "videoUrl": "https://via.placeholder.com/300",
+          "expectedPrice": priceController.text,
+          "createdAt": DateTime.now().toIso8601String(),
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Crop added successfully!")),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error: $e")),
+      );
+    }
+
+    setState(() => isLoading = false);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -70,7 +149,13 @@ class _AddNewCropScreenState extends State<AddNewCropScreen> {
                   const SizedBox(height: 30),
 
                   /// White Card Container
-                  Container(
+                  isLoading
+                      ? const Center(
+                          child: CircularProgressIndicator(
+                            color: Color(0xFF104f22),
+                          ),
+                        )
+                      : Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
                       color: Colors.white,
@@ -86,25 +171,111 @@ class _AddNewCropScreenState extends State<AddNewCropScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _buildLabel("Crop Name"),
-                        _buildTextField(nameController, "Enter crop name"),
+                        DropdownButtonFormField<String>(
+                          value: selectedCrop,
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: const Color(0xFFF3F3F3),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
+                            ),
+                          ),
+                          hint: const Text("Select Crop"),
+                          items: allCrops
+                              .map((crop) => DropdownMenuItem<String>(
+                                    value: crop['name'] as String,
+                                    child: Text(crop['name'] as String),
+                                  ))
+                              .toList(),
+                          onChanged: (value) {
+                            setState(() {
+                              selectedCrop = value;
+                            });
+                          },
+                        ),
 
                         const SizedBox(height: 18),
 
                         _buildLabel("Quantity"),
-                        _buildTextField(quantityController, "Enter quantity"),
+                        Row(
+                          children: [
+                            Expanded(
+                              flex: 2,
+                              child: TextField(
+                                controller: quantityController,
+                                keyboardType: TextInputType.number,
+                                decoration: InputDecoration(
+                                  hintText: "Enter quantity",
+                                  filled: true,
+                                  fillColor: const Color(0xFFF3F3F3),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: DropdownButtonFormField<String>(
+                                value: selectedUnit,
+                                decoration: InputDecoration(
+                                  filled: true,
+                                  fillColor: const Color(0xFFF3F3F3),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 14,
+                                  ),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                ),
+                                isExpanded: true,
+                                items: ["Kg", "Ton", "Quintal"]
+                                    .map((unit) => DropdownMenuItem(
+                                          value: unit,
+                                          child: Text(unit),
+                                        ))
+                                    .toList(),
+                                onChanged: (value) {
+                                  setState(() {
+                                    selectedUnit = value;
+                                  });
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
 
                         const SizedBox(height: 18),
 
-                        _buildLabel("Quality Grade"),
+                        _buildLabel("Quality Grade (Select Multiple)"),
                         const SizedBox(height: 8),
-
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            "A",
-                            "B",
-                            "C",
-                          ].map((grade) => _buildQualityChip(grade)).toList(),
+                        Wrap(
+                          spacing: 10,
+                          children: ["A", "B", "C"]
+                              .map((grade) => FilterChip(
+                                    label: Text(grade),
+                                    selected: selectedQualities.contains(grade),
+                                    onSelected: (selected) {
+                                      setState(() {
+                                        if (selected) {
+                                          selectedQualities.add(grade);
+                                        } else {
+                                          selectedQualities.remove(grade);
+                                        }
+                                      });
+                                    },
+                                    selectedColor: const Color(0xFF104f22),
+                                    labelStyle: TextStyle(
+                                      color: selectedQualities.contains(grade)
+                                          ? Colors.white
+                                          : Colors.black,
+                                    ),
+                                  ))
+                              .toList(),
                         ),
 
                         const SizedBox(height: 20),
@@ -123,10 +294,19 @@ class _AddNewCropScreenState extends State<AddNewCropScreen> {
 
                         const SizedBox(height: 18),
 
-                        _buildLabel("Expected Price"),
-                        _buildTextField(
-                          priceController,
-                          "Enter expected price",
+                        _buildLabel("Expected Price (₹)"),
+                        TextField(
+                          controller: priceController,
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(
+                            hintText: "Enter expected price",
+                            filled: true,
+                            fillColor: const Color(0xFFF3F3F3),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
+                            ),
+                          ),
                         ),
 
                         const SizedBox(height: 25),
@@ -134,7 +314,7 @@ class _AddNewCropScreenState extends State<AddNewCropScreen> {
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
-                            onPressed: () {},
+                            onPressed: isLoading ? null : _submitCrop,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF104f22),
                               padding: const EdgeInsets.symmetric(vertical: 16),
@@ -143,13 +323,16 @@ class _AddNewCropScreenState extends State<AddNewCropScreen> {
                               ),
                               elevation: 3,
                             ),
-                            child: const Text(
-                              "Submit",
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.white,
-                              ),
-                            ),
+                            child: isLoading
+                                ? const CircularProgressIndicator(
+                                    color: Colors.white)
+                                : const Text(
+                                    "Submit",
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: Colors.white,
+                                    ),
+                                  ),
                           ),
                         ),
                       ],
@@ -192,34 +375,7 @@ class _AddNewCropScreenState extends State<AddNewCropScreen> {
     );
   }
 
-  /// Quality Chip
-  Widget _buildQualityChip(String grade) {
-    bool isSelected = selectedQuality == grade;
-
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          selectedQuality = grade;
-        });
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 10),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF104f22) : Colors.grey.shade200,
-          borderRadius: BorderRadius.circular(30),
-        ),
-        child: Text(
-          grade,
-          style: TextStyle(
-            color: isSelected ? Colors.white : Colors.black,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
-    );
-  }
-
-  /// Upload Button
+/// Upload Button
   Widget _buildUploadButton(String text, IconData icon) {
     return SizedBox(
       width: double.infinity,
