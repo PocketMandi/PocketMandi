@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "987459758293",
+    "firebase_url": "https://mypocketmandi-default-rtdb.firebaseio.com",
+    "project_id": "mypocketmandi",
+    "storage_bucket": "mypocketmandi.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:987459758293:android:4eece39fc5535189e69a5c",
+        "android_client_info": {
+          "package_name": "com.poketmandi.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA-mKcrMrUwuwgHIj8OncZCKfKYDAl80ts"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

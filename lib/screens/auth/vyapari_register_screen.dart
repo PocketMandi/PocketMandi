@@ -1,7 +1,52 @@
 import 'package:flutter/material.dart';
+import 'package:csc_picker_plus/csc_picker_plus.dart';
+import 'package:poket_mandi/screens/auth/otp_verification_screen.dart';
 
-class VyapariRegisterScreen extends StatelessWidget {
+class VyapariRegisterScreen extends StatefulWidget {
   const VyapariRegisterScreen({super.key});
+
+  @override
+  State<VyapariRegisterScreen> createState() => _VyapariRegisterScreenState();
+}
+
+class _VyapariRegisterScreenState extends State<VyapariRegisterScreen> {
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController phoneController = TextEditingController();
+  final TextEditingController mandiNameController = TextEditingController();
+
+  String countryValue = "";
+  String stateValue = "";
+  String cityValue = "";
+
+  void sendToOtpScreen() {
+    if (nameController.text.isEmpty ||
+        phoneController.text.isEmpty ||
+        phoneController.text.length != 10 ||
+        mandiNameController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please fill all fields correctly")),
+      );
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => OtpVerificationScreen(
+          phoneNumber: phoneController.text,
+          userData: {
+            "name": nameController.text,
+            "phone": phoneController.text,
+            "mandiName": mandiNameController.text,
+            "city": cityValue.isEmpty ? "Not specified" : cityValue,
+            "state": stateValue.isEmpty ? "Uttar Pradesh" : stateValue,
+            "country": countryValue.isEmpty ? "India" : countryValue,
+          },
+          isTrader: true,
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -157,27 +202,68 @@ class VyapariRegisterScreen extends StatelessWidget {
                               const SizedBox(height: 20),
 
                               /// Name
-                              _buildTextField("Name *"),
+                              _buildTextField(
+                                "Name *",
+                                controller: nameController,
+                              ),
 
                               const SizedBox(height: 15),
 
                               /// Phone Number
-                              _buildTextField("Phone Number *", isMobile: true),
+                              _buildTextField(
+                                "Phone Number *",
+                                isMobile: true,
+                                controller: phoneController,
+                              ),
 
                               const SizedBox(height: 15),
 
-                              /// Mandi Name
-                              _buildDropdown("Mandi Name *"),
+                              /// Mandi Name (Textarea)
+                              _buildTextArea(
+                                "Mandi Name *",
+                                controller: mandiNameController,
+                              ),
 
                               const SizedBox(height: 15),
 
-                              /// District
-                              _buildDropdown("District *"),
-
-                              const SizedBox(height: 15),
-
-                              /// State
-                              _buildDropdown("State *"),
+                              /// CSC Picker
+                              CSCPickerPlus(
+                                showStates: true,
+                                showCities: true,
+                                flagState: CountryFlag.DISABLE,
+                                dropdownDecoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(10),
+                                  color: const Color(0xFFF2EEDC),
+                                  border: Border.all(color: Colors.transparent),
+                                ),
+                                selectedItemStyle: const TextStyle(
+                                  color: Colors.black87,
+                                  fontSize: 14,
+                                ),
+                                dropdownItemStyle: const TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 14,
+                                ),
+                                onCountryChanged: (value) {
+                                  setState(() {
+                                    countryValue = value;
+                                  });
+                                },
+                                onStateChanged: (value) {
+                                  if (value != null) {
+                                    setState(() {
+                                      stateValue = value;
+                                    });
+                                  }
+                                },
+                                onCityChanged: (value) {
+                                  if (value != null) {
+                                    setState(() {
+                                      cityValue = value;
+                                    });
+                                  }
+                                },
+                              ),
 
                               const SizedBox(height: 15),
 
@@ -202,7 +288,7 @@ class VyapariRegisterScreen extends StatelessWidget {
                               SizedBox(
                                 width: double.infinity,
                                 child: ElevatedButton(
-                                  onPressed: () {},
+                                  onPressed: sendToOtpScreen,
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: const Color(0xFF104f22),
                                     padding: const EdgeInsets.symmetric(
@@ -252,7 +338,11 @@ class VyapariRegisterScreen extends StatelessWidget {
   }
 
   /// 🔹 Same TextField Method (Reuse from Kisan)
-  Widget _buildTextField(String label, {bool isMobile = false}) {
+  Widget _buildTextField(
+    String label, {
+    bool isMobile = false,
+    required TextEditingController controller,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -286,7 +376,12 @@ class VyapariRegisterScreen extends StatelessWidget {
               if (isMobile) const SizedBox(width: 8),
               Expanded(
                 child: TextField(
+                  controller: controller,
+                  keyboardType:
+                      isMobile ? TextInputType.phone : TextInputType.text,
+                  maxLength: isMobile ? 10 : null,
                   decoration: InputDecoration(
+                    counterText: "",
                     hintText: isMobile
                         ? "Enter mobile number"
                         : "Enter ${label.replaceAll(' *', '')}",
@@ -299,6 +394,41 @@ class VyapariRegisterScreen extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTextArea(
+    String label, {
+    required TextEditingController controller,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFFF2EEDC),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: TextField(
+            controller: controller,
+            maxLines: 3,
+            decoration: InputDecoration(
+              hintText: "Enter ${label.replaceAll(' *', '')}",
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.all(12),
+            ),
           ),
         ),
       ],

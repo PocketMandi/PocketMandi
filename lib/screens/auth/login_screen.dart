@@ -1,9 +1,75 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:poket_mandi/screens/auth/login_otp_screen.dart';
 import 'package:poket_mandi/screens/auth/otp_verification_screen.dart';
 import 'package:poket_mandi/screens/auth/register_screen.dart';
+import 'package:poket_mandi/screens/kisan/kisan_dashboard_screen.dart';
+import 'package:poket_mandi/screens/vyapari/vyapari_dashboard_screen.dart';
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final TextEditingController phoneController = TextEditingController();
+  bool isLoading = false;
+
+  Future<void> sendOtp() async {
+    if (phoneController.text.isEmpty || phoneController.text.length != 10) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please enter a valid 10-digit number")),
+      );
+      return;
+    }
+
+    setState(() => isLoading = true);
+
+    try {
+      final phone = phoneController.text;
+      
+      // Check in both farmers and traders collections
+      final farmerSnapshot = await FirebaseDatabase.instance
+          .ref("farmers")
+          .orderByChild("phone")
+          .equalTo(phone)
+          .once();
+      
+      final traderSnapshot = await FirebaseDatabase.instance
+          .ref("traders")
+          .orderByChild("phone")
+          .equalTo(phone)
+          .once();
+
+      if (farmerSnapshot.snapshot.value == null &&
+          traderSnapshot.snapshot.value == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              "Phone number not registered. Please register first.",
+            ),
+          ),
+        );
+        setState(() => isLoading = false);
+        return;
+      }
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => LoginOtpScreen(phoneNumber: phone),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Error: $e")));
+    }
+
+    setState(() => isLoading = false);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -105,8 +171,11 @@ class LoginScreen extends StatelessWidget {
 
                                 /// 📞 Mobile Number Field
                                 TextField(
+                                  controller: phoneController,
                                   keyboardType: TextInputType.phone,
+                                  maxLength: 10,
                                   decoration: InputDecoration(
+                                    counterText: "",
                                     prefixIcon: Container(
                                       padding: const EdgeInsets.symmetric(
                                         horizontal: 12,
@@ -147,17 +216,7 @@ class LoginScreen extends StatelessWidget {
                                 SizedBox(
                                   width: double.infinity,
                                   child: ElevatedButton(
-                                    onPressed: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) =>
-                                              const OtpVerificationScreen(
-                                                phoneNumber: '7905280912',
-                                              ),
-                                        ),
-                                      );
-                                    },
+                                    onPressed: isLoading ? null : sendOtp,
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: const Color(0xFF104f22),
                                       padding: const EdgeInsets.symmetric(
@@ -167,13 +226,17 @@ class LoginScreen extends StatelessWidget {
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                     ),
-                                    child: const Text(
-                                      "Send OTP",
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        color: Colors.white,
-                                      ),
-                                    ),
+                                    child: isLoading
+                                        ? const CircularProgressIndicator(
+                                            color: Colors.white,
+                                          )
+                                        : const Text(
+                                            "Send OTP",
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              color: Colors.white,
+                                            ),
+                                          ),
                                   ),
                                 ),
 

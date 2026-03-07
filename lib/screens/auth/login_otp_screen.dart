@@ -3,109 +3,111 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:poket_mandi/screens/kisan/kisan_dashboard_screen.dart';
 import 'package:poket_mandi/screens/vyapari/vyapari_dashboard_screen.dart';
 
-class OtpVerificationScreen extends StatefulWidget {
+class LoginOtpScreen extends StatefulWidget {
   final String phoneNumber;
-  final Map<String, String>? userData;
-  final bool isTrader;
 
-  const OtpVerificationScreen({
-    super.key,
-    required this.phoneNumber,
-    this.userData,
-    this.isTrader = false,
-  });
+  const LoginOtpScreen({super.key, required this.phoneNumber});
 
   @override
-  State<OtpVerificationScreen> createState() => _OtpVerificationScreenState();
+  State<LoginOtpScreen> createState() => _LoginOtpScreenState();
 }
 
-class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
+class _LoginOtpScreenState extends State<LoginOtpScreen> {
   final List<TextEditingController> controllers = List.generate(
     6,
     (_) => TextEditingController(),
   );
-  final List<FocusNode> focusNodes = List.generate(6, (_) => FocusNode());
   bool isLoading = false;
 
-  @override
-  void dispose() {
-    for (var controller in controllers) {
-      controller.dispose();
-    }
-    for (var focusNode in focusNodes) {
-      focusNode.dispose();
-    }
-    super.dispose();
-  }
-
-  Future<void> verifyOtpAndRegister() async {
+  Future<void> verifyOtpAndLogin() async {
     String enteredOtp = controllers.map((c) => c.text).join();
 
     if (enteredOtp != "123456") {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Invalid OTP")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Invalid OTP")),
+      );
       return;
     }
 
-    if (widget.userData != null) {
-      setState(() => isLoading = true);
+    setState(() => isLoading = true);
 
-      try {
-        final String collection = widget.isTrader ? "traders" : "farmers";
-        final DatabaseReference ref = FirebaseDatabase.instance.ref(collection);
+    try {
+      // Check in farmers collection
+      final farmerSnapshot = await FirebaseDatabase.instance
+          .ref("farmers")
+          .orderByChild("phone")
+          .equalTo(widget.phoneNumber)
+          .once();
 
-        // Check if phone number already exists
-        final snapshot = await ref
-            .orderByChild("phone")
-            .equalTo(widget.userData!["phone"])
-            .once();
+      // Check in traders collection
+      final traderSnapshot = await FirebaseDatabase.instance
+          .ref("traders")
+          .orderByChild("phone")
+          .equalTo(widget.phoneNumber)
+          .once();
 
-        if (snapshot.snapshot.value != null) {
-          setState(() => isLoading = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                "This phone number is already registered as ${widget.isTrader ? 'Trader' : 'Farmer'}. Please login instead.",
-              ),
+      bool isFarmer = farmerSnapshot.snapshot.value != null;
+      bool isTrader = traderSnapshot.snapshot.value != null;
+
+      if (isFarmer && isTrader) {
+        // User has both roles - show selection dialog
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text("Select Role"),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  title: const Text("Farmer"),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _navigateToDashboard("farmer");
+                  },
+                ),
+                ListTile(
+                  title: const Text("Trader"),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _navigateToDashboard("trader");
+                  },
+                ),
+              ],
             ),
-          );
-          return;
-        }
-
-        final newRef = ref.push();
-        final dataToSave = {
-          ...widget.userData!,
-          "id": newRef.key,
-          "profileImage": "https://i.pravatar.cc/300",
-          "role": widget.isTrader ? "trader" : "farmer",
-          "isBlocked": false,
-          "kycStatus": "pending",
-          "createdAt": DateTime.now().toIso8601String(),
-        };
-        await newRef.set(dataToSave);
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(
-            builder: (_) => widget.isTrader
-                ? VyapariDashboardScreen()
-                : KisanDashboardScreen(),
           ),
-          (route) => false,
         );
-      } catch (e) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Error: $e")));
+      } else if (isFarmer) {
+        _navigateToDashboard("farmer");
+      } else if (isTrader) {
+        _navigateToDashboard("trader");
       }
-
-      setState(() => isLoading = false);
-    } else {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => KisanDashboardScreen()),
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error: $e")),
       );
     }
+
+    setState(() => isLoading = false);
+  }
+
+  void _navigateToDashboard(String role) {
+    Widget dashboard;
+    if (role == "farmer") {
+      dashboard = KisanDashboardScreen();
+    } else if (role == "trader") {
+      dashboard = VyapariDashboardScreen();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Invalid user role")),
+      );
+      return;
+    }
+
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => dashboard),
+      (route) => false,
+    );
   }
 
   @override
@@ -113,18 +115,13 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          /// 🌾 Background
           SizedBox.expand(
             child: Image.asset("assets/images/login_bg.jpg", fit: BoxFit.cover),
           ),
-
-          /// 🌫 Overlay
           Container(color: Colors.black.withOpacity(0.35)),
-
           SafeArea(
             child: Column(
               children: [
-                /// 🔙 Back Button
                 Align(
                   alignment: Alignment.topLeft,
                   child: Padding(
@@ -141,13 +138,11 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                     ),
                   ),
                 ),
-
                 Expanded(
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
                     child: Column(
                       children: [
-                        /// 🔰 Logo
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -170,9 +165,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                             ),
                           ],
                         ),
-
                         const SizedBox(height: 30),
-
                         const Text(
                           "Verify OTP",
                           style: TextStyle(
@@ -181,9 +174,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                             color: Colors.white,
                           ),
                         ),
-
                         const SizedBox(height: 50),
-
                         Text(
                           "Enter the 6-digit OTP sent to +91${widget.phoneNumber}",
                           textAlign: TextAlign.center,
@@ -192,10 +183,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                             color: Colors.white70,
                           ),
                         ),
-
                         const SizedBox(height: 25),
-
-                        /// OTP Boxes
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: List.generate(6, (index) {
@@ -204,21 +192,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                               height: 50,
                               child: TextField(
                                 controller: controllers[index],
-                                focusNode: focusNodes[index],
                                 keyboardType: TextInputType.number,
                                 textAlign: TextAlign.center,
                                 maxLength: 1,
-                                onChanged: (value) {
-                                  if (value.isNotEmpty && index < 5) {
-                                    FocusScope.of(
-                                      context,
-                                    ).requestFocus(focusNodes[index + 1]);
-                                  } else if (value.isEmpty && index > 0) {
-                                    FocusScope.of(
-                                      context,
-                                    ).requestFocus(focusNodes[index - 1]);
-                                  }
-                                },
                                 decoration: InputDecoration(
                                   counterText: "",
                                   filled: true,
@@ -232,14 +208,11 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                             );
                           }),
                         ),
-
                         const SizedBox(height: 25),
-
-                        /// Verify Button
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
-                            onPressed: isLoading ? null : verifyOtpAndRegister,
+                            onPressed: isLoading ? null : verifyOtpAndLogin,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF104f22),
                               padding: const EdgeInsets.symmetric(vertical: 14),
@@ -249,8 +222,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                             ),
                             child: isLoading
                                 ? const CircularProgressIndicator(
-                                    color: Colors.white,
-                                  )
+                                    color: Colors.white)
                                 : const Text(
                                     "Verify",
                                     style: TextStyle(
@@ -260,15 +232,11 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                                   ),
                           ),
                         ),
-
                         const SizedBox(height: 15),
-
-                        /// Resend Text
                         const Text(
                           "Didn't receive the OTP? Resend in 00:58",
                           style: TextStyle(fontSize: 13, color: Colors.white70),
                         ),
-
                         const SizedBox(height: 40),
                       ],
                     ),

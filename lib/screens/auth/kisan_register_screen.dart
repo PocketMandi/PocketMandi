@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:csc_picker_plus/csc_picker_plus.dart';
+import 'package:poket_mandi/screens/auth/otp_verification_screen.dart';
 
 class KisanRegisterScreen extends StatefulWidget {
   const KisanRegisterScreen({super.key});
@@ -12,51 +14,46 @@ class _KisanRegisterScreenState extends State<KisanRegisterScreen> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController villageController = TextEditingController();
-  final TextEditingController districtController = TextEditingController();
-  final TextEditingController stateController = TextEditingController();
 
-  String? selectedDistrict;
-  String? selectedState;
+  String countryValue = "";
+  String stateValue = "";
   bool isLoading = false;
 
-  Future<void> registerFarmer() async {
+  void sendToOtpScreen() {
+    print("Register button clicked");
+    print("Name: ${nameController.text}");
+    print("Phone: ${phoneController.text}");
+    print("Phone length: ${phoneController.text.length}");
+    print("Village: ${villageController.text}");
+    
     if (nameController.text.isEmpty ||
         phoneController.text.isEmpty ||
+        phoneController.text.length != 10 ||
         villageController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please fill all fields")),
-      );
+      print("Validation failed");
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(
+          const SnackBar(content: Text("Please fill all fields correctly")));
       return;
     }
 
-    setState(() => isLoading = true);
-
-    try {
-      await FirebaseFirestore.instance.collection("users").add({
-        "name": nameController.text,
-        "phone": phoneController.text,
-        "village": villageController.text,
-        "district": districtController.text.isEmpty ? "Lucknow" : districtController.text,
-        "state": stateController.text.isEmpty ? "Uttar Pradesh" : stateController.text,
-        "profileImage": "https://i.pravatar.cc/300",
-        "role": "farmer",
-        "isBlocked": false,
-        "kycStatus": "pending",
-        "createdAt": FieldValue.serverTimestamp(),
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Farmer Registered Successfully")),
-      );
-
-      Navigator.pop(context);
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $e")),
-      );
-    }
-
-    setState(() => isLoading = false);
+    print("Navigating to OTP screen");
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => OtpVerificationScreen(
+          phoneNumber: phoneController.text,
+          userData: {
+            "name": nameController.text,
+            "phone": phoneController.text,
+            "village": villageController.text,
+            "state": stateValue.isEmpty ? "Uttar Pradesh" : stateValue,
+            "country": countryValue.isEmpty ? "India" : countryValue,
+          },
+        ),
+      ),
+    );
   }
 
   @override
@@ -213,8 +210,10 @@ class _KisanRegisterScreenState extends State<KisanRegisterScreen> {
                               const SizedBox(height: 20),
 
                               /// Name
-                              _buildTextField("Name *",
-                                  controller: nameController),
+                              _buildTextField(
+                                "Name *",
+                                controller: nameController,
+                              ),
 
                               const SizedBox(height: 15),
 
@@ -228,20 +227,44 @@ class _KisanRegisterScreenState extends State<KisanRegisterScreen> {
                               const SizedBox(height: 15),
 
                               /// Village
-                              _buildTextField("Village *",
-                                  controller: villageController),
+                              _buildTextField(
+                                "Village *",
+                                controller: villageController,
+                              ),
 
                               const SizedBox(height: 15),
 
-                              /// District
-                              _buildTextField("District *",
-                                  controller: districtController),
-
-                              const SizedBox(height: 15),
-
-                              /// State
-                              _buildTextField("State *",
-                                  controller: stateController),
+                              /// CSC Picker
+                              CSCPickerPlus(
+                                showStates: true,
+                                showCities: false,
+                                flagState: CountryFlag.DISABLE,
+                                dropdownDecoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(10),
+                                  color: const Color(0xFFF2EEDC),
+                                  border: Border.all(color: Colors.transparent),
+                                ),
+                                selectedItemStyle: const TextStyle(
+                                  color: Colors.black87,
+                                  fontSize: 14,
+                                ),
+                                dropdownItemStyle: const TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 14,
+                                ),
+                                onCountryChanged: (value) {
+                                  setState(() {
+                                    countryValue = value;
+                                  });
+                                },
+                                onStateChanged: (value) {
+                                  if (value != null) {
+                                    setState(() {
+                                      stateValue = value;
+                                    });
+                                  }
+                                },
+                              ),
 
                               const SizedBox(height: 15),
 
@@ -266,7 +289,7 @@ class _KisanRegisterScreenState extends State<KisanRegisterScreen> {
                               SizedBox(
                                 width: double.infinity,
                                 child: ElevatedButton(
-                                  onPressed: isLoading ? null : registerFarmer,
+                                  onPressed: sendToOtpScreen,
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: const Color(0xFF104f22),
                                     padding: const EdgeInsets.symmetric(
@@ -276,16 +299,13 @@ class _KisanRegisterScreenState extends State<KisanRegisterScreen> {
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                   ),
-                                  child: isLoading
-                                      ? const CircularProgressIndicator(
-                                          color: Colors.white)
-                                      : const Text(
-                                          "Register",
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            color: Colors.white,
-                                          ),
-                                        ),
+                                  child: const Text(
+                                    "Register",
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      color: Colors.white,
+                                    ),
+                                  ),
                                 ),
                               ),
 
@@ -319,8 +339,11 @@ class _KisanRegisterScreenState extends State<KisanRegisterScreen> {
   }
 
   /// 🔹 Reusable TextField
-  Widget _buildTextField(String label,
-      {bool isMobile = false, required TextEditingController controller}) {
+  Widget _buildTextField(
+    String label, {
+    bool isMobile = false,
+    required TextEditingController controller,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -355,7 +378,11 @@ class _KisanRegisterScreenState extends State<KisanRegisterScreen> {
               Expanded(
                 child: TextField(
                   controller: controller,
+                  keyboardType:
+                      isMobile ? TextInputType.phone : TextInputType.text,
+                  maxLength: isMobile ? 10 : null,
                   decoration: InputDecoration(
+                    counterText: "",
                     hintText: isMobile
                         ? "Enter mobile number"
                         : "Enter ${label.replaceAll(' *', '')}",
