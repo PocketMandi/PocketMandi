@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:poket_mandi/screens/kisan/kisan_dashboard_screen.dart';
 import 'package:poket_mandi/screens/vyapari/vyapari_dashboard_screen.dart';
 
@@ -82,6 +83,11 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
           "createdAt": DateTime.now().toIso8601String(),
         });
 
+        // Save user ID locally
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('user_id', newRef.key!);
+        await prefs.setString('user_role', widget.isTrader ? 'trader' : 'farmer');
+
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(
@@ -154,7 +160,25 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     setState(() => isLoading = false);
   }
 
-  void _navigateToDashboard(String role) {
+  void _navigateToDashboard(String role) async {
+    // Get user ID from Firebase and save locally
+    final collection = role == "farmer" ? "farmers" : "traders";
+    final snapshot = await FirebaseDatabase.instance
+        .ref(collection)
+        .orderByChild("phone")
+        .equalTo(widget.phoneNumber)
+        .once();
+
+    if (snapshot.snapshot.value != null) {
+      final data = snapshot.snapshot.value as Map;
+      final userId = data.keys.first;
+      
+      // Save user ID locally
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('user_id', userId);
+      await prefs.setString('user_role', role);
+    }
+
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(

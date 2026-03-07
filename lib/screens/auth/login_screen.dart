@@ -105,11 +105,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 Expanded(
-                  child: Center(
+                  child: SingleChildScrollView(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
                       child: Column(
-                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,

@@ -1,9 +1,78 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:poket_mandi/main.dart';
 import 'package:poket_mandi/screens/kisan/add_new_crop_screen.dart';
 import 'package:poket_mandi/screens/kisan/selected_crop_screen.dart';
 
-class KisanDashboardScreen extends StatelessWidget {
+class KisanDashboardScreen extends StatefulWidget {
   const KisanDashboardScreen({super.key});
+
+  @override
+  State<KisanDashboardScreen> createState() => _KisanDashboardScreenState();
+}
+
+class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
+  String farmerName = "Kisan";
+  String farmerPhone = "";
+  String farmerImage = "https://i.pravatar.cc/300";
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFarmerData();
+  }
+
+  Future<void> _loadFarmerData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('user_id');
+
+    if (userId != null) {
+      final snapshot = await FirebaseDatabase.instance
+          .ref('farmers/$userId')
+          .once();
+
+      if (snapshot.snapshot.value != null) {
+        final data = snapshot.snapshot.value as Map;
+        print('Farmer data: $data');
+        setState(() {
+          farmerName = data['name'] ?? 'Kisan';
+          farmerPhone = data['phone'] ?? '';
+          farmerImage = data['profileImage'] ?? 'https://i.pravatar.cc/300';
+        });
+      }
+    }
+  }
+
+  Future<void> _logout() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Logout"),
+        content: const Text("Are you sure you want to logout?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("No"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Yes", style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const AuthCheck()),
+        (route) => false,
+      );
+    }
+  }
 
   final List<Map<String, String>> crops = const [
     {"name": "Wheat", "image": "assets/images/login_bg.jpg"},
@@ -17,10 +86,64 @@ class KisanDashboardScreen extends StatelessWidget {
   ];
 
   @override
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
+      drawer: Drawer(
+        child: Column(
+          children: [
+            UserAccountsDrawerHeader(
+              decoration: const BoxDecoration(color: Color(0xFF104f22)),
+              currentAccountPicture: CircleAvatar(
+                backgroundImage: NetworkImage(farmerImage),
+              ),
+              accountName: Text(
+                farmerName,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              accountEmail: Text(
+                farmerPhone.isEmpty ? "Loading..." : farmerPhone,
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.person),
+              title: const Text("Profile"),
+              onTap: () {},
+            ),
+            ListTile(
+              leading: const Icon(Icons.shopping_bag),
+              title: const Text("My Orders"),
+              onTap: () {},
+            ),
+            ListTile(
+              leading: const Icon(Icons.history),
+              title: const Text("History"),
+              onTap: () {},
+            ),
+            ListTile(
+              leading: const Icon(Icons.settings),
+              title: const Text("Settings"),
+              onTap: () {},
+            ),
+            ListTile(
+              leading: const Icon(Icons.help),
+              title: const Text("Help & Support"),
+              onTap: () {},
+            ),
+            const Spacer(),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.logout, color: Colors.red),
+              title: const Text("Logout", style: TextStyle(color: Colors.red)),
+              onTap: _logout,
+            ),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
       body: Column(
         children: [
           /// ================= TOP HEADER =================
@@ -55,13 +178,25 @@ class KisanDashboardScreen extends StatelessWidget {
 
               SafeArea(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  padding: const EdgeInsets.symmetric(horizontal: 15),
                   child: Column(
                     children: [
-                      SizedBox(height: 30),
+                      const SizedBox(height: 20),
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
+                          Builder(
+                            builder: (context) => IconButton(
+                              onPressed: () {
+                                Scaffold.of(context).openDrawer();
+                              },
+                              icon: const Icon(
+                                Icons.menu,
+                                color: Colors.white,
+                                size: 28,
+                              ),
+                            ),
+                          ),
+                          const Spacer(),
                           ClipOval(
                             child: Image.asset(
                               "assets/images/logof.png",
@@ -78,6 +213,8 @@ class KisanDashboardScreen extends StatelessWidget {
                               color: Colors.white,
                             ),
                           ),
+                          const Spacer(),
+                          const SizedBox(width: 48),
                         ],
                       ),
 
@@ -90,27 +227,30 @@ class KisanDashboardScreen extends StatelessWidget {
                         children: [
                           Image.asset("assets/images/farmer2.png", height: 120),
 
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: const [
-                              const SizedBox(height: 8),
-                              Text(
-                                "Kisan Dashboard",
-                                style: TextStyle(
-                                  fontSize: 25,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                const SizedBox(height: 8),
+                                const Text(
+                                  "Kisan Dashboard",
+                                  style: TextStyle(
+                                    fontSize: 25,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
                                 ),
-                              ),
-                              SizedBox(height: 5),
-                              Text(
-                                "Welcome back, Kisan Ji",
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.white70,
+                                const SizedBox(height: 5),
+                                Text(
+                                  "Welcome back, $farmerName Ji",
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.white70,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ],
                       ),
