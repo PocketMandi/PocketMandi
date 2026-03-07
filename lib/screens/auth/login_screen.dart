@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'package:poket_mandi/screens/auth/login_otp_screen.dart';
 import 'package:poket_mandi/screens/auth/otp_verification_screen.dart';
 import 'package:poket_mandi/screens/auth/register_screen.dart';
-import 'package:poket_mandi/screens/kisan/kisan_dashboard_screen.dart';
-import 'package:poket_mandi/screens/vyapari/vyapari_dashboard_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -16,6 +13,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController phoneController = TextEditingController();
   bool isLoading = false;
+  String? selectedRole;
 
   Future<void> sendOtp() async {
     if (phoneController.text.isEmpty || phoneController.text.length != 10) {
@@ -25,30 +23,31 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
+    if (selectedRole == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please select your role")),
+      );
+      return;
+    }
+
     setState(() => isLoading = true);
 
     try {
       final phone = phoneController.text;
+      final collection = selectedRole == "Farmer" ? "farmers" : "traders";
       
-      // Check in both farmers and traders collections
-      final farmerSnapshot = await FirebaseDatabase.instance
-          .ref("farmers")
-          .orderByChild("phone")
-          .equalTo(phone)
-          .once();
-      
-      final traderSnapshot = await FirebaseDatabase.instance
-          .ref("traders")
+      // Check in selected role collection
+      final snapshot = await FirebaseDatabase.instance
+          .ref(collection)
           .orderByChild("phone")
           .equalTo(phone)
           .once();
 
-      if (farmerSnapshot.snapshot.value == null &&
-          traderSnapshot.snapshot.value == null) {
+      if (snapshot.snapshot.value == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text(
-              "Phone number not registered. Please register first.",
+              "Phone number not registered as $selectedRole. Please register first.",
             ),
           ),
         );
@@ -59,7 +58,7 @@ class _LoginScreenState extends State<LoginScreen> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => LoginOtpScreen(phoneNumber: phone),
+          builder: (_) => OtpVerificationScreen(phoneNumber: phone),
         ),
       );
     } catch (e) {
@@ -165,6 +164,41 @@ class _LoginScreenState extends State<LoginScreen> {
                                     fontSize: 14,
                                     color: Colors.black54,
                                   ),
+                                ),
+
+                                const SizedBox(height: 20),
+
+                                /// Role Dropdown
+                                DropdownButtonFormField<String>(
+                                  value: selectedRole,
+                                  decoration: InputDecoration(
+                                    filled: true,
+                                    fillColor: const Color(0xFFF2EEDC),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: BorderSide.none,
+                                    ),
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 14,
+                                    ),
+                                  ),
+                                  hint: const Text("Select Role"),
+                                  items: const [
+                                    DropdownMenuItem(
+                                      value: "Farmer",
+                                      child: Text("Farmer"),
+                                    ),
+                                    DropdownMenuItem(
+                                      value: "Trader",
+                                      child: Text("Trader"),
+                                    ),
+                                  ],
+                                  onChanged: (value) {
+                                    setState(() {
+                                      selectedRole = value;
+                                    });
+                                  },
                                 ),
 
                                 const SizedBox(height: 20),

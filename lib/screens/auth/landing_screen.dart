@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:poket_mandi/screens/admin/admin_dashboard_screen.dart';
 import 'package:poket_mandi/screens/auth/login_screen.dart';
+import 'package:poket_mandi/screens/auth/register_screen.dart';
 
 class LandingScreen extends StatelessWidget {
   const LandingScreen({super.key});
@@ -79,7 +80,9 @@ class LandingScreen extends StatelessWidget {
                               },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFF104f22),
-                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
@@ -101,11 +104,18 @@ class LandingScreen extends StatelessWidget {
                           Expanded(
                             child: ElevatedButton(
                               onPressed: () {
-                                // Navigate to Register Screen
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const RegisterScreen(),
+                                  ),
+                                );
                               },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),

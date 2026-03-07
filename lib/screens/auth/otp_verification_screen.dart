@@ -42,20 +42,19 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     String enteredOtp = controllers.map((c) => c.text).join();
 
     if (enteredOtp != "123456") {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Invalid OTP")));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text("Invalid OTP")));
       return;
     }
 
-    if (widget.userData != null) {
-      setState(() => isLoading = true);
+    setState(() => isLoading = true);
 
+    // Registration flow
+    if (widget.userData != null) {
       try {
         final String collection = widget.isTrader ? "traders" : "farmers";
         final DatabaseReference ref = FirebaseDatabase.instance.ref(collection);
 
-        // Check if phone number already exists
         final snapshot = await ref
             .orderByChild("phone")
             .equalTo(widget.userData!["phone"])
@@ -66,15 +65,14 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                "This phone number is already registered as ${widget.isTrader ? 'Trader' : 'Farmer'}. Please login instead.",
-              ),
+                "This phone number is already registered as ${widget.isTrader ? 'Trader' : 'Farmer'}. Please login instead."),
             ),
           );
           return;
         }
 
         final newRef = ref.push();
-        final dataToSave = {
+        await newRef.set({
           ...widget.userData!,
           "id": newRef.key,
           "profileImage": "https://i.pravatar.cc/300",
@@ -82,8 +80,8 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
           "isBlocked": false,
           "kycStatus": "pending",
           "createdAt": DateTime.now().toIso8601String(),
-        };
-        await newRef.set(dataToSave);
+        });
+
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(
@@ -94,18 +92,77 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
           (route) => false,
         );
       } catch (e) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Error: $e")));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text("Error: $e")));
       }
-
-      setState(() => isLoading = false);
-    } else {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => KisanDashboardScreen()),
-      );
     }
+    // Login flow
+    else {
+      try {
+        final farmerSnapshot = await FirebaseDatabase.instance
+            .ref("farmers")
+            .orderByChild("phone")
+            .equalTo(widget.phoneNumber)
+            .once();
+
+        final traderSnapshot = await FirebaseDatabase.instance
+            .ref("traders")
+            .orderByChild("phone")
+            .equalTo(widget.phoneNumber)
+            .once();
+
+        bool isFarmer = farmerSnapshot.snapshot.value != null;
+        bool isTrader = traderSnapshot.snapshot.value != null;
+
+        if (isFarmer && isTrader) {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text("Select Role"),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ListTile(
+                    title: const Text("Farmer"),
+                    onTap: () {
+                      Navigator.pop(context);
+                      _navigateToDashboard("farmer");
+                    },
+                  ),
+                  ListTile(
+                    title: const Text("Trader"),
+                    onTap: () {
+                      Navigator.pop(context);
+                      _navigateToDashboard("trader");
+                    },
+                  ),
+                ],
+              ),
+            ),
+          );
+        } else if (isFarmer) {
+          _navigateToDashboard("farmer");
+        } else if (isTrader) {
+          _navigateToDashboard("trader");
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text("Error: $e")));
+      }
+    }
+
+    setState(() => isLoading = false);
+  }
+
+  void _navigateToDashboard(String role) {
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(
+        builder: (_) =>
+            role == "farmer" ? KisanDashboardScreen() : VyapariDashboardScreen(),
+      ),
+      (route) => false,
+    );
   }
 
   @override
@@ -210,13 +267,11 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                                 maxLength: 1,
                                 onChanged: (value) {
                                   if (value.isNotEmpty && index < 5) {
-                                    FocusScope.of(
-                                      context,
-                                    ).requestFocus(focusNodes[index + 1]);
+                                    FocusScope.of(context)
+                                        .requestFocus(focusNodes[index + 1]);
                                   } else if (value.isEmpty && index > 0) {
-                                    FocusScope.of(
-                                      context,
-                                    ).requestFocus(focusNodes[index - 1]);
+                                    FocusScope.of(context)
+                                        .requestFocus(focusNodes[index - 1]);
                                   }
                                 },
                                 decoration: InputDecoration(
