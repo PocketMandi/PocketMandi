@@ -5,12 +5,15 @@ import 'package:poket_mandi/screens/kisan/kisan_dashboard_screen.dart';
 import 'package:poket_mandi/screens/vyapari/vyapari_dashboard_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+import 'package:poket_mandi/utils/add_crops_to_firebase.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  // Uncomment below line to add crops to Firebase (run once only)
+  // await addAllCropsToFirebase();
+
   runApp(const MyApp());
 }
 
@@ -70,10 +73,6 @@ class _AuthCheckState extends State<AuthCheck> {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(
-        child: CircularProgressIndicator(),
-      ),
-    );
+    return const Scaffold(body: Center(child: CircularProgressIndicator()));
   }
 }
