@@ -76,7 +76,6 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         await newRef.set({
           ...widget.userData!,
           "id": newRef.key,
-          "profileImage": "https://i.pravatar.cc/300",
           "role": widget.isTrader ? "trader" : "farmer",
           "isBlocked": false,
           "kycStatus": "pending",
