@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:poket_mandi/main.dart';
 import 'package:poket_mandi/screens/kisan/selected_crop_screen.dart';
 import 'package:poket_mandi/screens/vyapari/crop_detail_screen.dart';
 import 'package:poket_mandi/screens/vyapari/crop_not_listed_screen.dart';
@@ -14,6 +17,65 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
   String? selectedCrop;
   String? selectedLocation;
   String? selectedQuality;
+  String traderName = "Vyapari";
+  String traderPhone = "";
+  String traderImage = "https://i.pravatar.cc/300";
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTraderData();
+  }
+
+  Future<void> _loadTraderData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('user_id');
+
+    if (userId != null) {
+      final snapshot = await FirebaseDatabase.instance
+          .ref('users/$userId')
+          .once();
+
+      if (snapshot.snapshot.value != null) {
+        final data = snapshot.snapshot.value as Map;
+        setState(() {
+          traderName = data['name'] ?? 'Vyapari';
+          traderPhone = data['phone'] ?? '';
+          traderImage = data['profileImage'] ?? 'https://i.pravatar.cc/300';
+        });
+      }
+    }
+  }
+
+  Future<void> _logout() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Logout"),
+        content: const Text("Are you sure you want to logout?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("No"),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Yes", style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.clear();
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const AuthCheck()),
+        (route) => false,
+      );
+    }
+  }
 
   List<Map<String, String>> get crops => [
     {"name": "Wheat", "image": "assets/images/login_bg.jpg"},
@@ -30,6 +92,61 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6F5),
+      drawer: Drawer(
+        child: Column(
+          children: [
+            UserAccountsDrawerHeader(
+              decoration: const BoxDecoration(color: Color(0xFF104f22)),
+              currentAccountPicture: CircleAvatar(
+                backgroundImage: NetworkImage(traderImage),
+              ),
+              accountName: Text(
+                traderName,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              accountEmail: Text(
+                traderPhone.isEmpty ? "Loading..." : traderPhone,
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.person),
+              title: const Text("Profile"),
+              onTap: () {},
+            ),
+            ListTile(
+              leading: const Icon(Icons.shopping_bag),
+              title: const Text("My Orders"),
+              onTap: () {},
+            ),
+            ListTile(
+              leading: const Icon(Icons.history),
+              title: const Text("History"),
+              onTap: () {},
+            ),
+            ListTile(
+              leading: const Icon(Icons.settings),
+              title: const Text("Settings"),
+              onTap: () {},
+            ),
+            ListTile(
+              leading: const Icon(Icons.help),
+              title: const Text("Help & Support"),
+              onTap: () {},
+            ),
+            const Spacer(),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.logout, color: Colors.red),
+              title: const Text("Logout", style: TextStyle(color: Colors.red)),
+              onTap: _logout,
+            ),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
       body: Stack(
         children: [
           /// 🌾 Header Background
@@ -66,14 +183,41 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
                 children: [
                   const SizedBox(height: 20),
 
-                  /// Title
-                  const Text(
-                    "Welcome Vyapari",
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
+                  /// Header with Menu Icon
+                  Row(
+                    children: [
+                      Builder(
+                        builder: (context) => Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.3),
+                            shape: BoxShape.circle,
+                          ),
+                          child: IconButton(
+                            onPressed: () {
+                              Scaffold.of(context).openDrawer();
+                            },
+                            icon: const Icon(
+                              Icons.menu,
+                              color: Colors.white,
+                              size: 28,
+                            ),
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: Text(
+                          "Welcome $traderName",
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 48),
+                    ],
                   ),
 
                   const SizedBox(height: 30),

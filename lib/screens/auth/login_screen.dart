@@ -13,7 +13,6 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController phoneController = TextEditingController();
   bool isLoading = false;
-  String? selectedRole;
 
   Future<void> sendOtp() async {
     if (phoneController.text.isEmpty || phoneController.text.length != 10) {
@@ -23,31 +22,23 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    if (selectedRole == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please select your role")),
-      );
-      return;
-    }
-
     setState(() => isLoading = true);
 
     try {
       final phone = phoneController.text;
-      final collection = selectedRole == "Farmer" ? "farmers" : "traders";
       
-      // Check in selected role collection
+      // Check if phone exists in users collection
       final snapshot = await FirebaseDatabase.instance
-          .ref(collection)
+          .ref("users")
           .orderByChild("phone")
           .equalTo(phone)
           .once();
 
       if (snapshot.snapshot.value == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text(
-              "Phone number not registered as $selectedRole. Please register first.",
+              "Phone number not registered. Please register first.",
             ),
           ),
         );
@@ -163,41 +154,6 @@ class _LoginScreenState extends State<LoginScreen> {
                                     fontSize: 14,
                                     color: Colors.black54,
                                   ),
-                                ),
-
-                                const SizedBox(height: 20),
-
-                                /// Role Dropdown
-                                DropdownButtonFormField<String>(
-                                  value: selectedRole,
-                                  decoration: InputDecoration(
-                                    filled: true,
-                                    fillColor: const Color(0xFFF2EEDC),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                      borderSide: BorderSide.none,
-                                    ),
-                                    contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 14,
-                                    ),
-                                  ),
-                                  hint: const Text("Select Role"),
-                                  items: const [
-                                    DropdownMenuItem(
-                                      value: "Farmer",
-                                      child: Text("Farmer"),
-                                    ),
-                                    DropdownMenuItem(
-                                      value: "Trader",
-                                      child: Text("Trader"),
-                                    ),
-                                  ],
-                                  onChanged: (value) {
-                                    setState(() {
-                                      selectedRole = value;
-                                    });
-                                  },
                                 ),
 
                                 const SizedBox(height: 20),

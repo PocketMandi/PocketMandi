@@ -32,7 +32,7 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
 
     if (userId != null) {
       final snapshot = await FirebaseDatabase.instance
-          .ref('farmers/$userId')
+          .ref('users/$userId')
           .once();
 
       if (snapshot.snapshot.value != null) {
@@ -53,7 +53,7 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
 
     if (userId != null) {
       final snapshot = await FirebaseDatabase.instance
-          .ref('farmers/$userId/add_new_crop')
+          .ref('users/$userId/add_new_crop')
           .once();
 
       if (snapshot.snapshot.value != null) {

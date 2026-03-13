@@ -53,8 +53,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     // Registration flow
     if (widget.userData != null) {
       try {
-        final String collection = widget.isTrader ? "traders" : "farmers";
-        final DatabaseReference ref = FirebaseDatabase.instance.ref(collection);
+        final DatabaseReference ref = FirebaseDatabase.instance.ref("users");
 
         final snapshot = await ref
             .orderByChild("phone")
@@ -64,9 +63,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         if (snapshot.snapshot.value != null) {
           setState(() => isLoading = false);
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
+            const SnackBar(
               content: Text(
-                "This phone number is already registered as ${widget.isTrader ? 'Trader' : 'Farmer'}. Please login instead."),
+                "This phone number is already registered. Please login instead."),
             ),
           );
           return;
@@ -104,51 +103,38 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     // Login flow
     else {
       try {
-        final farmerSnapshot = await FirebaseDatabase.instance
-            .ref("farmers")
+        final snapshot = await FirebaseDatabase.instance
+            .ref("users")
             .orderByChild("phone")
             .equalTo(widget.phoneNumber)
             .once();
 
-        final traderSnapshot = await FirebaseDatabase.instance
-            .ref("traders")
-            .orderByChild("phone")
-            .equalTo(widget.phoneNumber)
-            .once();
+        if (snapshot.snapshot.value != null) {
+          final data = snapshot.snapshot.value as Map;
+          final userId = data.keys.first;
+          final userData = data.values.first as Map;
+          final role = userData['role'] as String;
 
-        bool isFarmer = farmerSnapshot.snapshot.value != null;
-        bool isTrader = traderSnapshot.snapshot.value != null;
+          // Save user ID locally
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('user_id', userId);
+          await prefs.setString('user_role', role);
 
-        if (isFarmer && isTrader) {
-          showDialog(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: const Text("Select Role"),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ListTile(
-                    title: const Text("Farmer"),
-                    onTap: () {
-                      Navigator.pop(context);
-                      _navigateToDashboard("farmer");
-                    },
-                  ),
-                  ListTile(
-                    title: const Text("Trader"),
-                    onTap: () {
-                      Navigator.pop(context);
-                      _navigateToDashboard("trader");
-                    },
-                  ),
-                ],
-              ),
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(
+              builder: (_) => role == "farmer"
+                  ? KisanDashboardScreen()
+                  : VyapariDashboardScreen(),
+            ),
+            (route) => false,
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Phone number not registered. Please register first."),
             ),
           );
-        } else if (isFarmer) {
-          _navigateToDashboard("farmer");
-        } else if (isTrader) {
-          _navigateToDashboard("trader");
         }
       } catch (e) {
         ScaffoldMessenger.of(context)
@@ -157,35 +143,6 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     }
 
     setState(() => isLoading = false);
-  }
-
-  void _navigateToDashboard(String role) async {
-    // Get user ID from Firebase and save locally
-    final collection = role == "farmer" ? "farmers" : "traders";
-    final snapshot = await FirebaseDatabase.instance
-        .ref(collection)
-        .orderByChild("phone")
-        .equalTo(widget.phoneNumber)
-        .once();
-
-    if (snapshot.snapshot.value != null) {
-      final data = snapshot.snapshot.value as Map;
-      final userId = data.keys.first;
-      
-      // Save user ID locally
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('user_id', userId);
-      await prefs.setString('user_role', role);
-    }
-
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(
-        builder: (_) =>
-            role == "farmer" ? KisanDashboardScreen() : VyapariDashboardScreen(),
-      ),
-      (route) => false,
-    );
   }
 
   @override

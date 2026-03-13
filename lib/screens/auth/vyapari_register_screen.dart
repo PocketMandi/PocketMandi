@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:csc_picker_plus/csc_picker_plus.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 import 'package:poket_mandi/screens/auth/otp_verification_screen.dart';
 
 class VyapariRegisterScreen extends StatefulWidget {
@@ -14,11 +17,52 @@ class _VyapariRegisterScreenState extends State<VyapariRegisterScreen> {
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController mandiNameController = TextEditingController();
 
-  String countryValue = "";
   String stateValue = "";
   String cityValue = "";
+  bool isLoading = false;
+  File? _profileImage;
+  final ImagePicker _picker = ImagePicker();
 
-  void sendToOtpScreen() {
+  Future<void> _pickImage(ImageSource source) async {
+    final pickedFile = await _picker.pickImage(source: source);
+    if (pickedFile != null) {
+      setState(() {
+        _profileImage = File(pickedFile.path);
+      });
+    }
+  }
+
+  void _showImageSourceDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Choose Image Source"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text("Camera"),
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage(ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text("Gallery"),
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage(ImageSource.gallery);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void sendToOtpScreen() async {
     if (nameController.text.isEmpty ||
         phoneController.text.isEmpty ||
         phoneController.text.length != 10 ||
@@ -27,6 +71,26 @@ class _VyapariRegisterScreenState extends State<VyapariRegisterScreen> {
         const SnackBar(content: Text("Please fill all fields correctly")),
       );
       return;
+    }
+
+    String? imageUrl;
+    if (_profileImage != null) {
+      setState(() => isLoading = true);
+      try {
+        final storageRef = FirebaseStorage.instance
+            .ref()
+            .child('profile_images')
+            .child('${phoneController.text}_${DateTime.now().millisecondsSinceEpoch}.jpg');
+        await storageRef.putFile(_profileImage!);
+        imageUrl = await storageRef.getDownloadURL();
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Image upload failed: $e")),
+        );
+        setState(() => isLoading = false);
+        return;
+      }
+      setState(() => isLoading = false);
     }
 
     Navigator.push(
@@ -40,7 +104,8 @@ class _VyapariRegisterScreenState extends State<VyapariRegisterScreen> {
             "mandiName": mandiNameController.text,
             "city": cityValue.isEmpty ? "Not specified" : cityValue,
             "state": stateValue.isEmpty ? "Uttar Pradesh" : stateValue,
-            "country": countryValue.isEmpty ? "India" : countryValue,
+            "country": "India",
+            "profileImage": imageUrl ?? "https://i.pravatar.cc/300",
           },
           isTrader: true,
         ),
@@ -160,19 +225,24 @@ class _VyapariRegisterScreenState extends State<VyapariRegisterScreen> {
                               /// Upload Photo
                               Row(
                                 children: [
-                                  const CircleAvatar(
+                                  CircleAvatar(
                                     radius: 28,
                                     backgroundColor: Colors.grey,
-                                    child: Icon(
-                                      Icons.person,
-                                      size: 30,
-                                      color: Colors.white,
-                                    ),
+                                    backgroundImage: _profileImage != null
+                                        ? FileImage(_profileImage!)
+                                        : null,
+                                    child: _profileImage == null
+                                        ? const Icon(
+                                            Icons.person,
+                                            size: 30,
+                                            color: Colors.white,
+                                          )
+                                        : null,
                                   ),
                                   const SizedBox(width: 15),
                                   Expanded(
                                     child: ElevatedButton.icon(
-                                      onPressed: () {},
+                                      onPressed: _showImageSourceDialog,
                                       icon: const Icon(
                                         Icons.camera_alt,
                                         color: Colors.white,
@@ -228,6 +298,7 @@ class _VyapariRegisterScreenState extends State<VyapariRegisterScreen> {
 
                               /// CSC Picker
                               CSCPickerPlus(
+                                layout: Layout.vertical,
                                 showStates: true,
                                 showCities: true,
                                 flagState: CountryFlag.DISABLE,
@@ -244,11 +315,7 @@ class _VyapariRegisterScreenState extends State<VyapariRegisterScreen> {
                                   color: Colors.black,
                                   fontSize: 14,
                                 ),
-                                onCountryChanged: (value) {
-                                  setState(() {
-                                    countryValue = value;
-                                  });
-                                },
+                                onCountryChanged: (value) {},
                                 onStateChanged: (value) {
                                   if (value != null) {
                                     setState(() {
@@ -288,7 +355,7 @@ class _VyapariRegisterScreenState extends State<VyapariRegisterScreen> {
                               SizedBox(
                                 width: double.infinity,
                                 child: ElevatedButton(
-                                  onPressed: sendToOtpScreen,
+                                  onPressed: isLoading ? null : sendToOtpScreen,
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: const Color(0xFF104f22),
                                     padding: const EdgeInsets.symmetric(
@@ -298,13 +365,17 @@ class _VyapariRegisterScreenState extends State<VyapariRegisterScreen> {
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                   ),
-                                  child: const Text(
-                                    "Register",
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      color: Colors.white,
-                                    ),
-                                  ),
+                                  child: isLoading
+                                      ? const CircularProgressIndicator(
+                                          color: Colors.white,
+                                        )
+                                      : const Text(
+                                          "Register",
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            color: Colors.white,
+                                          ),
+                                        ),
                                 ),
                               ),
 

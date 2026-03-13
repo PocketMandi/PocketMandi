@@ -18,7 +18,6 @@ class _KisanRegisterScreenState extends State<KisanRegisterScreen> {
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController villageController = TextEditingController();
 
-  String countryValue = "";
   String stateValue = "";
   bool isLoading = false;
   File? _profileImage;
@@ -113,7 +112,7 @@ class _KisanRegisterScreenState extends State<KisanRegisterScreen> {
             "phone": phoneController.text,
             "village": villageController.text,
             "state": stateValue.isEmpty ? "Uttar Pradesh" : stateValue,
-            "country": countryValue.isEmpty ? "India" : countryValue,
+            "country": "India",
             "profileImage": imageUrl ?? "https://i.pravatar.cc/300",
           },
         ),
@@ -306,6 +305,7 @@ class _KisanRegisterScreenState extends State<KisanRegisterScreen> {
 
                               /// CSC Picker
                               CSCPickerPlus(
+                                layout: Layout.vertical,
                                 showStates: true,
                                 showCities: false,
                                 flagState: CountryFlag.DISABLE,
@@ -322,11 +322,7 @@ class _KisanRegisterScreenState extends State<KisanRegisterScreen> {
                                   color: Colors.black,
                                   fontSize: 14,
                                 ),
-                                onCountryChanged: (value) {
-                                  setState(() {
-                                    countryValue = value;
-                                  });
-                                },
+                                onCountryChanged: (value) {},
                                 onStateChanged: (value) {
                                   if (value != null) {
                                     setState(() {

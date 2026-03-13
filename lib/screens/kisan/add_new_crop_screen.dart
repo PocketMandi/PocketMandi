@@ -63,9 +63,8 @@ class _AddNewCropScreenState extends State<AddNewCropScreen> {
       final userRole = prefs.getString('user_role');
 
       if (userId != null && userRole != null) {
-        final collection = userRole == 'farmer' ? 'farmers' : 'traders';
         final ref = FirebaseDatabase.instance
-            .ref('$collection/$userId/add_new_crop')
+            .ref('users/$userId/add_new_crop')
             .push();
 
         await ref.set({
