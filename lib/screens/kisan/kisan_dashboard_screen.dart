@@ -329,8 +329,8 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
                                 itemBuilder: (context, index) {
                                   return _buildCropCard(
                                     context,
-                                    crops[index]["cropName"] ?? "Unknown",
-                                    crops[index]["imageUrl"] ?? "https://via.placeholder.com/300",
+                                    crops[index],
+                                    index,
                                   );
                                 },
                               ),
@@ -374,17 +374,25 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
     );
   }
 
-  Widget _buildCropCard(BuildContext context, String name, String imagePath) {
+  Widget _buildCropCard(BuildContext context, Map<String, dynamic> cropData, int index) {
+    final name = cropData["cropName"] ?? "Unknown";
+    final imagePath = cropData["imageUrl"] ?? "https://via.placeholder.com/300";
+    
     return InkWell(
       borderRadius: BorderRadius.circular(15),
-      onTap: () {
-        Navigator.push(
+      onTap: () async {
+        final result = await Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) =>
-                SelectedCropScreen(cropName: name, imagePath: imagePath),
+            builder: (_) => SelectedCropScreen(
+              cropData: cropData,
+              cropId: 'crop_$index', // You might want to use a proper ID from Firebase
+            ),
           ),
         );
+        if (result == true) {
+          _loadCrops(); // Refresh crops if updated
+        }
       },
       child: Ink(
         decoration: BoxDecoration(borderRadius: BorderRadius.circular(15)),

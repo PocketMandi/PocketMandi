@@ -40,6 +40,7 @@ dependencies:
   firebase_database: ^12.1.4
   firebase_storage: ^13.1.0
   image_picker: ^1.2.1
+  video_player: ^2.11.1
   provider: ^6.1.5+1
   csc_picker_plus: ^0.0.3
   shared_preferences: ^2.5.4
