@@ -49,7 +49,7 @@ class _AddNewCropScreenState extends State<AddNewCropScreen> {
   Future<void> _loadCrops() async {
     try {
       final snapshot = await FirebaseDatabase.instance.ref('allcrops').get();
-      
+
       if (!snapshot.exists) {
         setState(() => isLoading = false);
         return;
@@ -87,40 +87,68 @@ class _AddNewCropScreenState extends State<AddNewCropScreen> {
   }
 
   Future<void> _pickImage(ImageSource source) async {
-    final pickedFile = await _picker.pickImage(
-      source: source,
-      imageQuality: 70,
-      maxWidth: 800,
-    );
+    try {
+      final pickedFile = await _picker.pickImage(
+        source: source,
+        imageQuality: 60,
+        maxWidth: 1024,
+        maxHeight: 1024,
+      );
 
-    if (pickedFile != null) {
-      setState(() {
-        _cropImage = File(pickedFile.path);
-      });
+      if (pickedFile != null && mounted) {
+        final file = File(pickedFile.path);
+        final fileSize = await file.length();
+
+        if (fileSize > 5 * 1024 * 1024) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Image too large. Please select a smaller image.'),
+            ),
+          );
+          return;
+        }
+
+        setState(() {
+          _cropImage = file;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to pick image: ${e.toString()}')),
+        );
+      }
     }
   }
 
   Future<void> _pickVideo(ImageSource source) async {
-    final pickedFile = await _picker.pickVideo(
-      source: source,
-      maxDuration: const Duration(minutes: 1),
-    );
+    try {
+      final pickedFile = await _picker.pickVideo(
+        source: source,
+        maxDuration: const Duration(minutes: 1),
+      );
 
-    if (pickedFile != null) {
-      final file = File(pickedFile.path);
+      if (pickedFile != null && mounted) {
+        final file = File(pickedFile.path);
+        final size = await file.length();
 
-      final size = await file.length();
+        if (size > 50 * 1024 * 1024) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Video too large (max 50MB)')),
+          );
+          return;
+        }
 
-      if (size > 20 * 1024 * 1024) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("Video too large")));
-        return;
+        setState(() {
+          _cropVideo = file;
+        });
       }
-
-      setState(() {
-        _cropVideo = file;
-      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to pick video: ${e.toString()}')),
+        );
+      }
     }
   }
 
@@ -185,21 +213,38 @@ class _AddNewCropScreenState extends State<AddNewCropScreen> {
   }
 
   List<DropdownMenuItem<String>> _buildDropdownItems() {
-    List<DropdownMenuItem<String>> items = [];
-
-    // Add all crops from allCrops
-    for (var crop in allCrops) {
-      final cropName = crop['name'] as String;
-      items.add(
-        DropdownMenuItem<String>(
-          value: cropName,
-          child: Text(cropName, overflow: TextOverflow.ellipsis),
+    if (allCrops.isEmpty) {
+      return [
+        const DropdownMenuItem<String>(
+          value: "Not Listed",
+          child: Row(
+            children: [
+              Icon(Icons.add_circle_outline, color: Colors.orange, size: 18),
+              SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  "Not Listed - Add Custom Crop",
+                  style: TextStyle(
+                    color: Colors.orange,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
         ),
-      );
+      ];
     }
 
-    // Add "Not Listed" option with better styling
-    items.add(
+    return [
+      ...allCrops.map((crop) {
+        final cropName = crop['name'] as String? ?? 'Unknown';
+        return DropdownMenuItem<String>(
+          value: cropName,
+          child: Text(cropName, overflow: TextOverflow.ellipsis),
+        );
+      }),
       const DropdownMenuItem<String>(
         value: "Not Listed",
         child: Row(
@@ -219,9 +264,7 @@ class _AddNewCropScreenState extends State<AddNewCropScreen> {
           ],
         ),
       ),
-    );
-
-    return items;
+    ];
   }
 
   Future<void> _submitCrop() async {
@@ -229,19 +272,45 @@ class _AddNewCropScreenState extends State<AddNewCropScreen> {
         ? cropNameController.text.trim()
         : selectedCrop;
 
-    if (selectedCrop == null ||
-        (showManualEntry && cropName!.isEmpty) ||
-        quantityController.text.isEmpty ||
-        selectedQualities.isEmpty ||
-        priceController.text.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Please fill all fields")));
+    // Validation
+    if (selectedCrop == null) {
+      _showError('Please select a crop');
       return;
     }
 
-    // Show bilingual message
+    if (showManualEntry && (cropName?.isEmpty ?? true)) {
+      _showError('Please enter crop name');
+      return;
+    }
+
+    if (quantityController.text.trim().isEmpty) {
+      _showError('Please enter quantity');
+      return;
+    }
+
+    if (selectedQualities.isEmpty) {
+      _showError('Please select at least one quality grade');
+      return;
+    }
+
+    if (priceController.text.trim().isEmpty) {
+      _showError('Please enter expected price');
+      return;
+    }
+
     _showNotAcceptingOrdersDialog(cropName!);
+  }
+
+  void _showError(String message) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   void _showNotAcceptingOrdersDialog(String cropName) {
@@ -285,6 +354,8 @@ class _AddNewCropScreenState extends State<AddNewCropScreen> {
   }
 
   Future<void> _saveCropRequest(String cropName) async {
+    if (!mounted) return;
+
     setState(() => isUploading = true);
 
     try {
@@ -293,51 +364,49 @@ class _AddNewCropScreenState extends State<AddNewCropScreen> {
       final userName = prefs.getString('name') ?? 'Unknown';
       final userPhone = prefs.getString('phone') ?? '';
 
-      if (userId == null) throw Exception("User not logged in");
+      if (userId == null) {
+        throw Exception("User not logged in");
+      }
 
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-
-      UploadTask? imageTask;
-      UploadTask? videoTask;
-
-      Reference? imageRef;
-      Reference? videoRef;
-
-      /// IMAGE
-      if (_cropImage != null) {
-        imageRef = FirebaseStorage.instance.ref().child(
-          'crop_images/$userId\_$timestamp.jpg',
-        );
-
-        imageTask = imageRef.putFile(_cropImage!);
-      }
-
-      /// VIDEO
-      if (_cropVideo != null) {
-        videoRef = FirebaseStorage.instance.ref().child(
-          'crop_videos/$userId\_$timestamp.mp4',
-        );
-
-        videoTask = videoRef.putFile(_cropVideo!);
-      }
-
-      /// PARALLEL UPLOADS
-      await Future.wait([
-        if (imageTask != null) imageTask,
-        if (videoTask != null) videoTask,
-      ]);
-
       String? imageUrl;
       String? videoUrl;
 
-      if (imageRef != null) {
-        imageUrl = await imageRef.getDownloadURL();
+      // Parallel uploads for better performance
+      final uploadTasks = <Future>[];
+
+      if (_cropImage != null) {
+        final imageRef = FirebaseStorage.instance.ref(
+          'crop_images/${userId}_$timestamp.jpg',
+        );
+        uploadTasks.add(
+          imageRef.putFile(_cropImage!).then((_) => imageRef.getDownloadURL()),
+        );
       }
 
-      if (videoRef != null) {
-        videoUrl = await videoRef.getDownloadURL();
+      if (_cropVideo != null) {
+        final videoRef = FirebaseStorage.instance.ref(
+          'crop_videos/${userId}_$timestamp.mp4',
+        );
+        uploadTasks.add(
+          videoRef.putFile(_cropVideo!).then((_) => videoRef.getDownloadURL()),
+        );
       }
 
+      final results = await Future.wait(uploadTasks);
+
+      if (_cropImage != null && results.isNotEmpty) {
+        imageUrl = results[0] as String;
+      }
+      if (_cropVideo != null && results.length > 1) {
+        videoUrl = results[1] as String;
+      } else if (_cropVideo != null &&
+          _cropImage == null &&
+          results.isNotEmpty) {
+        videoUrl = results[0] as String;
+      }
+
+      // Save to database
       final ref = FirebaseDatabase.instance
           .ref('requestednewcrop/$userId')
           .push();
@@ -347,12 +416,12 @@ class _AddNewCropScreenState extends State<AddNewCropScreen> {
         "userId": userId,
         "userName": userName,
         "userPhone": userPhone,
-        "quantity": quantityController.text.trim(),
+        "quantity": int.tryParse(quantityController.text.trim()) ?? 0,
         "unit": selectedUnit,
         "qualityGrades": selectedQualities.toList(),
-        "imageUrl": imageUrl ?? "https://via.placeholder.com/300",
+        "imageUrl": imageUrl ?? "",
         "videoUrl": videoUrl ?? "",
-        "expectedPrice": priceController.text.trim(),
+        "expectedPrice": double.tryParse(priceController.text.trim()) ?? 0.0,
         "status": "pending",
         "createdAt": ServerValue.timestamp,
       });
@@ -362,15 +431,21 @@ class _AddNewCropScreenState extends State<AddNewCropScreen> {
           const SnackBar(
             content: Text("Your crop request has been submitted!"),
             backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
           ),
         );
-
         Navigator.pop(context);
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Error: $e")));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Error: ${e.toString()}"),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     } finally {
       if (mounted) {
         setState(() => isUploading = false);
@@ -497,11 +572,17 @@ class _AddNewCropScreenState extends State<AddNewCropScreen> {
                                   decoration: BoxDecoration(
                                     color: Colors.orange.withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                                    border: Border.all(
+                                      color: Colors.orange.withOpacity(0.3),
+                                    ),
                                   ),
                                   child: Row(
                                     children: [
-                                      Icon(Icons.info_outline, color: Colors.orange, size: 16),
+                                      Icon(
+                                        Icons.info_outline,
+                                        color: Colors.orange,
+                                        size: 16,
+                                      ),
                                       const SizedBox(width: 8),
                                       Expanded(
                                         child: Text(
@@ -520,7 +601,8 @@ class _AddNewCropScreenState extends State<AddNewCropScreen> {
                                 TextField(
                                   controller: cropNameController,
                                   decoration: InputDecoration(
-                                    hintText: "e.g., Organic Tomato, Basmati Rice",
+                                    hintText:
+                                        "e.g., Organic Tomato, Basmati Rice",
                                     filled: true,
                                     fillColor: const Color(0xFFF3F3F3),
                                     border: OutlineInputBorder(

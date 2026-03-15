@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:poket_mandi/main.dart';
 import 'package:poket_mandi/screens/kisan/add_new_crop_screen.dart';
 import 'package:poket_mandi/screens/kisan/selected_crop_screen.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class KisanDashboardScreen extends StatefulWidget {
   const KisanDashboardScreen({super.key});
@@ -142,27 +143,20 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
                 backgroundColor: Colors.white,
                 child: farmerImage.startsWith('http')
                     ? ClipOval(
-                        child: Image.network(
-                          farmerImage,
+                        child: CachedNetworkImage(
+                          imageUrl: farmerImage,
                           fit: BoxFit.cover,
                           width: 80,
                           height: 80,
-                          loadingBuilder: (context, child, loadingProgress) {
-                            if (loadingProgress == null) return child;
-                            return const Center(
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Color(0xFF104f22),
-                              ),
-                            );
-                          },
-                          errorBuilder: (context, error, stackTrace) {
-                            return const Icon(
-                              Icons.person,
-                              size: 40,
-                              color: Color(0xFF104f22),
-                            );
-                          },
+                          placeholder: (context, url) => const CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Color(0xFF104f22),
+                          ),
+                          errorWidget: (context, url, error) => const Icon(
+                            Icons.person,
+                            size: 40,
+                            color: Color(0xFF104f22),
+                          ),
                         ),
                       )
                     : const Icon(
@@ -468,51 +462,41 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(15),
                 child: imagePath.startsWith('http')
-                    ? Image.network(
-                        imagePath,
+                    ? CachedNetworkImage(
+                        imageUrl: imagePath,
                         fit: BoxFit.cover,
-                        cacheWidth: 400, // Optimize memory usage
-                        cacheHeight: 300,
-                        loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) return child;
-                          return Container(
-                            color: const Color(0xFF104f22).withOpacity(0.1),
-                            child: Center(
-                              child: CircularProgressIndicator(
-                                value:
-                                    loadingProgress.expectedTotalBytes != null
-                                    ? loadingProgress.cumulativeBytesLoaded /
-                                          loadingProgress.expectedTotalBytes!
-                                    : null,
-                                strokeWidth: 2,
-                                color: const Color(0xFF104f22),
+                        memCacheWidth: 400,
+                        memCacheHeight: 300,
+                        placeholder: (context, url) => Container(
+                          color: const Color(0xFF104f22).withOpacity(0.1),
+                          child: const Center(
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Color(0xFF104f22),
+                            ),
+                          ),
+                        ),
+                        errorWidget: (context, url, error) => Container(
+                          color: const Color(0xFF104f22).withOpacity(0.8),
+                          child: const Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.agriculture,
+                                size: 40,
+                                color: Colors.white,
                               ),
-                            ),
-                          );
-                        },
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            color: const Color(0xFF104f22).withOpacity(0.8),
-                            child: const Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.agriculture,
-                                  size: 40,
-                                  color: Colors.white,
+                              SizedBox(height: 4),
+                              Text(
+                                'Image unavailable',
+                                style: TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 10,
                                 ),
-                                SizedBox(height: 4),
-                                Text(
-                                  'Image unavailable',
-                                  style: TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: 10,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
+                              ),
+                            ],
+                          ),
+                        ),
                       )
                     : Image.asset(
                         imagePath,
