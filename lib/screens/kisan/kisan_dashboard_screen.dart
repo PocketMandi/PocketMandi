@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:poket_mandi/screens/kisan/my_order_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:poket_mandi/main.dart';
 import 'package:poket_mandi/screens/kisan/add_new_crop_screen.dart';
@@ -148,10 +149,11 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
                           fit: BoxFit.cover,
                           width: 80,
                           height: 80,
-                          placeholder: (context, url) => const CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Color(0xFF104f22),
-                          ),
+                          placeholder: (context, url) =>
+                              const CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Color(0xFF104f22),
+                              ),
                           errorWidget: (context, url, error) => const Icon(
                             Icons.person,
                             size: 40,
@@ -184,7 +186,12 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
             ListTile(
               leading: const Icon(Icons.shopping_bag),
               title: const Text("My Orders"),
-              onTap: () {},
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const MyOrdersScreen()),
+                );
+              },
             ),
             ListTile(
               leading: const Icon(Icons.history),
