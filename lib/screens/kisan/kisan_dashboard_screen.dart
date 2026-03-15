@@ -20,15 +20,30 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
   String farmerImage = "https://i.pravatar.cc/300";
   List<Map<String, dynamic>> crops = [];
   bool isLoading = true;
+  bool isGuest = false;
 
   @override
   void initState() {
     super.initState();
+    _checkGuestMode();
     _loadFarmerData();
     _loadCrops();
   }
 
+  Future<void> _checkGuestMode() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      isGuest = prefs.getBool('is_guest') ?? false;
+      if (isGuest) {
+        farmerName = "Guest User";
+        farmerPhone = "Guest Mode";
+      }
+    });
+  }
+
   Future<void> _loadFarmerData() async {
+    if (isGuest) return; // Skip loading user data for guests
+    
     final prefs = await SharedPreferences.getInstance();
     final userId = prefs.getString('user_id');
 
@@ -105,8 +120,10 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("Logout"),
-        content: const Text("Are you sure you want to logout?"),
+        title: Text(isGuest ? "Exit Guest Mode" : "Logout"),
+        content: Text(isGuest 
+          ? "Are you sure you want to exit guest mode?"
+          : "Are you sure you want to logout?"),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -129,6 +146,38 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
         (route) => false,
       );
     }
+  }
+
+  void _showGuestRestrictionDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Guest Mode Restriction"),
+        content: const Text(
+          "This feature is not available in guest mode. Please register or login to access all features.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("OK"),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (_) => const AuthCheck()),
+                (route) => false,
+              );
+            },
+            child: const Text(
+              "Register/Login",
+              style: TextStyle(color: Color(0xFF104f22)),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -181,27 +230,29 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
             ListTile(
               leading: const Icon(Icons.person),
               title: const Text("Profile"),
-              onTap: () {},
+              onTap: isGuest ? _showGuestRestrictionDialog : () {},
             ),
             ListTile(
               leading: const Icon(Icons.shopping_bag),
               title: const Text("My Orders"),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const MyOrdersScreen()),
-                );
-              },
+              onTap: isGuest 
+                ? _showGuestRestrictionDialog
+                : () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const MyOrdersScreen()),
+                    );
+                  },
             ),
             ListTile(
               leading: const Icon(Icons.history),
               title: const Text("History"),
-              onTap: () {},
+              onTap: isGuest ? _showGuestRestrictionDialog : () {},
             ),
             ListTile(
               leading: const Icon(Icons.settings),
               title: const Text("Settings"),
-              onTap: () {},
+              onTap: isGuest ? _showGuestRestrictionDialog : () {},
             ),
             ListTile(
               leading: const Icon(Icons.help),
@@ -211,8 +262,8 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
             const Spacer(),
             const Divider(),
             ListTile(
-              leading: const Icon(Icons.logout, color: Colors.red),
-              title: const Text("Logout", style: TextStyle(color: Colors.red)),
+              leading: Icon(isGuest ? Icons.exit_to_app : Icons.logout, color: Colors.red),
+              title: Text(isGuest ? "Exit Guest Mode" : "Logout", style: const TextStyle(color: Colors.red)),
               onTap: _logout,
             ),
             const SizedBox(height: 20),
@@ -402,15 +453,17 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: () async {
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const AddNewCropScreen(),
-                          ),
-                        );
-                        _loadCrops();
-                      },
+                      onPressed: isGuest 
+                        ? _showGuestRestrictionDialog
+                        : () async {
+                            await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const AddNewCropScreen(),
+                              ),
+                            );
+                            _loadCrops();
+                          },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF104f22),
                         padding: const EdgeInsets.symmetric(vertical: 14),
@@ -418,9 +471,9 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      child: const Text(
-                        "Crop not listed?",
-                        style: TextStyle(color: Colors.white),
+                      child: Text(
+                        isGuest ? "Register to Add Crops" : "Crop not listed?",
+                        style: const TextStyle(color: Colors.white),
                       ),
                     ),
                   ),
@@ -446,21 +499,23 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
 
     return InkWell(
       borderRadius: BorderRadius.circular(15),
-      onTap: () async {
-        final result = await Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => SelectedCropScreen(
-              cropId: cropId?.toString() ?? 'crop_$index',
-              cropName: name,
-              cropImage: imagePath,
-            ),
-          ),
-        );
-        if (result == true) {
-          _loadCrops();
-        }
-      },
+      onTap: isGuest 
+        ? _showGuestRestrictionDialog
+        : () async {
+            final result = await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => SelectedCropScreen(
+                  cropId: cropId?.toString() ?? 'crop_$index',
+                  cropName: name,
+                  cropImage: imagePath,
+                ),
+              ),
+            );
+            if (result == true) {
+              _loadCrops();
+            }
+          },
       child: Ink(
         decoration: BoxDecoration(borderRadius: BorderRadius.circular(15)),
         child: Stack(

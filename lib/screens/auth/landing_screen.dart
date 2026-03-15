@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:poket_mandi/screens/admin/admin_dashboard_screen.dart';
 import 'package:poket_mandi/screens/auth/login_screen.dart';
 import 'package:poket_mandi/screens/auth/register_screen.dart';
+import 'package:poket_mandi/screens/auth/guest_selection_screen.dart';
 
 class LandingScreen extends StatelessWidget {
   const LandingScreen({super.key});
@@ -143,7 +144,7 @@ class LandingScreen extends StatelessWidget {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => const AdminDashboardScreen(),
+                                builder: (_) => const GuestSelectionScreen(),
                               ),
                             );
                           },

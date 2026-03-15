@@ -20,14 +20,29 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
   String traderName = "Vyapari";
   String traderPhone = "";
   String traderImage = "https://i.pravatar.cc/300";
+  bool isGuest = false;
 
   @override
   void initState() {
     super.initState();
+    _checkGuestMode();
     _loadTraderData();
   }
 
+  Future<void> _checkGuestMode() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      isGuest = prefs.getBool('is_guest') ?? false;
+      if (isGuest) {
+        traderName = "Guest User";
+        traderPhone = "Guest Mode";
+      }
+    });
+  }
+
   Future<void> _loadTraderData() async {
+    if (isGuest) return; // Skip loading user data for guests
+    
     final prefs = await SharedPreferences.getInstance();
     final userId = prefs.getString('user_id');
 
@@ -51,8 +66,10 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("Logout"),
-        content: const Text("Are you sure you want to logout?"),
+        title: Text(isGuest ? "Exit Guest Mode" : "Logout"),
+        content: Text(isGuest 
+          ? "Are you sure you want to exit guest mode?"
+          : "Are you sure you want to logout?"),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -75,6 +92,38 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
         (route) => false,
       );
     }
+  }
+
+  void _showGuestRestrictionDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Guest Mode Restriction"),
+        content: const Text(
+          "This feature is not available in guest mode. Please register or login to access all features.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("OK"),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (_) => const AuthCheck()),
+                (route) => false,
+              );
+            },
+            child: const Text(
+              "Register/Login",
+              style: TextStyle(color: Color(0xFF104f22)),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   List<Map<String, String>> get crops => [
@@ -114,22 +163,22 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
             ListTile(
               leading: const Icon(Icons.person),
               title: const Text("Profile"),
-              onTap: () {},
+              onTap: isGuest ? _showGuestRestrictionDialog : () {},
             ),
             ListTile(
               leading: const Icon(Icons.shopping_bag),
               title: const Text("My Orders"),
-              onTap: () {},
+              onTap: isGuest ? _showGuestRestrictionDialog : () {},
             ),
             ListTile(
               leading: const Icon(Icons.history),
               title: const Text("History"),
-              onTap: () {},
+              onTap: isGuest ? _showGuestRestrictionDialog : () {},
             ),
             ListTile(
               leading: const Icon(Icons.settings),
               title: const Text("Settings"),
-              onTap: () {},
+              onTap: isGuest ? _showGuestRestrictionDialog : () {},
             ),
             ListTile(
               leading: const Icon(Icons.help),
@@ -139,8 +188,8 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
             const Spacer(),
             const Divider(),
             ListTile(
-              leading: const Icon(Icons.logout, color: Colors.red),
-              title: const Text("Logout", style: TextStyle(color: Colors.red)),
+              leading: Icon(isGuest ? Icons.exit_to_app : Icons.logout, color: Colors.red),
+              title: Text(isGuest ? "Exit Guest Mode" : "Logout", style: const TextStyle(color: Colors.red)),
               onTap: _logout,
             ),
             const SizedBox(height: 20),
@@ -327,12 +376,14 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
               child: SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => CropNotListedScreen()),
-                    );
-                  },
+                  onPressed: isGuest 
+                    ? _showGuestRestrictionDialog
+                    : () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => CropNotListedScreen()),
+                        );
+                      },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF104f22),
                     padding: const EdgeInsets.symmetric(vertical: 16),
@@ -341,9 +392,9 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
                     ),
                     elevation: 5,
                   ),
-                  child: const Text(
-                    "Crop not listed?",
-                    style: TextStyle(color: Colors.white, fontSize: 16),
+                  child: Text(
+                    isGuest ? "Register to Request Crops" : "Crop not listed?",
+                    style: const TextStyle(color: Colors.white, fontSize: 16),
                   ),
                 ),
               ),
@@ -416,16 +467,17 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
 
   Widget _buildCropCard(String name, String imagePath) {
     return GestureDetector(
-      onTap: () {
-        // You can add navigation later
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) =>
-                CropDetailScreen(cropName: name, imagePath: imagePath),
-          ),
-        );
-      },
+      onTap: isGuest 
+        ? _showGuestRestrictionDialog
+        : () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) =>
+                    CropDetailScreen(cropName: name, imagePath: imagePath),
+              ),
+            );
+          },
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
