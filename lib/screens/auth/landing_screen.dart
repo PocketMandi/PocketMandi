@@ -158,7 +158,7 @@ class LandingScreen extends StatelessWidget {
                             ),
                           ),
                           child: const Text(
-                            "Login As Admin",
+                            "Login As Guest",
                             style: TextStyle(
                               fontSize: 17,
                               fontWeight: FontWeight.w600,

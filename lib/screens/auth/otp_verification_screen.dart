@@ -43,8 +43,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     String enteredOtp = controllers.map((c) => c.text).join();
 
     if (enteredOtp != "123456") {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text("Invalid OTP")));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Invalid OTP")));
       return;
     }
 
@@ -65,7 +66,8 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text(
-                "This phone number is already registered. Please login instead."),
+                "This phone number is already registered. Please login instead.",
+              ),
             ),
           );
           return;
@@ -81,10 +83,22 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
           "createdAt": DateTime.now().toIso8601String(),
         });
 
-        // Save user ID locally
+        // Save user data locally
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('user_id', newRef.key!);
-        await prefs.setString('user_role', widget.isTrader ? 'trader' : 'farmer');
+        await prefs.setString(
+          'user_role',
+          widget.isTrader ? 'trader' : 'farmer',
+        );
+        await prefs.setString('name', widget.userData!['name'] ?? '');
+        await prefs.setString('phone', widget.userData!['phone'] ?? '');
+        await prefs.setString('state', widget.userData!['state'] ?? '');
+        await prefs.setString('district', widget.userData!['district'] ?? '');
+        await prefs.setString('address', widget.userData!['address'] ?? '');
+        await prefs.setString(
+          'profileImageUrl',
+          widget.userData!['profileImageUrl'] ?? '',
+        );
 
         Navigator.pushAndRemoveUntil(
           context,
@@ -96,8 +110,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
           (route) => false,
         );
       } catch (e) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text("Error: $e")));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Error: $e")));
       }
     }
     // Login flow
@@ -115,10 +130,21 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
           final userData = data.values.first as Map;
           final role = userData['role'] as String;
 
-          // Save user ID locally
+          // Save user data locally
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('user_id', userId);
           await prefs.setString('user_role', role);
+          await prefs.setString('name', userData['name']?.toString() ?? '');
+          await prefs.setString('phone', userData['phone']?.toString() ?? '');
+          await prefs.setString('state', userData['state']?.toString() ?? '');
+          await prefs.setString(
+            'village',
+            userData['village']?.toString() ?? '',
+          );
+          await prefs.setString(
+            'profileImage',
+            userData['profileImage']?.toString() ?? '',
+          );
 
           Navigator.pushAndRemoveUntil(
             context,
@@ -132,13 +158,16 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text("Phone number not registered. Please register first."),
+              content: Text(
+                "Phone number not registered. Please register first.",
+              ),
             ),
           );
         }
       } catch (e) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text("Error: $e")));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Error: $e")));
       }
     }
 
@@ -247,11 +276,13 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                                 maxLength: 1,
                                 onChanged: (value) {
                                   if (value.isNotEmpty && index < 5) {
-                                    FocusScope.of(context)
-                                        .requestFocus(focusNodes[index + 1]);
+                                    FocusScope.of(
+                                      context,
+                                    ).requestFocus(focusNodes[index + 1]);
                                   } else if (value.isEmpty && index > 0) {
-                                    FocusScope.of(context)
-                                        .requestFocus(focusNodes[index - 1]);
+                                    FocusScope.of(
+                                      context,
+                                    ).requestFocus(focusNodes[index - 1]);
                                   }
                                 },
                                 decoration: InputDecoration(

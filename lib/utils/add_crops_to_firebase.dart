@@ -3,46 +3,57 @@ import 'package:firebase_database/firebase_database.dart';
 Future<void> addAllCropsToFirebase() async {
   try {
     print('Starting to add crops to Firebase...');
-    
+
     final crops = [
-      {"id": 1, "name": "Potato (आलू)"},
-      {"id": 2, "name": "Tomato (टमाटर)"},
-      {"id": 3, "name": "Onion (प्याज़)"},
-      {"id": 4, "name": "Cauliflower (फूलगोभी)"},
-      {"id": 5, "name": "Cabbage (पत्तागोभी)"},
-      {"id": 6, "name": "Brinjal / Eggplant (बैंगन)"},
-      {"id": 7, "name": "Peas (मटर)"},
-      {"id": 8, "name": "Okra / Lady Finger (भिंडी)"},
-      {"id": 9, "name": "Bitter Gourd (करेला)"},
-      {"id": 10, "name": "Bottle Gourd (लौकी)"},
-      {"id": 11, "name": "Ridge Gourd (तोरी / तुरई)"},
-      {"id": 12, "name": "Pumpkin (कद्दू)"},
-      {"id": 13, "name": "Capsicum (शिमला मिर्च)"},
-      {"id": 14, "name": "Green Chili (हरी मिर्च)"},
-      {"id": 15, "name": "Ginger (अदरक)"},
-      {"id": 16, "name": "Garlic (लहसुन)"},
-      {"id": 17, "name": "Beetroot (चुकंदर)"},
-      {"id": 18, "name": "Amla (आंवला)"},
-      {"id": 19, "name": "Avocado (एवोकाडो)"},
-      {"id": 20, "name": "Banana (केला)"},
-      {"id": 21, "name": "Beans (सेम)"},
-      {"id": 22, "name": "Broccoli (ब्रोकोली)"},
-      {"id": 23, "name": "Coconut (नारियल)"},
-      {"id": 24, "name": "Cucumber (खीरा)"},
-      {"id": 25, "name": "Grapes (अंगूर)"},
-      {"id": 26, "name": "Guava (अमरूद)"},
-      {"id": 27, "name": "Jackfruit (कटहल)"},
-      {"id": 28, "name": "Lemon (नींबू)"},
-      {"id": 29, "name": "Litchi (लीची)"},
-      {"id": 30, "name": "Maize (Corn) (मक्का)"},
-      {"id": 31, "name": "Mango (आम)"},
-      {"id": 32, "name": "Orange (संतरा)"},
-      {"id": 33, "name": "Papaya (पपीता)"},
-      {"id": 34, "name": "Peanut (Groundnut) (मूंगफली)"},
-      {"id": 35, "name": "Pomegranate (अनार)"},
-      {"id": 36, "name": "Sweet Potato (शकरकंद)"},
-      {"id": 37, "name": "Turmeric (हल्दी)"},
-      {"id": 38, "name": "Watermelon (तरबूज)"},
+      {
+        "id": 1,
+        "name": "Tomato (टमाटर)",
+        "image":
+            "https://firebasestorage.googleapis.com/v0/b/mypocketmandi.firebasestorage.app/o/crop_images%2F-On_vSYTLpMotLFhIHPC_1773385472978.jpg?alt=media&token=60ef57a0-36dc-4aa1-a88c-0126f1972b0d",
+        "category": "vegetable",
+      },
+      {
+        "id": 2,
+        "name": "Brinjal / Eggplant (बैंगन)",
+        "image":
+            "https://firebasestorage.googleapis.com/v0/b/mypocketmandi.firebasestorage.app/o/crop_images%2FWhatsApp%20Image%202026-03-14%20at%2010.14.37%20PM%20(1).jpeg?alt=media&token=117c2be6-5c9a-467a-b1db-7d6d901f2cff",
+        "category": "vegetable",
+      },
+      {
+        "id": 3,
+        "name": "Bottle Gourd (लौकी)",
+        "image":
+            "https://firebasestorage.googleapis.com/v0/b/mypocketmandi.firebasestorage.app/o/crop_images%2FWhatsApp%20Image%202026-03-14%20at%2010.14.37%20PM.jpeg?alt=media&token=77d7747a-fbf2-42ca-a4d4-64fa7b83bef3",
+        "category": "vegetable",
+      },
+      {
+        "id": 4,
+        "name": "Green Chili (हरी मिर्च)",
+        "image":
+            "https://firebasestorage.googleapis.com/v0/b/mypocketmandi.firebasestorage.app/o/crop_images%2FWhatsApp%20Image%202026-03-14%20at%2010.15.05%20PM%20(2).jpeg?alt=media&token=24d8232e-e3f8-414b-89d3-ba5c922c195f",
+        "category": "vegetable",
+      },
+      {
+        "id": 5,
+        "name": "Capsicum (शिमला मिर्च)",
+        "image":
+            "https://firebasestorage.googleapis.com/v0/b/mypocketmandi.firebasestorage.app/o/crop_images%2FWhatsApp%20Image%202026-03-14%20at%2010.14.37%20PM%20(2).jpeg?alt=media&token=18e5cf52-a330-44b5-8062-9c47dc0e8315",
+        "category": "vegetable",
+      },
+      {
+        "id": 6,
+        "name": "Cucumber (खीरा)",
+        "image":
+            "https://firebasestorage.googleapis.com/v0/b/mypocketmandi.firebasestorage.app/o/crop_images%2FWhatsApp%20Image%202026-03-14%20at%2010.14.37%20PM%20(3).jpeg?alt=media&token=4bf3a0e5-ba56-41d9-a402-1f0256a80db5",
+        "category": "vegetable",
+      },
+      {
+        "id": 7,
+        "name": "Watermelon (तरबूज)",
+        "image":
+            "https://firebasestorage.googleapis.com/v0/b/mypocketmandi.firebasestorage.app/o/crop_images%2FWhatsApp%20Image%202026-03-14%20at%2010.15.05%20PM%20(1).jpeg?alt=media&token=a1c4d1ff-a9d7-497c-a38a-5eb1c6612f25",
+        "category": "fruit",
+      },
     ];
 
     final ref = FirebaseDatabase.instance.ref('allcrops');

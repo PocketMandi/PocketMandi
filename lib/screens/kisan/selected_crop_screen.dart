@@ -1,19 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:video_player/video_player.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'dart:io';
+import 'package:path_provider/path_provider.dart';
 
 class SelectedCropScreen extends StatefulWidget {
-  final Map<String, dynamic> cropData;
   final String cropId;
+  final String cropName;
+  final String cropImage;
 
   const SelectedCropScreen({
     super.key,
-    required this.cropData,
     required this.cropId,
+    required this.cropName,
+    required this.cropImage,
   });
 
   @override
@@ -21,7 +25,8 @@ class SelectedCropScreen extends StatefulWidget {
 }
 
 class _SelectedCropScreenState extends State<SelectedCropScreen> {
-  List<String> selectedQualities = ["A"]; // Changed to List for multiple selection
+  Set<String> selectedQualities = {};
+  String? selectedUnit = "Kg";
   bool isLoading = false;
   File? selectedImage;
   File? selectedVideo;
@@ -29,41 +34,13 @@ class _SelectedCropScreenState extends State<SelectedCropScreen> {
 
   final TextEditingController quantityController = TextEditingController();
   final TextEditingController priceController = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    _prefillData();
-  }
-
-  void _prefillData() {
-    quantityController.text = widget.cropData['quantity']?.toString() ?? '';
-    priceController.text = widget.cropData['expectedPrice']?.toString() ?? '';
-    
-    // Handle multiple qualities from Firebase
-    if (widget.cropData['qualityGrades'] != null) {
-      if (widget.cropData['qualityGrades'] is List) {
-        selectedQualities = List<String>.from(widget.cropData['qualityGrades']);
-      } else if (widget.cropData['qualityGrades'] is Map) {
-        // Handle Firebase indexed format like {0: "A", 1: "B"}
-        final qualityMap = widget.cropData['qualityGrades'] as Map;
-        selectedQualities = qualityMap.values.cast<String>().toList();
-      } else if (widget.cropData['qualityGrades'] is String) {
-        selectedQualities = [widget.cropData['qualityGrades']];
-      }
-    } else if (widget.cropData['quality'] != null) {
-      // Fallback to old 'quality' field
-      if (widget.cropData['quality'] is List) {
-        selectedQualities = List<String>.from(widget.cropData['quality']);
-      } else if (widget.cropData['quality'] is String) {
-        selectedQualities = [widget.cropData['quality']];
-      }
-    }
-  }
+  final ImagePicker _picker = ImagePicker();
 
   @override
   void dispose() {
     videoController?.dispose();
+    quantityController.dispose();
+    priceController.dispose();
     super.dispose();
   }
 
@@ -73,16 +50,14 @@ class _SelectedCropScreenState extends State<SelectedCropScreen> {
       backgroundColor: const Color(0xFFF4F6F5),
       body: Stack(
         children: [
-          /// 🌾 TOP HEADER IMAGE
+          /// 🌾 Top Background
           Container(
-            height: 260,
+            height: 220,
             decoration: BoxDecoration(
               image: DecorationImage(
-                image: selectedImage != null
-                    ? FileImage(selectedImage!)
-                    : (widget.cropData['imageUrl'] != null
-                        ? NetworkImage(widget.cropData['imageUrl'])
-                        : const AssetImage('assets/images/default_crop.png')) as ImageProvider,
+                image: widget.cropImage.startsWith('http')
+                    ? NetworkImage(widget.cropImage) as ImageProvider
+                    : AssetImage(widget.cropImage),
                 fit: BoxFit.cover,
               ),
               borderRadius: const BorderRadius.only(
@@ -92,9 +67,9 @@ class _SelectedCropScreenState extends State<SelectedCropScreen> {
             ),
           ),
 
-          /// Dark overlay
+          /// Dark overlay for better text visibility
           Container(
-            height: 260,
+            height: 220,
             decoration: BoxDecoration(
               color: Colors.black.withOpacity(0.35),
               borderRadius: const BorderRadius.only(
@@ -106,7 +81,7 @@ class _SelectedCropScreenState extends State<SelectedCropScreen> {
 
           /// 🔙 Back Button
           Positioned(
-            top: MediaQuery.of(context).padding.top + 10,
+            top: 50,
             left: 16,
             child: Container(
               decoration: BoxDecoration(
@@ -114,33 +89,32 @@ class _SelectedCropScreenState extends State<SelectedCropScreen> {
                 shape: BoxShape.circle,
               ),
               child: IconButton(
-                onPressed: () => Navigator.pop(context),
+                onPressed: isLoading ? null : () => Navigator.pop(context),
                 icon: const Icon(Icons.arrow_back, color: Colors.white),
               ),
             ),
           ),
 
-          /// Content
           SafeArea(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: const EdgeInsets.all(20),
               child: Column(
                 children: [
-                  const SizedBox(height: 80),
+                  const SizedBox(height: 20),
 
-                  /// Crop Title
+                  /// Title
                   Text(
-                    widget.cropData['cropName'] ?? 'Edit Crop',
+                    widget.cropName,
                     style: const TextStyle(
-                      fontSize: 26,
+                      fontSize: 24,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
                     ),
                   ),
 
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 30),
 
-                  /// White Form Card
+                  /// White Card Container
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
@@ -157,66 +131,127 @@ class _SelectedCropScreenState extends State<SelectedCropScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _buildLabel("Quantity"),
-                        _buildTextField(quantityController, "Enter quantity"),
-
-                        const SizedBox(height: 20),
-
-                        _buildLabel("Quality Grade"),
-                        const SizedBox(height: 10),
-
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            "A",
-                            "B",
-                            "C",
-                          ].map((grade) => _buildQualityChip(grade)).toList(),
-                        ),
-
-                        // Show selected qualities
-                        if (selectedQualities.isNotEmpty)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 8),
-                            child: Text(
-                              "Selected: ${selectedQualities.join(', ')}",
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Color(0xFF104f22),
-                                fontWeight: FontWeight.w500,
+                            Expanded(
+                              flex: 2,
+                              child: TextField(
+                                controller: quantityController,
+                                keyboardType: TextInputType.number,
+                                decoration: InputDecoration(
+                                  hintText: "Enter quantity",
+                                  filled: true,
+                                  fillColor: const Color(0xFFF3F3F3),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: DropdownButtonFormField<String>(
+                                value: selectedUnit,
+                                decoration: InputDecoration(
+                                  filled: true,
+                                  fillColor: const Color(0xFFF3F3F3),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 14,
+                                  ),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                ),
+                                isExpanded: true,
+                                items: ["Kg", "Ton", "Quintal"]
+                                    .map(
+                                      (unit) => DropdownMenuItem(
+                                        value: unit,
+                                        child: Text(unit),
+                                      ),
+                                    )
+                                    .toList(),
+                                onChanged: (value) {
+                                  setState(() {
+                                    selectedUnit = value;
+                                  });
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 18),
+
+                        _buildLabel("Quality Grade (Select Multiple)"),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 10,
+                          children: ["A", "B", "C"]
+                              .map(
+                                (grade) => FilterChip(
+                                  label: Text(grade),
+                                  selected: selectedQualities.contains(grade),
+                                  onSelected: (selected) {
+                                    setState(() {
+                                      if (selected) {
+                                        selectedQualities.add(grade);
+                                      } else {
+                                        selectedQualities.remove(grade);
+                                      }
+                                    });
+                                  },
+                                  selectedColor: const Color(0xFF104f22),
+                                  labelStyle: TextStyle(
+                                    color: selectedQualities.contains(grade)
+                                        ? Colors.white
+                                        : Colors.black,
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                        ),
 
                         const SizedBox(height: 20),
 
                         _buildUploadButton(
-                          selectedImage != null 
-                              ? "✓ New Photo Selected" 
-                              : (widget.cropData['imageUrl'] != null 
-                                  ? "✓ Photo Uploaded - Change?" 
-                                  : "Upload / Capture Photo"),
+                          selectedImage != null
+                              ? "✓ New Photo Selected"
+                              : "Upload / Capture Photo",
                           Icons.camera_alt,
-                          () => _pickImage(),
+                          onPressed: _showImageSourceDialog,
+                          hasFile: selectedImage != null,
                         ),
 
                         const SizedBox(height: 12),
 
                         _buildUploadButton(
-                          selectedVideo != null 
-                              ? "✓ New Video Selected" 
-                              : (widget.cropData['videoUrl'] != null 
-                                  ? "✓ Video Uploaded - Change?" 
-                                  : "Upload / Capture Video"),
+                          selectedVideo != null
+                              ? "✓ New Video Selected"
+                              : "Upload / Capture Video (Max 1 min)",
                           Icons.videocam,
-                          () => _pickVideo(),
+                          onPressed: _showVideoSourceDialog,
+                          hasFile: selectedVideo != null,
                         ),
 
-                        const SizedBox(height: 20),
+                        const SizedBox(height: 18),
 
-                        _buildLabel("Expected Price"),
-                        _buildTextField(
-                          priceController,
-                          "Enter expected price",
+                        _buildLabel("Expected Price (₹)"),
+                        TextField(
+                          controller: priceController,
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(
+                            hintText: "Enter expected price",
+                            filled: true,
+                            fillColor: const Color(0xFFF3F3F3),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
+                            ),
+                          ),
                         ),
 
                         const SizedBox(height: 25),
@@ -224,34 +259,70 @@ class _SelectedCropScreenState extends State<SelectedCropScreen> {
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
-                            onPressed: isLoading ? null : _updateCrop,
+                            onPressed: isLoading ? null : _submitCrop,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF104f22),
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
+                              elevation: 3,
                             ),
-                            child: isLoading
-                                ? const CircularProgressIndicator(color: Colors.white)
-                                : const Text(
-                                    "Update Crop",
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      color: Colors.white,
-                                    ),
-                                  ),
+                            child: const Text(
+                              "Submit",
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.white,
+                              ),
+                            ),
                           ),
                         ),
                       ],
                     ),
                   ),
-
-                  const SizedBox(height: 30),
                 ],
               ),
             ),
           ),
+
+          /// Upload Progress Overlay
+          if (isLoading)
+            Container(
+              color: Colors.black.withOpacity(0.7),
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.all(30),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const [
+                      CircularProgressIndicator(
+                        color: Color(0xFF104f22),
+                        strokeWidth: 3,
+                      ),
+                      SizedBox(height: 20),
+                      Text(
+                        "Hold on!",
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF104f22),
+                        ),
+                      ),
+                      SizedBox(height: 10),
+                      Text(
+                        "We are adding your crop...",
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 14, color: Colors.black87),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -264,99 +335,190 @@ class _SelectedCropScreenState extends State<SelectedCropScreen> {
     );
   }
 
-  Widget _buildTextField(TextEditingController controller, String hint) {
-    return TextField(
-      controller: controller,
-      decoration: InputDecoration(
-        hintText: hint,
-        filled: true,
-        fillColor: const Color(0xFFF3F3F3),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 15,
-          vertical: 14,
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildQualityChip(String grade) {
-    bool isSelected = selectedQualities.contains(grade);
-
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          if (isSelected) {
-            selectedQualities.remove(grade);
-          } else {
-            selectedQualities.add(grade);
-          }
-        });
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 10),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF104f22) : Colors.grey.shade200,
-          borderRadius: BorderRadius.circular(30),
-        ),
-        child: Text(
-          grade,
-          style: TextStyle(
-            color: isSelected ? Colors.white : Colors.black,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildUploadButton(String text, IconData icon, VoidCallback onPressed) {
-    return SizedBox(
+  Widget _buildUploadButton(
+    String text,
+    IconData icon, {
+    required VoidCallback onPressed,
+    bool hasFile = false,
+  }) {
+    return Container(
       width: double.infinity,
-      child: OutlinedButton.icon(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      child: OutlinedButton(
         onPressed: onPressed,
-        icon: Icon(icon, color: const Color(0xFF104f22)),
-        label: Text(text, style: const TextStyle(color: Color(0xFF104f22))),
         style: OutlinedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          side: const BorderSide(color: Color(0xFF104f22)),
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+          side: BorderSide(
+            color: hasFile ? Colors.green : const Color(0xFF104f22),
+          ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
         ),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              color: hasFile ? Colors.green : const Color(0xFF104f22),
+              size: 20,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                text,
+                style: TextStyle(
+                  color: hasFile ? Colors.green : const Color(0xFF104f22),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            if (hasFile)
+              const Icon(Icons.check_circle, color: Colors.green, size: 20),
+          ],
+        ),
       ),
     );
   }
 
-  Future<void> _pickImage() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-    if (pickedFile != null) {
-      setState(() {
-        selectedImage = File(pickedFile.path);
-      });
+  void _showImageSourceDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Choose Image Source"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text("Camera"),
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage(ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text("Gallery"),
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage(ImageSource.gallery);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showVideoSourceDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Choose Video Source"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.videocam),
+              title: const Text("Camera"),
+              onTap: () {
+                Navigator.pop(context);
+                _pickVideo(ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.video_library),
+              title: const Text("Gallery"),
+              onTap: () {
+                Navigator.pop(context);
+                _pickVideo(ImageSource.gallery);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final pickedFile = await _picker.pickImage(
+        source: source,
+        imageQuality: 85, // Reduce quality for faster upload
+      );
+
+      if (pickedFile != null) {
+        setState(() {
+          isLoading = true;
+        });
+
+        // Compress image for faster upload
+        final compressedFile = await _compressImage(File(pickedFile.path));
+
+        setState(() {
+          selectedImage = compressedFile;
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Error picking image: $e');
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Failed to pick image')));
+      }
     }
   }
 
-  Future<void> _pickVideo() async {
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickVideo(source: ImageSource.gallery);
+  Future<File> _compressImage(File file) async {
+    try {
+      final dir = await getTemporaryDirectory();
+      final targetPath =
+          '${dir.path}/${DateTime.now().millisecondsSinceEpoch}_compressed.jpg';
+
+      final result = await FlutterImageCompress.compressAndGetFile(
+        file.absolute.path,
+        targetPath,
+        quality: 70, // 70% quality - good balance
+        minWidth: 1024, // Max width 1024px
+        minHeight: 1024, // Max height 1024px
+      );
+
+      return result != null ? File(result.path) : file;
+    } catch (e) {
+      print('Compression error: $e');
+      return file; // Return original if compression fails
+    }
+  }
+
+  Future<void> _pickVideo(ImageSource source) async {
+    final pickedFile = await _picker.pickVideo(
+      source: source,
+      maxDuration: const Duration(minutes: 1),
+    );
+
     if (pickedFile != null) {
       final file = File(pickedFile.path);
+
       final controller = VideoPlayerController.file(file);
       await controller.initialize();
-      
-      if (controller.value.duration.inSeconds > 60) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Video must be 1 minute or less')),
-        );
+
+      final duration = controller.value.duration;
+
+      if (duration.inSeconds > 60) {
         controller.dispose();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Video must be 1 minute or less")),
+          );
+        }
         return;
       }
-      
+
       setState(() {
         selectedVideo = file;
         videoController?.dispose();
@@ -365,8 +527,9 @@ class _SelectedCropScreenState extends State<SelectedCropScreen> {
     }
   }
 
-  Future<void> _updateCrop() async {
-    if (quantityController.text.isEmpty || priceController.text.isEmpty) {
+  Future<void> _submitCrop() async {
+    if (quantityController.text.trim().isEmpty ||
+        priceController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill all required fields')),
       );
@@ -375,7 +538,9 @@ class _SelectedCropScreenState extends State<SelectedCropScreen> {
 
     if (selectedQualities.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select at least one quality grade')),
+        const SnackBar(
+          content: Text('Please select at least one quality grade'),
+        ),
       );
       return;
     }
@@ -385,59 +550,110 @@ class _SelectedCropScreenState extends State<SelectedCropScreen> {
     });
 
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) return;
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getString('user_id');
+      final userName = prefs.getString('name') ?? 'Unknown';
+      final userPhone = prefs.getString('phone') ?? '';
+      final userState = prefs.getString('state') ?? '';
+      final village = prefs.getString('village') ?? '';
 
-      String? imageUrl = widget.cropData['imageUrl'];
-      String? videoUrl = widget.cropData['videoUrl'];
+      if (userId == null) throw Exception("User not logged in");
 
-      // Upload new image if selected
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+
+      UploadTask? imageTask;
+      UploadTask? videoTask;
+
+      Reference? imageRef;
+      Reference? videoRef;
+
+      /// IMAGE UPLOAD
       if (selectedImage != null) {
-        final imageRef = FirebaseStorage.instance
+        imageRef = FirebaseStorage.instance
             .ref()
             .child('crop_images')
-            .child('${user.uid}_${widget.cropId}_${DateTime.now().millisecondsSinceEpoch}.jpg');
-        await imageRef.putFile(selectedImage!);
+            .child('${userId}_$timestamp.jpg');
+
+        imageTask = imageRef.putFile(
+          selectedImage!,
+          SettableMetadata(contentType: 'image/jpeg'),
+        );
+      }
+
+      /// VIDEO UPLOAD
+      if (selectedVideo != null) {
+        videoRef = FirebaseStorage.instance
+            .ref()
+            .child('crop_videos')
+            .child('${userId}_$timestamp.mp4');
+
+        videoTask = videoRef.putFile(
+          selectedVideo!,
+          SettableMetadata(contentType: 'video/mp4'),
+        );
+      }
+
+      /// RUN UPLOADS IN PARALLEL
+      await Future.wait([
+        if (imageTask != null) imageTask,
+        if (videoTask != null) videoTask,
+      ]);
+
+      String? imageUrl;
+      String? videoUrl;
+
+      if (imageRef != null) {
         imageUrl = await imageRef.getDownloadURL();
       }
 
-      // Upload new video if selected
-      if (selectedVideo != null) {
-        final videoRef = FirebaseStorage.instance
-            .ref()
-            .child('crop_videos')
-            .child('${user.uid}_${widget.cropId}_${DateTime.now().millisecondsSinceEpoch}.mp4');
-        await videoRef.putFile(selectedVideo!);
+      if (videoRef != null) {
         videoUrl = await videoRef.getDownloadURL();
       }
 
-      // Update crop data
-      final cropRef = FirebaseDatabase.instance
-          .ref()
-          .child('crops')
-          .child(widget.cropId);
+      /// SAVE TO GLOBAL ADDEDCROPSBYKISSAAN COLLECTION
+      final ref = FirebaseDatabase.instance
+          .ref('addedcropsbykissan/$userId')
+          .push();
+      final cropId = ref.key!;
 
-      await cropRef.update({
-        'quantity': quantityController.text,
-        'qualityGrades': selectedQualities, // Save as array with correct field name
-        'expectedPrice': priceController.text,
-        'imageUrl': imageUrl,
-        'videoUrl': videoUrl,
-        'updatedAt': DateTime.now().toIso8601String(),
+      await ref.set({
+        "cropId": cropId,
+        "userId": userId,
+        "userName": userName,
+        "userPhone": userPhone,
+        "cropType": widget.cropName,
+        "quantity": int.parse(quantityController.text.trim()),
+        "unit": selectedUnit,
+        "pricePerUnit": double.parse(priceController.text.trim()),
+        "qualityGrades": selectedQualities.toList(),
+        "imageUrl": imageUrl ?? widget.cropImage,
+        "videoUrl": videoUrl,
+        "location": {"state": userState, "village": village},
+        "status": "available",
+        "createdAt": ServerValue.timestamp,
+        "updatedAt": ServerValue.timestamp,
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Crop updated successfully!')),
-      );
-      Navigator.pop(context, true);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Crop listed successfully!"),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        Navigator.pop(context, true);
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error updating crop: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Error: $e")));
     } finally {
-      setState(() {
-        isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
     }
   }
 }

@@ -48,29 +48,54 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
   }
 
   Future<void> _loadCrops() async {
-    final prefs = await SharedPreferences.getInstance();
-    final userId = prefs.getString('user_id');
-
-    if (userId != null) {
-      final snapshot = await FirebaseDatabase.instance
-          .ref('users/$userId/add_new_crop')
-          .once();
+    try {
+      final snapshot = await FirebaseDatabase.instance.ref('allcrops').once();
 
       if (snapshot.snapshot.value != null) {
-        final data = snapshot.snapshot.value as Map;
+        final data = snapshot.snapshot.value;
+
         setState(() {
-          crops = data.values.map((e) => Map<String, dynamic>.from(e)).toList();
+          if (data is Map) {
+            // Handle Map format: {"1": {crop}, "2": {crop}}
+            crops = data.values
+                .where((e) => e != null)
+                .map((e) => Map<String, dynamic>.from(e as Map))
+                .toList();
+          } else if (data is List) {
+            // Handle List format: [{crop}, {crop}]
+            crops = data
+                .where((e) => e != null)
+                .map((e) => Map<String, dynamic>.from(e as Map))
+                .toList();
+          } else {
+            crops = [];
+            print('Unexpected data format: ${data.runtimeType}');
+          }
           isLoading = false;
         });
       } else {
         setState(() {
+          crops = [];
           isLoading = false;
         });
       }
-    } else {
+    } catch (e, stackTrace) {
+      print('Error loading crops: $e');
+      print('Stack trace: $stackTrace');
       setState(() {
+        crops = [];
         isLoading = false;
       });
+
+      // Show user-friendly error message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to load crops. Please try again.'),
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
     }
   }
 
@@ -104,8 +129,6 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
     }
   }
 
-
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -116,7 +139,37 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
             UserAccountsDrawerHeader(
               decoration: const BoxDecoration(color: Color(0xFF104f22)),
               currentAccountPicture: CircleAvatar(
-                backgroundImage: NetworkImage(farmerImage),
+                backgroundColor: Colors.white,
+                child: farmerImage.startsWith('http')
+                    ? ClipOval(
+                        child: Image.network(
+                          farmerImage,
+                          fit: BoxFit.cover,
+                          width: 80,
+                          height: 80,
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return const Center(
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Color(0xFF104f22),
+                              ),
+                            );
+                          },
+                          errorBuilder: (context, error, stackTrace) {
+                            return const Icon(
+                              Icons.person,
+                              size: 40,
+                              color: Color(0xFF104f22),
+                            );
+                          },
+                        ),
+                      )
+                    : const Icon(
+                        Icons.person,
+                        size: 40,
+                        color: Color(0xFF104f22),
+                      ),
               ),
               accountName: Text(
                 farmerName,
@@ -301,39 +354,46 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
                   const SizedBox(height: 10),
 
                   const Text(
-                    "My Crops",
+                    "Available Crops",
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
 
                   /// Grid
                   Expanded(
                     child: isLoading
-                        ? const Center(child: CircularProgressIndicator(color: Color(0xFF104f22)))
+                        ? const Center(
+                            child: CircularProgressIndicator(
+                              color: Color(0xFF104f22),
+                            ),
+                          )
                         : crops.isEmpty
-                            ? const Center(
-                                child: Text(
-                                  "No crops added yet.\nAdd your first crop!",
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(fontSize: 16, color: Colors.grey),
-                                ),
-                              )
-                            : GridView.builder(
-                                itemCount: crops.length,
-                                gridDelegate:
-                                    const SliverGridDelegateWithFixedCrossAxisCount(
-                                      crossAxisCount: 2,
-                                      crossAxisSpacing: 12,
-                                      mainAxisSpacing: 12,
-                                      childAspectRatio: 1.6,
-                                    ),
-                                itemBuilder: (context, index) {
-                                  return _buildCropCard(
-                                    context,
-                                    crops[index],
-                                    index,
-                                  );
-                                },
+                        ? const Center(
+                            child: Text(
+                              "No crops available.\nPlease check back later!",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.grey,
                               ),
+                            ),
+                          )
+                        : GridView.builder(
+                            itemCount: crops.length,
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 2,
+                                  crossAxisSpacing: 12,
+                                  mainAxisSpacing: 12,
+                                  childAspectRatio: 1.6,
+                                ),
+                            itemBuilder: (context, index) {
+                              return _buildCropCard(
+                                context,
+                                crops[index],
+                                index,
+                              );
+                            },
+                          ),
                   ),
                   const SizedBox(height: 15),
 
@@ -374,10 +434,15 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
     );
   }
 
-  Widget _buildCropCard(BuildContext context, Map<String, dynamic> cropData, int index) {
-    final name = cropData["cropName"] ?? "Unknown";
-    final imagePath = cropData["imageUrl"] ?? "https://via.placeholder.com/300";
-    
+  Widget _buildCropCard(
+    BuildContext context,
+    Map<String, dynamic> cropData,
+    int index,
+  ) {
+    final cropId = cropData["id"];
+    final name = cropData["name"] ?? "Unknown";
+    final imagePath = cropData["image"] ?? "https://via.placeholder.com/300";
+
     return InkWell(
       borderRadius: BorderRadius.circular(15),
       onTap: () async {
@@ -385,13 +450,14 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
           context,
           MaterialPageRoute(
             builder: (_) => SelectedCropScreen(
-              cropData: cropData,
-              cropId: 'crop_$index', // You might want to use a proper ID from Firebase
+              cropId: cropId?.toString() ?? 'crop_$index',
+              cropName: name,
+              cropImage: imagePath,
             ),
           ),
         );
         if (result == true) {
-          _loadCrops(); // Refresh crops if updated
+          _loadCrops();
         }
       },
       child: Ink(
@@ -405,29 +471,78 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
                     ? Image.network(
                         imagePath,
                         fit: BoxFit.cover,
+                        cacheWidth: 400, // Optimize memory usage
+                        cacheHeight: 300,
                         loadingBuilder: (context, child, loadingProgress) {
                           if (loadingProgress == null) return child;
                           return Container(
-                            color: const Color(0xFF104f22).withOpacity(0.3),
-                            child: const Center(
+                            color: const Color(0xFF104f22).withOpacity(0.1),
+                            child: Center(
                               child: CircularProgressIndicator(
-                                color: Color(0xFF104f22),
+                                value:
+                                    loadingProgress.expectedTotalBytes != null
+                                    ? loadingProgress.cumulativeBytesLoaded /
+                                          loadingProgress.expectedTotalBytes!
+                                    : null,
+                                strokeWidth: 2,
+                                color: const Color(0xFF104f22),
                               ),
                             ),
                           );
                         },
                         errorBuilder: (context, error, stackTrace) {
                           return Container(
-                            color: const Color(0xFF104f22),
-                            child: const Icon(
-                              Icons.agriculture,
-                              size: 50,
-                              color: Colors.white,
+                            color: const Color(0xFF104f22).withOpacity(0.8),
+                            child: const Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.agriculture,
+                                  size: 40,
+                                  color: Colors.white,
+                                ),
+                                SizedBox(height: 4),
+                                Text(
+                                  'Image unavailable',
+                                  style: TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 10,
+                                  ),
+                                ),
+                              ],
                             ),
                           );
                         },
                       )
-                    : Image.asset(imagePath, fit: BoxFit.cover),
+                    : Image.asset(
+                        imagePath,
+                        fit: BoxFit.cover,
+                        cacheWidth: 400,
+                        cacheHeight: 300,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            color: const Color(0xFF104f22).withOpacity(0.8),
+                            child: const Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.agriculture,
+                                  size: 40,
+                                  color: Colors.white,
+                                ),
+                                SizedBox(height: 4),
+                                Text(
+                                  'Image not found',
+                                  style: TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 10,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
               ),
             ),
 
