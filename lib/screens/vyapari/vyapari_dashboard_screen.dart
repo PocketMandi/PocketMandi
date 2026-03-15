@@ -42,7 +42,7 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
 
   Future<void> _loadTraderData() async {
     if (isGuest) return; // Skip loading user data for guests
-    
+
     final prefs = await SharedPreferences.getInstance();
     final userId = prefs.getString('user_id');
 
@@ -67,9 +67,11 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: Text(isGuest ? "Exit Guest Mode" : "Logout"),
-        content: Text(isGuest 
-          ? "Are you sure you want to exit guest mode?"
-          : "Are you sure you want to logout?"),
+        content: Text(
+          isGuest
+              ? "Are you sure you want to exit guest mode?"
+              : "Are you sure you want to logout?",
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -97,31 +99,232 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
   void _showGuestRestrictionDialog() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Guest Mode Restriction"),
-        content: const Text(
-          "This feature is not available in guest mode. Please register or login to access all features.",
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("OK"),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (_) => const AuthCheck()),
-                (route) => false,
-              );
-            },
-            child: const Text(
-              "Register/Login",
-              style: TextStyle(color: Color(0xFF104f22)),
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        elevation: 10,
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Colors.white, const Color(0xFF104f22).withOpacity(0.05)],
             ),
           ),
-        ],
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              /// Icon
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF104f22).withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.lock_outline,
+                  size: 40,
+                  color: Color(0xFF104f22),
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              /// Title
+              const Text(
+                "Feature Locked",
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF104f22),
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              /// Message
+              const Text(
+                "You're browsing in Guest Mode with limited access. To unlock all features including requesting crops, managing orders, and accessing your profile, please create an account.",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 15,
+                  color: Colors.black87,
+                  height: 1.4,
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              /// Benefits Section
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF104f22).withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: const Color(0xFF104f22).withOpacity(0.2),
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    const Text(
+                      "Unlock with Registration:",
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF104f22),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.check_circle,
+                          size: 16,
+                          color: Color(0xFF104f22),
+                        ),
+                        const SizedBox(width: 8),
+                        const Expanded(
+                          child: Text(
+                            "Request specific crops from farmers",
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.check_circle,
+                          size: 16,
+                          color: Color(0xFF104f22),
+                        ),
+                        const SizedBox(width: 8),
+                        const Expanded(
+                          child: Text(
+                            "Contact farmers directly",
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.check_circle,
+                          size: 16,
+                          color: Color(0xFF104f22),
+                        ),
+                        const SizedBox(width: 8),
+                        const Expanded(
+                          child: Text(
+                            "Track orders & transaction history",
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              /// Buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 14,
+                          horizontal: 8,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        side: const BorderSide(
+                          color: Color(0xFF104f22),
+                          width: 2,
+                        ),
+                        backgroundColor: Colors.transparent,
+                        foregroundColor: const Color(0xFF104f22),
+                        overlayColor: const Color(0xFF104f22),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.visibility_outlined,
+                            size: 18,
+                            color: Color(0xFF104f22),
+                          ),
+                          const SizedBox(width: 6),
+                          const Flexible(
+                            child: Text(
+                              "Continue",
+                              style: TextStyle(
+                                color: Color(0xFF104f22),
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(width: 12),
+
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(builder: (_) => const AuthCheck()),
+                          (route) => false,
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF104f22),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        elevation: 3,
+                      ),
+                      child: const Text(
+                        "Register Now",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -188,8 +391,14 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
             const Spacer(),
             const Divider(),
             ListTile(
-              leading: Icon(isGuest ? Icons.exit_to_app : Icons.logout, color: Colors.red),
-              title: Text(isGuest ? "Exit Guest Mode" : "Logout", style: const TextStyle(color: Colors.red)),
+              leading: Icon(
+                isGuest ? Icons.exit_to_app : Icons.logout,
+                color: Colors.red,
+              ),
+              title: Text(
+                isGuest ? "Exit Guest Mode" : "Logout",
+                style: const TextStyle(color: Colors.red),
+              ),
               onTap: _logout,
             ),
             const SizedBox(height: 20),
@@ -376,14 +585,16 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
               child: SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: isGuest 
-                    ? _showGuestRestrictionDialog
-                    : () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => CropNotListedScreen()),
-                        );
-                      },
+                  onPressed: isGuest
+                      ? _showGuestRestrictionDialog
+                      : () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => CropNotListedScreen(),
+                            ),
+                          );
+                        },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF104f22),
                     padding: const EdgeInsets.symmetric(vertical: 16),
@@ -467,17 +678,17 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
 
   Widget _buildCropCard(String name, String imagePath) {
     return GestureDetector(
-      onTap: isGuest 
-        ? _showGuestRestrictionDialog
-        : () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) =>
-                    CropDetailScreen(cropName: name, imagePath: imagePath),
-              ),
-            );
-          },
+      onTap: isGuest
+          ? _showGuestRestrictionDialog
+          : () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) =>
+                      CropDetailScreen(cropName: name, imagePath: imagePath),
+                ),
+              );
+            },
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
