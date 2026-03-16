@@ -229,7 +229,7 @@ class GuestSelectionScreen extends StatelessWidget {
                                 title: "Browse as Vyapari",
                                 subtitle: "व्यापारी अतिथि",
                                 description: "Explore farmer listings & products",
-                                imagePath: "assets/images/farmer2.png", // Using farmer2.png as fallback
+                                imagePath: "assets/images/reg_farmer_bman.jpg",
                                 gradient: const LinearGradient(
                                   colors: [
                                     Color(0xFF2E7D32),
