@@ -25,8 +25,12 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
   @override
   void initState() {
     super.initState();
-    _checkGuestMode();
-    _loadTraderData();
+    _initializeUserData();
+  }
+
+  Future<void> _initializeUserData() async {
+    await _checkGuestMode();
+    await _loadTraderData();
   }
 
   Future<void> _checkGuestMode() async {

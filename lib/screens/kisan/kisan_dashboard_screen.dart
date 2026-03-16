@@ -25,9 +25,13 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
   @override
   void initState() {
     super.initState();
-    _checkGuestMode();
-    _loadFarmerData();
+    _initializeUserData();
     _loadCrops();
+  }
+
+  Future<void> _initializeUserData() async {
+    await _checkGuestMode();
+    await _loadFarmerData();
   }
 
   Future<void> _checkGuestMode() async {
