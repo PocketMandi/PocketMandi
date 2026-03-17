@@ -21,6 +21,7 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
   List<Map<String, dynamic>> crops = [];
   bool isLoading = true;
   bool isGuest = false;
+  int _selectedIndex = 0;
 
   @override
   void initState() {
@@ -46,7 +47,7 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
   }
 
   Future<void> _loadFarmerData() async {
-    if (isGuest) return; // Skip loading user data for guests
+    if (isGuest) return;
 
     final prefs = await SharedPreferences.getInstance();
     final userId = prefs.getString('user_id');
@@ -58,7 +59,6 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
 
       if (snapshot.snapshot.value != null) {
         final data = snapshot.snapshot.value as Map;
-        print('Farmer data: $data');
         setState(() {
           farmerName = data['name'] ?? 'Kisan';
           farmerPhone = data['phone'] ?? '';
@@ -77,20 +77,17 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
 
         setState(() {
           if (data is Map) {
-            // Handle Map format: {"1": {crop}, "2": {crop}}
             crops = data.values
                 .where((e) => e != null)
                 .map((e) => Map<String, dynamic>.from(e as Map))
                 .toList();
           } else if (data is List) {
-            // Handle List format: [{crop}, {crop}]
             crops = data
                 .where((e) => e != null)
                 .map((e) => Map<String, dynamic>.from(e as Map))
                 .toList();
           } else {
             crops = [];
-            print('Unexpected data format: ${data.runtimeType}');
           }
           isLoading = false;
         });
@@ -100,15 +97,12 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
           isLoading = false;
         });
       }
-    } catch (e, stackTrace) {
-      print('Error loading crops: $e');
-      print('Stack trace: $stackTrace');
+    } catch (e) {
       setState(() {
         crops = [];
         isLoading = false;
       });
 
-      // Show user-friendly error message
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -174,7 +168,6 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              /// Icon
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -187,10 +180,7 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
                   color: Color(0xFF104f22),
                 ),
               ),
-
               const SizedBox(height: 20),
-
-              /// Title
               const Text(
                 "Feature Locked",
                 style: TextStyle(
@@ -199,10 +189,7 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
                   color: Color(0xFF104f22),
                 ),
               ),
-
               const SizedBox(height: 12),
-
-              /// Message
               const Text(
                 "You're browsing in Guest Mode with limited access. To unlock all features including adding crops, managing orders, and accessing your profile, please create an account.",
                 textAlign: TextAlign.center,
@@ -212,106 +199,14 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
                   height: 1.4,
                 ),
               ),
-
               const SizedBox(height: 24),
-
-              /// Benefits Section
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF104f22).withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: const Color(0xFF104f22).withOpacity(0.2),
-                  ),
-                ),
-                child: Column(
-                  children: [
-                    const Text(
-                      "Unlock with Registration:",
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xFF104f22),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.check_circle,
-                          size: 16,
-                          color: Color(0xFF104f22),
-                        ),
-                        const SizedBox(width: 8),
-                        const Expanded(
-                          child: Text(
-                            "Add & manage your crops",
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.black87,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.check_circle,
-                          size: 16,
-                          color: Color(0xFF104f22),
-                        ),
-                        const SizedBox(width: 8),
-                        const Expanded(
-                          child: Text(
-                            "Track orders & history",
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.black87,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.check_circle,
-                          size: 16,
-                          color: Color(0xFF104f22),
-                        ),
-                        const SizedBox(width: 8),
-                        const Expanded(
-                          child: Text(
-                            "Access full marketplace features",
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.black87,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              /// Buttons
               Row(
                 children: [
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () => Navigator.pop(context),
                       style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 14,
-                          horizontal: 8,
-                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -319,37 +214,11 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
                           color: Color(0xFF104f22),
                           width: 2,
                         ),
-                        backgroundColor: Colors.transparent,
-                        foregroundColor: const Color(0xFF104f22),
-                        overlayColor: const Color(0xFF104f22),
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            Icons.visibility_outlined,
-                            size: 18,
-                            color: Color(0xFF104f22),
-                          ),
-                          const SizedBox(width: 6),
-                          const Flexible(
-                            child: Text(
-                              "Continue",
-                              style: TextStyle(
-                                color: Color(0xFF104f22),
-                                fontWeight: FontWeight.w600,
-                                fontSize: 13,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
+                      child: const Text("Continue"),
                     ),
                   ),
-
                   const SizedBox(width: 12),
-
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () {
@@ -362,19 +231,14 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF104f22),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        elevation: 3,
                       ),
                       child: const Text(
                         "Register Now",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
-                        ),
+                        style: TextStyle(color: Colors.white),
                       ),
                     ),
                   ),
@@ -387,319 +251,278 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
     );
   }
 
+  void _onBottomNavTap(int index) {
+    if (isGuest && index != 0) {
+      _showGuestRestrictionDialog();
+      return;
+    }
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
-      drawer: Drawer(
-        child: Column(
-          children: [
-            UserAccountsDrawerHeader(
-              decoration: const BoxDecoration(color: Color(0xFF104f22)),
-              currentAccountPicture: CircleAvatar(
-                backgroundColor: Colors.white,
-                child: farmerImage.startsWith('http')
-                    ? ClipOval(
-                        child: CachedNetworkImage(
-                          imageUrl: farmerImage,
-                          fit: BoxFit.cover,
-                          width: 80,
-                          height: 80,
-                          placeholder: (context, url) =>
-                              const CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Color(0xFF104f22),
-                              ),
-                          errorWidget: (context, url, error) => const Icon(
-                            Icons.person,
-                            size: 40,
-                            color: Color(0xFF104f22),
-                          ),
-                        ),
-                      )
-                    : const Icon(
-                        Icons.person,
-                        size: 40,
-                        color: Color(0xFF104f22),
-                      ),
-              ),
-              accountName: Text(
-                farmerName,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              accountEmail: Text(
-                farmerPhone.isEmpty ? "Loading..." : farmerPhone,
-              ),
+      body: _selectedIndex == 0
+          ? _buildHomeScreen()
+          : _selectedIndex == 1
+              ? _buildOrdersScreen()
+              : _selectedIndex == 2
+                  ? _buildHistoryScreen()
+                  : _buildProfileScreen(),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, -5),
             ),
-            ListTile(
-              leading: const Icon(Icons.person),
-              title: const Text("Profile"),
-              onTap: isGuest ? _showGuestRestrictionDialog : () {},
-            ),
-            ListTile(
-              leading: const Icon(Icons.shopping_bag),
-              title: const Text("My Orders"),
-              onTap: isGuest
-                  ? _showGuestRestrictionDialog
-                  : () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const MyOrdersScreen(),
-                        ),
-                      );
-                    },
-            ),
-            ListTile(
-              leading: const Icon(Icons.history),
-              title: const Text("History"),
-              onTap: isGuest ? _showGuestRestrictionDialog : () {},
-            ),
-            ListTile(
-              leading: const Icon(Icons.settings),
-              title: const Text("Settings"),
-              onTap: isGuest ? _showGuestRestrictionDialog : () {},
-            ),
-            ListTile(
-              leading: const Icon(Icons.help),
-              title: const Text("Help & Support"),
-              onTap: () {},
-            ),
-            const Spacer(),
-            const Divider(),
-            ListTile(
-              leading: Icon(
-                isGuest ? Icons.exit_to_app : Icons.logout,
-                color: Colors.red,
-              ),
-              title: Text(
-                isGuest ? "Exit Guest Mode" : "Logout",
-                style: const TextStyle(color: Colors.red),
-              ),
-              onTap: _logout,
-            ),
-            const SizedBox(height: 20),
           ],
         ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildNavItem(Icons.home, "Home", 0),
+                _buildNavItem(Icons.shopping_bag, "Orders", 1),
+                _buildNavItem(Icons.history, "History", 2),
+                _buildNavItem(Icons.person, "Profile", 3),
+              ],
+            ),
+          ),
+        ),
       ),
-      body: Column(
-        children: [
-          /// ================= TOP HEADER =================
-          Stack(
+    );
+  }
+
+  Widget _buildNavItem(IconData icon, String label, int index) {
+    final isSelected = _selectedIndex == index;
+    return Expanded(
+      child: InkWell(
+        onTap: () => _onBottomNavTap(index),
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? const Color(0xFF104f22).withOpacity(0.1)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              /// Background Image
-              Container(
-                height: 260,
-                decoration: const BoxDecoration(
-                  image: DecorationImage(
-                    image: AssetImage("assets/images/login_bg.jpg"),
-                    fit: BoxFit.cover,
-                  ),
-                  borderRadius: BorderRadius.only(
-                    bottomLeft: Radius.circular(30),
-                    bottomRight: Radius.circular(30),
-                  ),
-                ),
+              Icon(
+                icon,
+                color: isSelected ? const Color(0xFF104f22) : Colors.grey,
+                size: 24,
               ),
-
-              /// Dark Overlay
-              Container(
-                height: 260,
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.35),
-                  borderRadius: const BorderRadius.only(
-                    bottomLeft: Radius.circular(30),
-                    bottomRight: Radius.circular(30),
-                  ),
-                ),
-              ),
-
-              SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 15),
-                  child: Column(
-                    children: [
-                      const SizedBox(height: 20),
-                      Row(
-                        children: [
-                          Builder(
-                            builder: (context) => IconButton(
-                              onPressed: () {
-                                Scaffold.of(context).openDrawer();
-                              },
-                              icon: const Icon(
-                                Icons.menu,
-                                color: Colors.white,
-                                size: 28,
-                              ),
-                            ),
-                          ),
-                          const Spacer(),
-                          ClipOval(
-                            child: Image.asset(
-                              "assets/images/logof.png",
-                              width: 40,
-                              height: 40,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          const Text(
-                            "PoketMandi",
-                            style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const Spacer(),
-                          const SizedBox(width: 48),
-                        ],
-                      ),
-
-                      const SizedBox(height: 15),
-
-                      /// Farmer + Text
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Image.asset("assets/images/farmer2.png", height: 120),
-
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                const SizedBox(height: 8),
-                                const Text(
-                                  "Kisan Dashboard",
-                                  style: TextStyle(
-                                    fontSize: 25,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                const SizedBox(height: 5),
-                                Text(
-                                  "Welcome back, $farmerName Ji",
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    color: Colors.white70,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                  color: isSelected ? const Color(0xFF104f22) : Colors.grey,
                 ),
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
 
-          const SizedBox(height: 15),
-
-          /// ================= CROPS SECTION =================
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+  Widget _buildHomeScreen() {
+    return Column(
+      children: [
+        Stack(
+          children: [
+            Container(
+              height: 260,
               decoration: const BoxDecoration(
-                color: Colors.white,
+                image: DecorationImage(
+                  image: AssetImage("assets/images/login_bg.jpg"),
+                  fit: BoxFit.cover,
+                ),
                 borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(25),
-                  topRight: Radius.circular(25),
+                  bottomLeft: Radius.circular(30),
+                  bottomRight: Radius.circular(30),
                 ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 10),
-
-                  const Text(
-                    "Available Crops",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-
-                  /// Grid
-                  Expanded(
-                    child: isLoading
-                        ? const Center(
-                            child: CircularProgressIndicator(
-                              color: Color(0xFF104f22),
-                            ),
-                          )
-                        : crops.isEmpty
-                        ? const Center(
-                            child: Text(
-                              "No crops available.\nPlease check back later!",
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          )
-                        : GridView.builder(
-                            itemCount: crops.length,
-                            gridDelegate:
-                                const SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: 2,
-                                  crossAxisSpacing: 12,
-                                  mainAxisSpacing: 12,
-                                  childAspectRatio: 1.6,
-                                ),
-                            itemBuilder: (context, index) {
-                              return _buildCropCard(
-                                context,
-                                crops[index],
-                                index,
-                              );
-                            },
-                          ),
-                  ),
-                  const SizedBox(height: 15),
-
-                  /// Button
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: isGuest
-                          ? _showGuestRestrictionDialog
-                          : () async {
-                              await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const AddNewCropScreen(),
-                                ),
-                              );
-                              _loadCrops();
-                            },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF104f22),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: Text(
-                        isGuest ? "Register to Add Crops" : "Crop not listed?",
-                        style: const TextStyle(color: Colors.white),
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 15),
-                ],
+            ),
+            Container(
+              height: 260,
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.35),
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(30),
+                  bottomRight: Radius.circular(30),
+                ),
               ),
             ),
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 15),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        const Spacer(),
+                        ClipOval(
+                          child: Image.asset(
+                            "assets/images/logof.png",
+                            width: 40,
+                            height: 40,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        const Text(
+                          "PoketMandi",
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const Spacer(),
+                      ],
+                    ),
+                    const SizedBox(height: 15),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Image.asset("assets/images/farmer2.png", height: 120),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              const SizedBox(height: 8),
+                              const Text(
+                                "Kisan Dashboard",
+                                style: TextStyle(
+                                  fontSize: 25,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(height: 5),
+                              Text(
+                                "Welcome back, $farmerName Ji",
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.white70,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 15),
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(25),
+                topRight: Radius.circular(25),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 10),
+                const Text(
+                  "Available Crops",
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+                Expanded(
+                  child: isLoading
+                      ? const Center(
+                          child: CircularProgressIndicator(
+                            color: Color(0xFF104f22),
+                          ),
+                        )
+                      : crops.isEmpty
+                          ? const Center(
+                              child: Text(
+                                "No crops available.\nPlease check back later!",
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            )
+                          : GridView.builder(
+                              itemCount: crops.length,
+                              gridDelegate:
+                                  const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                crossAxisSpacing: 12,
+                                mainAxisSpacing: 12,
+                                childAspectRatio: 1.6,
+                              ),
+                              itemBuilder: (context, index) {
+                                return _buildCropCard(
+                                  context,
+                                  crops[index],
+                                  index,
+                                );
+                              },
+                            ),
+                ),
+                const SizedBox(height: 15),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: isGuest
+                        ? _showGuestRestrictionDialog
+                        : () async {
+                            await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const AddNewCropScreen(),
+                              ),
+                            );
+                            _loadCrops();
+                          },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF104f22),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Text(
+                      isGuest ? "Register to Add Crops" : "Crop not listed?",
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 15),
+              ],
+            ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -806,7 +629,6 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
                       ),
               ),
             ),
-
             Container(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(15),
@@ -820,7 +642,6 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
                 ),
               ),
             ),
-
             Positioned(
               bottom: 10,
               left: 12,
@@ -832,6 +653,282 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
                   color: Colors.white,
                 ),
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOrdersScreen() {
+    return const MyOrdersScreen();
+  }
+
+  Widget _buildHistoryScreen() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.history,
+            size: 80,
+            color: Colors.grey[400],
+          ),
+          const SizedBox(height: 20),
+          Text(
+            "History",
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey[700],
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            "Your transaction history will appear here",
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey[500],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfileScreen() {
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          Container(
+            width: double.infinity,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF104f22), Color(0xFF0d3f1c)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 20),
+                    Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 3),
+                      ),
+                      child: CircleAvatar(
+                        radius: 50,
+                        backgroundColor: Colors.white,
+                        child: farmerImage.startsWith('http')
+                            ? ClipOval(
+                                child: CachedNetworkImage(
+                                  imageUrl: farmerImage,
+                                  fit: BoxFit.cover,
+                                  width: 100,
+                                  height: 100,
+                                  placeholder: (context, url) =>
+                                      const CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Color(0xFF104f22),
+                                  ),
+                                  errorWidget: (context, url, error) =>
+                                      const Icon(
+                                    Icons.person,
+                                    size: 50,
+                                    color: Color(0xFF104f22),
+                                  ),
+                                ),
+                              )
+                            : const Icon(
+                                Icons.person,
+                                size: 50,
+                                color: Color(0xFF104f22),
+                              ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      farmerName,
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      farmerPhone,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        color: Colors.white70,
+                      ),
+                    ),
+                    if (isGuest)
+                      Container(
+                        margin: const EdgeInsets.only(top: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: Colors.orange),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.visibility, color: Colors.orange, size: 16),
+                            SizedBox(width: 6),
+                            Text(
+                              "Guest Mode",
+                              style: TextStyle(
+                                color: Colors.orange,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                _buildProfileOption(
+                  icon: Icons.person_outline,
+                  title: "Edit Profile",
+                  subtitle: "Update your personal information",
+                  onTap: () {},
+                ),
+                const SizedBox(height: 12),
+                _buildProfileOption(
+                  icon: Icons.settings_outlined,
+                  title: "Settings",
+                  subtitle: "App preferences and configurations",
+                  onTap: () {},
+                ),
+                const SizedBox(height: 12),
+                _buildProfileOption(
+                  icon: Icons.help_outline,
+                  title: "Help & Support",
+                  subtitle: "Get help and contact support",
+                  onTap: () {},
+                ),
+                const SizedBox(height: 12),
+                _buildProfileOption(
+                  icon: Icons.info_outline,
+                  title: "About",
+                  subtitle: "App version and information",
+                  onTap: () {},
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _logout,
+                    icon: Icon(
+                      isGuest ? Icons.exit_to_app : Icons.logout,
+                      color: Colors.white,
+                    ),
+                    label: Text(
+                      isGuest ? "Exit Guest Mode" : "Logout",
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfileOption({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF104f22).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                icon,
+                color: const Color(0xFF104f22),
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.arrow_forward_ios,
+              size: 16,
+              color: Colors.grey,
             ),
           ],
         ),

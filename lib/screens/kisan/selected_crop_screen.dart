@@ -27,6 +27,8 @@ class SelectedCropScreen extends StatefulWidget {
 class _SelectedCropScreenState extends State<SelectedCropScreen> {
   Set<String> selectedQualities = {};
   String? selectedUnit = "Kg";
+  String? selectedLocation;
+  DateTime? selectedDeliveryDate;
   bool isLoading = false;
   File? selectedImage;
   File? selectedVideo;
@@ -35,6 +37,12 @@ class _SelectedCropScreenState extends State<SelectedCropScreen> {
   final TextEditingController quantityController = TextEditingController();
   final TextEditingController priceController = TextEditingController();
   final ImagePicker _picker = ImagePicker();
+
+  final List<String> locations = [
+    "Delhi",
+    "Mumbai",
+    "Lucknow",
+  ];
 
   @override
   void dispose() {
@@ -213,6 +221,97 @@ class _SelectedCropScreenState extends State<SelectedCropScreen> {
                                 ),
                               )
                               .toList(),
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        _buildLabel("Location *"),
+                        DropdownButtonFormField<String>(
+                          value: selectedLocation,
+                          decoration: InputDecoration(
+                            hintText: "Select delivery location",
+                            filled: true,
+                            fillColor: const Color(0xFFF3F3F3),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
+                            ),
+                          ),
+                          items: locations
+                              .map(
+                                (location) => DropdownMenuItem(
+                                  value: location,
+                                  child: Text(location),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (value) {
+                            setState(() {
+                              selectedLocation = value;
+                            });
+                          },
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        _buildLabel("Required Delivery Date *"),
+                        InkWell(
+                          onTap: () async {
+                            final DateTime? picked = await showDatePicker(
+                              context: context,
+                              initialDate: DateTime.now().add(const Duration(days: 1)),
+                              firstDate: DateTime.now(),
+                              lastDate: DateTime.now().add(const Duration(days: 365)),
+                              builder: (context, child) {
+                                return Theme(
+                                  data: Theme.of(context).copyWith(
+                                    colorScheme: const ColorScheme.light(
+                                      primary: Color(0xFF104f22),
+                                      onPrimary: Colors.white,
+                                      onSurface: Colors.black,
+                                    ),
+                                  ),
+                                  child: child!,
+                                );
+                              },
+                            );
+                            if (picked != null) {
+                              setState(() {
+                                selectedDeliveryDate = picked;
+                              });
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 16,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF3F3F3),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  selectedDeliveryDate == null
+                                      ? "Select delivery date"
+                                      : "${selectedDeliveryDate!.day}/${selectedDeliveryDate!.month}/${selectedDeliveryDate!.year}",
+                                  style: TextStyle(
+                                    color: selectedDeliveryDate == null
+                                        ? Colors.grey[600]
+                                        : Colors.black87,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                const Icon(
+                                  Icons.calendar_today,
+                                  color: Color(0xFF104f22),
+                                  size: 20,
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
 
                         const SizedBox(height: 20),
@@ -545,6 +644,24 @@ class _SelectedCropScreenState extends State<SelectedCropScreen> {
       return;
     }
 
+    if (selectedLocation == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select a delivery location'),
+        ),
+      );
+      return;
+    }
+
+    if (selectedDeliveryDate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select a required delivery date'),
+        ),
+      );
+      return;
+    }
+
     setState(() {
       isLoading = true;
     });
@@ -628,8 +745,13 @@ class _SelectedCropScreenState extends State<SelectedCropScreen> {
         "qualityGrades": selectedQualities.toList(),
         "imageUrl": imageUrl ?? widget.cropImage,
         "videoUrl": videoUrl,
-        "location": {"state": userState, "village": village},
-        "status": "available",
+        "location": {
+          "state": userState,
+          "village": village,
+          "deliveryLocation": selectedLocation,
+        },
+        "requiredDeliveryDate": selectedDeliveryDate!.millisecondsSinceEpoch,
+        "status": "pending",
         "createdAt": ServerValue.timestamp,
         "updatedAt": ServerValue.timestamp,
       });
@@ -637,7 +759,7 @@ class _SelectedCropScreenState extends State<SelectedCropScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("Crop listed successfully!"),
+            content: Text("Order placed successfully! Status: Pending"),
             backgroundColor: Colors.green,
           ),
         );

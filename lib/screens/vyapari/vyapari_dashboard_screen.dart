@@ -21,6 +21,7 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
   String traderPhone = "";
   String traderImage = "https://i.pravatar.cc/300";
   bool isGuest = false;
+  int _selectedIndex = 0;
 
   @override
   void initState() {
@@ -333,6 +334,16 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
     );
   }
 
+  void _onBottomNavTap(int index) {
+    if (isGuest && index != 0) {
+      _showGuestRestrictionDialog();
+      return;
+    }
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
+
   List<Map<String, String>> get crops => [
     {"name": "Wheat", "image": "assets/images/login_bg.jpg"},
     {"name": "Maize", "image": "assets/images/maize.jpg"},
@@ -348,68 +359,82 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF4F6F5),
-      drawer: Drawer(
-        child: Column(
-          children: [
-            UserAccountsDrawerHeader(
-              decoration: const BoxDecoration(color: Color(0xFF104f22)),
-              currentAccountPicture: CircleAvatar(
-                backgroundImage: NetworkImage(traderImage),
-              ),
-              accountName: Text(
-                traderName,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              accountEmail: Text(
-                traderPhone.isEmpty ? "Loading..." : traderPhone,
-              ),
+      body: _selectedIndex == 0
+          ? _buildHomeScreen()
+          : _selectedIndex == 1
+              ? _buildOrdersScreen()
+              : _selectedIndex == 2
+                  ? _buildHistoryScreen()
+                  : _buildProfileScreen(),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, -5),
             ),
-            ListTile(
-              leading: const Icon(Icons.person),
-              title: const Text("Profile"),
-              onTap: isGuest ? _showGuestRestrictionDialog : () {},
-            ),
-            ListTile(
-              leading: const Icon(Icons.shopping_bag),
-              title: const Text("My Orders"),
-              onTap: isGuest ? _showGuestRestrictionDialog : () {},
-            ),
-            ListTile(
-              leading: const Icon(Icons.history),
-              title: const Text("History"),
-              onTap: isGuest ? _showGuestRestrictionDialog : () {},
-            ),
-            ListTile(
-              leading: const Icon(Icons.settings),
-              title: const Text("Settings"),
-              onTap: isGuest ? _showGuestRestrictionDialog : () {},
-            ),
-            ListTile(
-              leading: const Icon(Icons.help),
-              title: const Text("Help & Support"),
-              onTap: () {},
-            ),
-            const Spacer(),
-            const Divider(),
-            ListTile(
-              leading: Icon(
-                isGuest ? Icons.exit_to_app : Icons.logout,
-                color: Colors.red,
-              ),
-              title: Text(
-                isGuest ? "Exit Guest Mode" : "Logout",
-                style: const TextStyle(color: Colors.red),
-              ),
-              onTap: _logout,
-            ),
-            const SizedBox(height: 20),
           ],
         ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildNavItem(Icons.home, "Home", 0),
+                _buildNavItem(Icons.shopping_bag, "Orders", 1),
+                _buildNavItem(Icons.history, "History", 2),
+                _buildNavItem(Icons.person, "Profile", 3),
+              ],
+            ),
+          ),
+        ),
       ),
-      body: Stack(
+    );
+  }
+
+  Widget _buildNavItem(IconData icon, String label, int index) {
+    final isSelected = _selectedIndex == index;
+    return Expanded(
+      child: InkWell(
+        onTap: () => _onBottomNavTap(index),
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? const Color(0xFF104f22).withOpacity(0.1)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                color: isSelected ? const Color(0xFF104f22) : Colors.grey,
+                size: 24,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                  color: isSelected ? const Color(0xFF104f22) : Colors.grey,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHomeScreen() {
+    return Stack(
         children: [
           /// 🌾 Header Background
           Container(
@@ -448,26 +473,8 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
                   /// Header with Menu Icon
                   Row(
                     children: [
-                      Builder(
-                        builder: (context) => Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.3),
-                            shape: BoxShape.circle,
-                          ),
-                          child: IconButton(
-                            onPressed: () {
-                              Scaffold.of(context).openDrawer();
-                            },
-                            icon: const Icon(
-                              Icons.menu,
-                              color: Colors.white,
-                              size: 28,
-                            ),
-                          ),
-                        ),
-                      ),
-                      Expanded(
-                        child: Text(
+                      const Spacer(),
+                      Text(
                           "Welcome $traderName",
                           textAlign: TextAlign.center,
                           style: const TextStyle(
@@ -477,8 +484,7 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                      const SizedBox(width: 48),
+                      const Spacer(),
                     ],
                   ),
 
@@ -616,8 +622,7 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
             ),
           ),
         ],
-      ),
-    );
+      );
   }
 
   Widget _buildLabel(String text) {
@@ -734,6 +739,298 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
             ),
 
             const SizedBox(height: 10),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOrdersScreen() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.shopping_bag_outlined,
+            size: 80,
+            color: Colors.grey[400],
+          ),
+          const SizedBox(height: 20),
+          Text(
+            "My Orders",
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey[700],
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            "Your orders will appear here",
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey[500],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHistoryScreen() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.history,
+            size: 80,
+            color: Colors.grey[400],
+          ),
+          const SizedBox(height: 20),
+          Text(
+            "History",
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey[700],
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            "Your transaction history will appear here",
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey[500],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfileScreen() {
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          /// Profile Header
+          Container(
+            width: double.infinity,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF104f22), Color(0xFF0d3f1c)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 20),
+                    Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 3),
+                      ),
+                      child: CircleAvatar(
+                        radius: 50,
+                        backgroundColor: Colors.white,
+                        backgroundImage: traderImage.startsWith('http')
+                            ? NetworkImage(traderImage)
+                            : null,
+                        child: !traderImage.startsWith('http')
+                            ? const Icon(
+                                Icons.person,
+                                size: 50,
+                                color: Color(0xFF104f22),
+                              )
+                            : null,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      traderName,
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      traderPhone,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        color: Colors.white70,
+                      ),
+                    ),
+                    if (isGuest)
+                      Container(
+                        margin: const EdgeInsets.only(top: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: Colors.orange),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.visibility, color: Colors.orange, size: 16),
+                            SizedBox(width: 6),
+                            Text(
+                              "Guest Mode",
+                              style: TextStyle(
+                                color: Colors.orange,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          /// Profile Options
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                _buildProfileOption(
+                  icon: Icons.person_outline,
+                  title: "Edit Profile",
+                  subtitle: "Update your personal information",
+                  onTap: () {},
+                ),
+                const SizedBox(height: 12),
+                _buildProfileOption(
+                  icon: Icons.settings_outlined,
+                  title: "Settings",
+                  subtitle: "App preferences and configurations",
+                  onTap: () {},
+                ),
+                const SizedBox(height: 12),
+                _buildProfileOption(
+                  icon: Icons.help_outline,
+                  title: "Help & Support",
+                  subtitle: "Get help and contact support",
+                  onTap: () {},
+                ),
+                const SizedBox(height: 12),
+                _buildProfileOption(
+                  icon: Icons.info_outline,
+                  title: "About",
+                  subtitle: "App version and information",
+                  onTap: () {},
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: _logout,
+                    icon: Icon(
+                      isGuest ? Icons.exit_to_app : Icons.logout,
+                      color: Colors.white,
+                    ),
+                    label: Text(
+                      isGuest ? "Exit Guest Mode" : "Logout",
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfileOption({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF104f22).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                icon,
+                color: const Color(0xFF104f22),
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.arrow_forward_ios,
+              size: 16,
+              color: Colors.grey,
+            ),
           ],
         ),
       ),
