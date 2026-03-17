@@ -11,15 +11,19 @@ class MyOrdersScreen extends StatefulWidget {
   State<MyOrdersScreen> createState() => _MyOrdersScreenState();
 }
 
-class _MyOrdersScreenState extends State<MyOrdersScreen> with SingleTickerProviderStateMixin {
+class _MyOrdersScreenState extends State<MyOrdersScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   List<Map<String, dynamic>> myOrders = [];
   List<Map<String, dynamic>> filteredOrders = [];
+  List<Map<String, dynamic>> crops = [];
   bool isLoading = true;
+  bool isCropsLoading = true;
   String selectedFilter = "All";
 
   int totalOrders = 0;
   int pendingOrders = 0;
+  int confirmedOrders = 0;
   int deliveredOrders = 0;
   double totalSpent = 0.0;
 
@@ -28,12 +32,59 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> with SingleTickerProvid
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _loadMyOrders();
+    _loadCrops();
   }
 
   @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadCrops() async {
+    try {
+      final snapshot = await FirebaseDatabase.instance.ref('allcrops').once();
+
+      if (snapshot.snapshot.value != null) {
+        final data = snapshot.snapshot.value;
+
+        setState(() {
+          if (data is Map) {
+            crops = data.values
+                .where((e) => e != null)
+                .map((e) => Map<String, dynamic>.from(e as Map))
+                .toList();
+          } else if (data is List) {
+            crops = data
+                .where((e) => e != null)
+                .map((e) => Map<String, dynamic>.from(e as Map))
+                .toList();
+          } else {
+            crops = [];
+          }
+          isCropsLoading = false;
+        });
+      } else {
+        setState(() {
+          crops = [];
+          isCropsLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        crops = [];
+        isCropsLoading = false;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to load crops. Please try again.'),
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _loadMyOrders() async {
@@ -90,8 +141,9 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> with SingleTickerProvid
   void _calculateStatistics(List<Map<String, dynamic>> orders) {
     totalOrders = orders.length;
     pendingOrders = orders.where((o) => o['status'] == 'pending').length;
+    confirmedOrders = orders.where((o) => o['status'] == 'confirmed').length;
     deliveredOrders = orders.where((o) => o['status'] == 'delivered').length;
-    
+
     totalSpent = 0.0;
     for (var order in orders) {
       final price = (order['pricePerUnit'] ?? 0).toDouble();
@@ -106,7 +158,9 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> with SingleTickerProvid
       if (filter == "All") {
         filteredOrders = myOrders;
       } else {
-        filteredOrders = myOrders.where((order) => order['status'] == filter.toLowerCase()).toList();
+        filteredOrders = myOrders
+            .where((order) => order['status'] == filter.toLowerCase())
+            .toList();
       }
     });
   }
@@ -124,31 +178,120 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> with SingleTickerProvid
     }
   }
 
+  IconData _statusIcon(String status) {
+    switch (status) {
+      case "pending":
+        return Icons.schedule;
+      case "confirmed":
+        return Icons.check_circle_outline;
+      case "delivered":
+        return Icons.done_all;
+      default:
+        return Icons.help_outline;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
-      appBar: AppBar(
-        title: const Text("My Orders", style: TextStyle(color: Colors.white)),
-        backgroundColor: const Color(0xFF104f22),
-        iconTheme: const IconThemeData(color: Colors.white),
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: Colors.white,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          tabs: const [
-            Tab(text: "Place New Order"),
-            Tab(text: "Order Dashboard"),
-          ],
+      body: Column(
+        children: [
+          _buildCustomAppBar(),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [_buildPlaceNewOrderTab(), _buildOrderDashboardTab()],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCustomAppBar() {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFF104f22), Color(0xFF0d3f1c)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildPlaceNewOrderTab(),
-          _buildOrderDashboardTab(),
-        ],
+      child: SafeArea(
+        child: Column(
+          children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 16, 16, 0),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "My Orders",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      "Manage your crop orders",
+                      style: TextStyle(color: Colors.white70, fontSize: 14),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            SizedBox(height: 20),
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: TabBar(
+                controller: _tabController,
+                indicator: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                indicatorSize: TabBarIndicatorSize.tab,
+                labelColor: const Color(0xFF104f22),
+                unselectedLabelColor: Colors.white,
+                labelStyle: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
+                tabs: const [
+                  Tab(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.add_shopping_cart, size: 18),
+                        SizedBox(width: 8),
+                        Text("Place Order"),
+                      ],
+                    ),
+                  ),
+                  Tab(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.dashboard, size: 18),
+                        SizedBox(width: 8),
+                        Text("Dashboard"),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
       ),
     );
   }
@@ -158,98 +301,299 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> with SingleTickerProvid
   }
 
   Widget _buildCropsList() {
-    final crops = [
-      {"name": "Wheat (गेहूं)", "image": "assets/images/login_bg.jpg", "id": "wheat"},
-      {"name": "Maize (मक्का)", "image": "assets/images/maize.jpg", "id": "maize"},
-      {"name": "Rice (चावल)", "image": "assets/images/rice.jpg", "id": "rice"},
-      {"name": "Potato (आलू)", "image": "assets/images/potato.jpg", "id": "potato"},
-      {"name": "Soybean (सोयाबीन)", "image": "assets/images/soybean.jpg", "id": "soybean"},
-      {"name": "Green Gram (मूंग)", "image": "assets/images/greengram.jpg", "id": "greengram"},
-      {"name": "Onion (प्याज)", "image": "assets/images/onion.jpg", "id": "onion"},
-      {"name": "Sugarcane (गन्ना)", "image": "assets/images/sugarcane.jpg", "id": "sugarcane"},
-    ];
+    if (isCropsLoading) {
+      return const Center(
+        child: CircularProgressIndicator(color: Color(0xFF104f22)),
+      );
+    }
 
-    return GridView.builder(
-      padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 0.85,
-      ),
-      itemCount: crops.length,
-      itemBuilder: (context, index) {
-        final crop = crops[index];
-        return GestureDetector(
-          onTap: () async {
-            final result = await Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => SelectedCropScreen(
-                  cropId: crop['id']!,
-                  cropName: crop['name']!,
-                  cropImage: crop['image']!,
-                ),
+    if (crops.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.agriculture_outlined, size: 80, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            Text(
+              "No crops available",
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey[700],
               ),
-            );
-            if (result == true) {
-              _loadMyOrders();
-            }
-          },
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(15),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
-                  blurRadius: 8,
-                ),
-              ],
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  child: ClipRRect(
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(15),
-                      topRight: Radius.circular(15),
-                    ),
-                    child: Image.asset(
-                      crop['image']!,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Text(
-                    crop['name']!,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                    ),
-                  ),
-                ),
-              ],
+            const SizedBox(height: 8),
+            Text(
+              "Please check back later",
+              style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.all(16),
+          child: Text(
+            "Select a crop to place order",
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF2E2E2E),
             ),
           ),
-        );
-      },
+        ),
+        Expanded(
+          child: GridView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+              childAspectRatio: 0.75,
+            ),
+            itemCount: crops.length,
+            itemBuilder: (context, index) {
+              final crop = crops[index];
+              return GestureDetector(
+                onTap: () async {
+                  final result = await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => SelectedCropScreen(
+                        cropId: (crop['id'] ?? crop['name'] ?? 'unknown')
+                            .toString(),
+                        cropName: (crop['name'] ?? 'Unknown').toString(),
+                        cropImage:
+                            (crop['image'] ?? 'assets/images/login_bg.jpg')
+                                .toString(),
+                      ),
+                    ),
+                  );
+                  if (result == true) {
+                    _loadMyOrders();
+                  }
+                },
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.08),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
+                        spreadRadius: 2,
+                      ),
+                      BoxShadow(
+                        color: const Color(0xFF104f22).withOpacity(0.05),
+                        blurRadius: 30,
+                        offset: const Offset(0, 15),
+                        spreadRadius: -5,
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(
+                        flex: 3,
+                        child: Stack(
+                          children: [
+                            ClipRRect(
+                              borderRadius: const BorderRadius.only(
+                                topLeft: Radius.circular(24),
+                                topRight: Radius.circular(24),
+                              ),
+                              child: crop['image'] != null
+                                  ? Image.network(
+                                      crop['image'].toString(),
+                                      fit: BoxFit.cover,
+                                      width: double.infinity,
+                                      errorBuilder:
+                                          (context, error, stackTrace) {
+                                            return Image.asset(
+                                              'assets/images/login_bg.jpg',
+                                              fit: BoxFit.cover,
+                                              width: double.infinity,
+                                            );
+                                          },
+                                    )
+                                  : Image.asset(
+                                      'assets/images/login_bg.jpg',
+                                      fit: BoxFit.cover,
+                                      width: double.infinity,
+                                    ),
+                            ),
+                            Container(
+                              decoration: BoxDecoration(
+                                borderRadius: const BorderRadius.only(
+                                  topLeft: Radius.circular(24),
+                                  topRight: Radius.circular(24),
+                                ),
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    Colors.transparent,
+                                    Colors.black.withOpacity(0.3),
+                                    Colors.black.withOpacity(0.6),
+                                  ],
+                                  stops: const [0.0, 0.6, 1.0],
+                                ),
+                              ),
+                            ),
+                            if (crop['pricePerUnit'] != null)
+                              Positioned(
+                                top: 16,
+                                right: 16,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(
+                                      colors: [
+                                        Color(0xFF104f22),
+                                        Color(0xFF0d3f1c),
+                                      ],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                                    borderRadius: BorderRadius.circular(16),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: const Color(
+                                          0xFF104f22,
+                                        ).withOpacity(0.4),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(
+                                        Icons.currency_rupee,
+                                        color: Colors.white,
+                                        size: 14,
+                                      ),
+                                      Text(
+                                        "${crop['pricePerUnit']}/kg",
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        flex: 2,
+                        child: Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.only(
+                              bottomLeft: Radius.circular(24),
+                              bottomRight: Radius.circular(24),
+                            ),
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Flexible(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF104f22).withOpacity(0.08),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    (crop['name'] ?? 'Unknown').toString(),
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                      color: Color(0xFF104f22),
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 1,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              if (crop['nameHindi'] != null)
+                                Flexible(
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 1,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.grey[100],
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      crop['nameHindi'].toString(),
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.grey[700],
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                      maxLines: 1,
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 
   Widget _buildOrderDashboardTab() {
     return isLoading
-        ? const Center(child: CircularProgressIndicator(color: Color(0xFF104f22)))
-        : Column(
-            children: [
-              _buildStatisticsCards(),
-              _buildFilterChips(),
-              Expanded(child: _buildOrdersTable()),
-            ],
+        ? const Center(
+            child: CircularProgressIndicator(color: Color(0xFF104f22)),
+          )
+        : RefreshIndicator(
+            onRefresh: _loadMyOrders,
+            color: const Color(0xFF104f22),
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Column(
+                children: [
+                  _buildStatisticsCards(),
+                  _buildFilterChips(),
+                  _buildOrdersList(),
+                ],
+              ),
+            ),
           );
   }
 
@@ -264,8 +608,8 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> with SingleTickerProvid
                 child: _buildStatCard(
                   "Total Orders",
                   totalOrders.toString(),
-                  Icons.shopping_bag,
-                  Colors.purple,
+                  Icons.inventory_2,
+                  const Color(0xFF6366F1),
                 ),
               ),
               const SizedBox(width: 12),
@@ -273,7 +617,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> with SingleTickerProvid
                 child: _buildStatCard(
                   "Pending",
                   pendingOrders.toString(),
-                  Icons.pending,
+                  Icons.schedule,
                   Colors.orange,
                 ),
               ),
@@ -284,59 +628,135 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> with SingleTickerProvid
             children: [
               Expanded(
                 child: _buildStatCard(
-                  "Delivered",
-                  deliveredOrders.toString(),
-                  Icons.check_circle,
-                  Colors.green,
+                  "Confirmed",
+                  confirmedOrders.toString(),
+                  Icons.check_circle_outline,
+                  Colors.blue,
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: _buildStatCard(
-                  "Total Spent",
-                  "₹${totalSpent.toStringAsFixed(0)}",
-                  Icons.currency_rupee,
-                  Colors.blue,
+                  "Delivered",
+                  deliveredOrders.toString(),
+                  Icons.done_all,
+                  Colors.green,
                 ),
               ),
             ],
           ),
+          const SizedBox(height: 12),
+          _buildTotalSpentCard(),
         ],
       ),
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
+  Widget _buildStatCard(
+    String title,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, color: color, size: 32),
-          const SizedBox(height: 8),
+          Icon(icon, color: color, size: 20),
+          const SizedBox(height: 1),
           Text(
             value,
             style: TextStyle(
-              fontSize: 24,
+              fontSize: 20,
               fontWeight: FontWeight.bold,
               color: color,
             ),
+            overflow: TextOverflow.ellipsis,
           ),
-          const SizedBox(height: 4),
           Text(
             title,
             style: const TextStyle(
-              fontSize: 12,
+              fontSize: 14,
               color: Colors.grey,
+              fontWeight: FontWeight.w500,
+            ),
+            textAlign: TextAlign.center,
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTotalSpentCard() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF104f22), Color(0xFF0d3f1c)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF104f22).withOpacity(0.3),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.currency_rupee,
+              color: Colors.white,
+              size: 28,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "Total Amount",
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.white70,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  "₹${totalSpent.toStringAsFixed(2)}",
+                  style: const TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -347,8 +767,8 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> with SingleTickerProvid
   Widget _buildFilterChips() {
     final filters = ["All", "Pending", "Confirmed", "Delivered"];
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      height: 50,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      height: 60,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         itemCount: filters.length,
@@ -362,10 +782,14 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> with SingleTickerProvid
               selected: isSelected,
               onSelected: (selected) => _applyFilter(filter),
               selectedColor: const Color(0xFF104f22),
+              backgroundColor: Colors.white,
               labelStyle: TextStyle(
-                color: isSelected ? Colors.white : Colors.black,
+                color: isSelected ? Colors.white : Colors.black87,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
               ),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              elevation: isSelected ? 4 : 0,
+              shadowColor: const Color(0xFF104f22).withOpacity(0.3),
             ),
           );
         },
@@ -373,89 +797,254 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> with SingleTickerProvid
     );
   }
 
-  Widget _buildOrdersTable() {
+  Widget _buildOrdersList() {
     if (filteredOrders.isEmpty) {
-      return const Center(
-        child: Text(
-          "No orders found",
-          style: TextStyle(fontSize: 16, color: Colors.grey),
+      return Container(
+        padding: const EdgeInsets.all(40),
+        child: Column(
+          children: [
+            Icon(Icons.inbox_outlined, size: 80, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            Text(
+              "No orders found",
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey[700],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              "Your orders will appear here",
+              style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+            ),
+          ],
         ),
       );
     }
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: SingleChildScrollView(
-        child: DataTable(
-          headingRowColor: MaterialStateProperty.all(
-            const Color(0xFF104f22).withOpacity(0.1),
-          ),
-          columns: const [
-            DataColumn(label: Text("Crop", style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text("Qty", style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text("Grade", style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text("Location", style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text("Amount", style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text("Status", style: TextStyle(fontWeight: FontWeight.bold))),
-          ],
-          rows: filteredOrders.map((order) {
-            final cropType = order['cropType'] ?? "Unknown";
-            final quantity = order['quantity']?.toString() ?? "0";
-            final unit = order['unit'] ?? "Kg";
-            final grades = (order['qualityGrades'] as List?)?.join(", ") ?? "N/A";
-            final location = order['location'] != null
-                ? "${order['location']['village'] ?? ''}, ${order['location']['state'] ?? ''}"
-                : "N/A";
-            final price = (order['pricePerUnit'] ?? 0).toDouble();
-            final qty = (order['quantity'] ?? 0).toDouble();
-            final amount = (price * qty).toStringAsFixed(2);
-            final status = order['status'] ?? "unknown";
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.all(16),
+      itemCount: filteredOrders.length,
+      itemBuilder: (context, index) {
+        return _buildOrderCard(filteredOrders[index]);
+      },
+    );
+  }
 
-            return DataRow(
-              cells: [
-                DataCell(
-                  SizedBox(
-                    width: 120,
-                    child: Text(
-                      cropType,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+  Widget _buildOrderCard(Map<String, dynamic> order) {
+    final cropType = order['cropType'] ?? "Unknown";
+    final quantity = order['quantity']?.toString() ?? "0";
+    final unit = order['unit'] ?? "Kg";
+    final grades = (order['qualityGrades'] as List?)?.join(", ") ?? "N/A";
+    final location = order['location'] != null
+        ? order['location']['deliveryLocation'] ?? "N/A"
+        : "N/A";
+    final price = (order['pricePerUnit'] ?? 0).toDouble();
+    final qty = (order['quantity'] ?? 0).toDouble();
+    final amount = (price * qty);
+    final status = order['status'] ?? "unknown";
+    final deliveryDate = order['requiredDeliveryDate'];
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.12),
+            blurRadius: 15,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  _statusColor(status).withOpacity(0.15),
+                  _statusColor(status).withOpacity(0.05),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(20),
+                topRight: Radius.circular(20),
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: _statusColor(status).withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    _statusIcon(status),
+                    color: _statusColor(status),
+                    size: 20,
                   ),
                 ),
-                DataCell(Text("$quantity $unit")),
-                DataCell(Text(grades)),
-                DataCell(
-                  SizedBox(
-                    width: 100,
-                    child: Text(
-                      location,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ),
-                DataCell(Text("₹$amount")),
-                DataCell(
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: _statusColor(status).withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      status.toUpperCase(),
-                      style: TextStyle(
-                        color: _statusColor(status),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 11,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        status.toUpperCase(),
+                        style: TextStyle(
+                          color: _statusColor(status),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          letterSpacing: 0.5,
+                        ),
                       ),
+                      const SizedBox(height: 2),
+                      Text(
+                        "Order #${order['id']?.toString().substring(0, 8) ?? 'N/A'}",
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _statusColor(status),
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  child: Text(
+                    "₹${amount.toStringAsFixed(2)}",
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
                   ),
                 ),
               ],
-            );
-          }).toList(),
-        ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildInfoRow(Icons.agriculture, "Crop", cropType),
+                    ),
+                    Expanded(
+                      child: _buildInfoRow(
+                        Icons.scale,
+                        "Quantity",
+                        "$quantity $unit",
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildInfoRow(Icons.grade, "Grade", grades),
+                    ),
+                    Expanded(
+                      child: _buildInfoRow(
+                        Icons.location_on,
+                        "Location",
+                        location,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildInfoRow(
+                        Icons.currency_rupee,
+                        "Price per kg",
+                        "₹${(order['pricePerUnit'] ?? 0).toDouble().toStringAsFixed(2)}/kg",
+                      ),
+                    ),
+                    Expanded(
+                      child: deliveryDate != null
+                          ? _buildInfoRow(
+                              Icons.calendar_today,
+                              "Delivery Date",
+                              _formatDate(deliveryDate),
+                            )
+                          : const SizedBox(),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
+  }
+
+  Widget _buildInfoRow(IconData icon, String label, String value) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: Colors.grey[100],
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, size: 16, color: Colors.grey[700]),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF2E2E2E),
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _formatDate(int timestamp) {
+    final date = DateTime.fromMillisecondsSinceEpoch(timestamp);
+    return "${date.day}/${date.month}/${date.year}";
   }
 }
