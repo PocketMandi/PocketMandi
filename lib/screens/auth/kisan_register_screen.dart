@@ -5,6 +5,9 @@ import 'package:csc_picker_plus/csc_picker_plus.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:poket_mandi/screens/auth/otp_verification_screen.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:geocoding/geocoding.dart';
 
 class KisanRegisterScreen extends StatefulWidget {
   const KisanRegisterScreen({super.key});
@@ -22,6 +25,21 @@ class _KisanRegisterScreenState extends State<KisanRegisterScreen> {
   bool isLoading = false;
   File? _profileImage;
   final ImagePicker _picker = ImagePicker();
+
+  // Location variables
+  double? userLatitude;
+  double? userLongitude;
+  String? userAddress;
+  bool isLocationLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Automatically request location when screen loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAndRequestLocation();
+    });
+  }
 
   Future<void> _pickImage(ImageSource source) async {
     final pickedFile = await _picker.pickImage(source: source);
@@ -62,22 +80,244 @@ class _KisanRegisterScreenState extends State<KisanRegisterScreen> {
     );
   }
 
+  // Location functionality methods
+  Future<void> _checkAndRequestLocation() async {
+    try {
+      setState(() => isLocationLoading = true);
+
+      // Check if location services are enabled
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        setState(() => isLocationLoading = false);
+        _showLocationServiceDialog();
+        return;
+      }
+
+      // Check location permission
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          setState(() => isLocationLoading = false);
+          _showLocationPermissionDialog();
+          return;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        setState(() => isLocationLoading = false);
+        _showLocationPermissionDialog();
+        return;
+      }
+
+      // Get current position
+      await Geolocator.getLastKnownPosition();
+      Position? position = await Geolocator.getLastKnownPosition();
+
+      position ??= await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.medium,
+        timeLimit: const Duration(seconds: 20),
+      );
+
+      // Get address from coordinates
+      List<Placemark> placemarks = await placemarkFromCoordinates(
+        position.latitude,
+        position.longitude,
+      );
+
+      String address = "Location captured";
+      if (placemarks.isNotEmpty) {
+        Placemark place = placemarks[0];
+        address =
+            "${place.locality}, ${place.administrativeArea}, ${place.country}";
+      }
+
+      setState(() {
+        userLatitude = position!.latitude;
+        userLongitude = position!.longitude;
+        userAddress = address;
+        isLocationLoading = false;
+      });
+
+      _showLocationSuccessDialog();
+    } catch (e) {
+      setState(() => isLocationLoading = false);
+      _showLocationErrorDialog(e.toString());
+    }
+  }
+
+  void _showLocationServiceDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: const [
+            Icon(Icons.location_off, color: Colors.orange, size: 28),
+            SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                "Location Services Disabled",
+                style: TextStyle(fontSize: 18),
+              ),
+            ),
+          ],
+        ),
+        content: const Text(
+          "Please enable location services to help buyers find you easily and get better crop recommendations.",
+          style: TextStyle(fontSize: 16),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await Geolocator.openLocationSettings();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF085927),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text("Enable"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showLocationPermissionDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: const [
+            Icon(Icons.location_disabled, color: Colors.red, size: 28),
+            SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                "Location Permission Required",
+                style: TextStyle(fontSize: 18),
+              ),
+            ),
+          ],
+        ),
+        content: const Text(
+          "Location access helps buyers find you and improves your crop visibility. Please grant permission in settings.",
+          style: TextStyle(fontSize: 16),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await openAppSettings();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF085927),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text("Settings"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showLocationSuccessDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: const [
+            Icon(Icons.check_circle, color: Colors.green, size: 28),
+            SizedBox(width: 12),
+            Expanded(
+              child: Text("Location Captured!", style: TextStyle(fontSize: 18)),
+            ),
+          ],
+        ),
+        content: Text(
+          "Your location has been successfully captured: ${userAddress ?? 'Location saved'}",
+          style: const TextStyle(fontSize: 16),
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF085927),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text("OK"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showLocationErrorDialog(String error) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: const [
+            Icon(Icons.error, color: Colors.red, size: 28),
+            SizedBox(width: 12),
+            Expanded(
+              child: Text("Location Error", style: TextStyle(fontSize: 18)),
+            ),
+          ],
+        ),
+        content: Text(
+          "Failed to get location: ${error.contains('TimeoutException') ? 'Request timed out. Please try again.' : 'Please check your GPS and internet connection.'}",
+          style: const TextStyle(fontSize: 16),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _checkAndRequestLocation();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF085927),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text("Retry"),
+          ),
+        ],
+      ),
+    );
+  }
+
   void sendToOtpScreen() async {
     print("Register button clicked");
     print("Name: ${nameController.text}");
     print("Phone: ${phoneController.text}");
     print("Phone length: ${phoneController.text.length}");
     print("Village: ${villageController.text}");
-    
+
     if (nameController.text.isEmpty ||
         phoneController.text.isEmpty ||
         phoneController.text.length != 10 ||
         villageController.text.isEmpty) {
       print("Validation failed");
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(
-          const SnackBar(content: Text("Please fill all fields correctly")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please fill all fields correctly")),
+      );
       return;
     }
 
@@ -88,13 +328,15 @@ class _KisanRegisterScreenState extends State<KisanRegisterScreen> {
         final storageRef = FirebaseStorage.instance
             .ref()
             .child('profile_images')
-            .child('${phoneController.text}_${DateTime.now().millisecondsSinceEpoch}.jpg');
+            .child(
+              '${phoneController.text}_${DateTime.now().millisecondsSinceEpoch}.jpg',
+            );
         await storageRef.putFile(_profileImage!);
         imageUrl = await storageRef.getDownloadURL();
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Image upload failed: $e")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Image upload failed: $e")));
         setState(() => isLoading = false);
         return;
       }
@@ -114,6 +356,9 @@ class _KisanRegisterScreenState extends State<KisanRegisterScreen> {
             "state": stateValue.isEmpty ? "Uttar Pradesh" : stateValue,
             "country": "India",
             "profileImage": imageUrl ?? "https://i.pravatar.cc/300",
+            "latitude": userLatitude?.toString() ?? "",
+            "longitude": userLongitude?.toString() ?? "",
+            "address": userAddress ?? "",
           },
         ),
       ),
@@ -335,18 +580,94 @@ class _KisanRegisterScreenState extends State<KisanRegisterScreen> {
                               const SizedBox(height: 15),
 
                               /// Location
-                              Row(
-                                children: const [
-                                  Icon(Icons.location_on, color: Colors.green),
-                                  SizedBox(width: 8),
-                                  Text(
-                                    "Google Location on Google map",
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.black54,
-                                    ),
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: userLatitude != null
+                                      ? Colors.green.shade50
+                                      : Colors.orange.shade50,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: userLatitude != null
+                                        ? Colors.green.shade200
+                                        : Colors.orange.shade200,
                                   ),
-                                ],
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      userLatitude != null
+                                          ? Icons.location_on
+                                          : Icons.location_off,
+                                      color: userLatitude != null
+                                          ? Colors.green
+                                          : Colors.orange,
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            userLatitude != null
+                                                ? "Location Captured"
+                                                : "Capture Your Location",
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w500,
+                                              color: userLatitude != null
+                                                  ? Colors.green.shade700
+                                                  : Colors.orange.shade700,
+                                            ),
+                                          ),
+                                          if (userAddress != null)
+                                            Text(
+                                              userAddress!,
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.grey.shade600,
+                                              ),
+                                            ),
+                                          if (userLatitude == null)
+                                            Text(
+                                              "Help buyers find you easily",
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.grey.shade600,
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    isLocationLoading
+                                        ? const SizedBox(
+                                            width: 20,
+                                            height: 20,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              valueColor:
+                                                  AlwaysStoppedAnimation<Color>(
+                                                    Colors.green,
+                                                  ),
+                                            ),
+                                          )
+                                        : IconButton(
+                                            onPressed: _checkAndRequestLocation,
+                                            icon: Icon(
+                                              userLatitude != null
+                                                  ? Icons.refresh
+                                                  : Icons.my_location,
+                                              color: userLatitude != null
+                                                  ? Colors.green
+                                                  : Colors.orange,
+                                              size: 20,
+                                            ),
+                                          ),
+                                  ],
+                                ),
                               ),
 
                               const SizedBox(height: 20),
@@ -448,8 +769,9 @@ class _KisanRegisterScreenState extends State<KisanRegisterScreen> {
               Expanded(
                 child: TextField(
                   controller: controller,
-                  keyboardType:
-                      isMobile ? TextInputType.phone : TextInputType.text,
+                  keyboardType: isMobile
+                      ? TextInputType.phone
+                      : TextInputType.text,
                   maxLength: isMobile ? 10 : null,
                   decoration: InputDecoration(
                     counterText: "",

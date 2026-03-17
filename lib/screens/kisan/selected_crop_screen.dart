@@ -239,7 +239,7 @@ class _SelectedCropScreenState extends State<SelectedCropScreen> {
 
                         const SizedBox(height: 18),
 
-                        _buildLabel("Expected Price (₹)"),
+                        _buildLabel("Expected Price (₹/KG)"),
                         TextField(
                           controller: priceController,
                           keyboardType: TextInputType.number,

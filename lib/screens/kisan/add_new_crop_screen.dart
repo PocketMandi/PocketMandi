@@ -728,7 +728,7 @@ class _AddNewCropScreenState extends State<AddNewCropScreen> {
 
                               const SizedBox(height: 18),
 
-                              _buildLabel("Expected Price (₹)"),
+                              _buildLabel("Expected Price (₹/KG)"),
                               TextField(
                                 controller: priceController,
                                 keyboardType: TextInputType.number,
