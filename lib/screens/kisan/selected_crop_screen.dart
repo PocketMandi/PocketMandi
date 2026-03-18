@@ -36,6 +36,7 @@ class _SelectedCropScreenState extends State<SelectedCropScreen> {
 
   final TextEditingController quantityController = TextEditingController();
   final TextEditingController priceController = TextEditingController();
+  final TextEditingController specialInstructionsController = TextEditingController();
   final ImagePicker _picker = ImagePicker();
 
   final List<String> locations = ["Rajpur"];
@@ -45,6 +46,7 @@ class _SelectedCropScreenState extends State<SelectedCropScreen> {
     videoController?.dispose();
     quantityController.dispose();
     priceController.dispose();
+    specialInstructionsController.dispose();
     super.dispose();
   }
 
@@ -344,6 +346,23 @@ class _SelectedCropScreenState extends State<SelectedCropScreen> {
                           keyboardType: TextInputType.number,
                           decoration: InputDecoration(
                             hintText: "Enter expected price",
+                            filled: true,
+                            fillColor: const Color(0xFFF3F3F3),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 18),
+
+                        _buildLabel("Special Instructions (Optional)"),
+                        TextField(
+                          controller: specialInstructionsController,
+                          maxLines: 3,
+                          decoration: InputDecoration(
+                            hintText: "Any special handling, packaging, or delivery instructions...",
                             filled: true,
                             fillColor: const Color(0xFFF3F3F3),
                             border: OutlineInputBorder(
@@ -747,6 +766,9 @@ class _SelectedCropScreenState extends State<SelectedCropScreen> {
           "deliveryLocation": selectedLocation,
         },
         "requiredDeliveryDate": selectedDeliveryDate!.millisecondsSinceEpoch,
+        "specialInstructions": specialInstructionsController.text.trim().isEmpty 
+            ? null 
+            : specialInstructionsController.text.trim(),
         "status": "pending",
         "createdAt": ServerValue.timestamp,
         "updatedAt": ServerValue.timestamp,
