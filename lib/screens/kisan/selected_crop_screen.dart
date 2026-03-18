@@ -38,11 +38,7 @@ class _SelectedCropScreenState extends State<SelectedCropScreen> {
   final TextEditingController priceController = TextEditingController();
   final ImagePicker _picker = ImagePicker();
 
-  final List<String> locations = [
-    "Delhi",
-    "Mumbai",
-    "Lucknow",
-  ];
+  final List<String> locations = ["Rajpur"];
 
   @override
   void dispose() {
@@ -259,9 +255,13 @@ class _SelectedCropScreenState extends State<SelectedCropScreen> {
                           onTap: () async {
                             final DateTime? picked = await showDatePicker(
                               context: context,
-                              initialDate: DateTime.now().add(const Duration(days: 1)),
+                              initialDate: DateTime.now().add(
+                                const Duration(days: 1),
+                              ),
                               firstDate: DateTime.now(),
-                              lastDate: DateTime.now().add(const Duration(days: 365)),
+                              lastDate: DateTime.now().add(
+                                const Duration(days: 365),
+                              ),
                               builder: (context, child) {
                                 return Theme(
                                   data: Theme.of(context).copyWith(
@@ -646,18 +646,14 @@ class _SelectedCropScreenState extends State<SelectedCropScreen> {
 
     if (selectedLocation == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select a delivery location'),
-        ),
+        const SnackBar(content: Text('Please select a delivery location')),
       );
       return;
     }
 
     if (selectedDeliveryDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select a required delivery date'),
-        ),
+        const SnackBar(content: Text('Please select a required delivery date')),
       );
       return;
     }

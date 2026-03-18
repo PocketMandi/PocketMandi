@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:poket_mandi/main.dart';
-import 'package:poket_mandi/screens/kisan/selected_crop_screen.dart';
 import 'package:poket_mandi/screens/vyapari/crop_detail_screen.dart';
 import 'package:poket_mandi/screens/vyapari/crop_not_listed_screen.dart';
 
@@ -15,18 +14,41 @@ class VyapariDashboardScreen extends StatefulWidget {
 
 class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
   String? selectedCrop;
-  String? selectedLocation;
+  String? selectedState;
+  String? selectedDistrict;
+  String? selectedVillage;
   String? selectedQuality;
   String traderName = "Vyapari";
   String traderPhone = "";
   String traderImage = "https://i.pravatar.cc/300";
+  List<Map<String, dynamic>> crops = [];
+  bool isLoading = true;
   bool isGuest = false;
   int _selectedIndex = 0;
+
+  // Location data
+  final Map<String, List<String>> stateDistrictMap = {
+    "Uttar Pradesh": ["Lucknow", "Kanpur", "Agra", "Varanasi", "Meerut"],
+    "Maharashtra": ["Mumbai", "Pune", "Nagpur", "Nashik", "Aurangabad"],
+    "Bihar": ["Patna", "Gaya", "Bhagalpur", "Muzaffarpur", "Darbhanga"],
+    "West Bengal": ["Kolkata", "Howrah", "Durgapur", "Asansol", "Siliguri"],
+    "Rajasthan": ["Jaipur", "Jodhpur", "Udaipur", "Kota", "Bikaner"],
+  };
+
+  final Map<String, List<String>> districtVillageMap = {
+    "Lucknow": ["Malihabad", "Mohanlalganj", "Bakshi Ka Talab", "Chinhat"],
+    "Kanpur": ["Bilhaur", "Ghatampur", "Kalyanpur", "Shivrajpur"],
+    "Mumbai": ["Andheri", "Borivali", "Malad", "Kandivali"],
+    "Pune": ["Hadapsar", "Kothrud", "Wakad", "Baner"],
+    "Patna": ["Danapur", "Phulwari", "Masaurhi", "Maner"],
+    "Jaipur": ["Amber", "Sanganer", "Chomu", "Bassi"],
+  };
 
   @override
   void initState() {
     super.initState();
     _initializeUserData();
+    _loadCrops();
   }
 
   Future<void> _initializeUserData() async {
@@ -63,6 +85,52 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
           traderPhone = data['phone'] ?? '';
           traderImage = data['profileImage'] ?? 'https://i.pravatar.cc/300';
         });
+      }
+    }
+  }
+
+  Future<void> _loadCrops() async {
+    try {
+      final snapshot = await FirebaseDatabase.instance.ref('allcrops').once();
+
+      if (snapshot.snapshot.value != null) {
+        final data = snapshot.snapshot.value;
+
+        setState(() {
+          if (data is Map) {
+            crops = data.values
+                .where((e) => e != null)
+                .map((e) => Map<String, dynamic>.from(e as Map))
+                .toList();
+          } else if (data is List) {
+            crops = data
+                .where((e) => e != null)
+                .map((e) => Map<String, dynamic>.from(e as Map))
+                .toList();
+          } else {
+            crops = [];
+          }
+          isLoading = false;
+        });
+      } else {
+        setState(() {
+          crops = [];
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        crops = [];
+        isLoading = false;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to load crops. Please try again.'),
+            duration: Duration(seconds: 3),
+          ),
+        );
       }
     }
   }
@@ -344,16 +412,12 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
     });
   }
 
-  List<Map<String, String>> get crops => [
-    {"name": "Wheat", "image": "assets/images/login_bg.jpg"},
-    {"name": "Maize", "image": "assets/images/maize.jpg"},
-    {"name": "Rice", "image": "assets/images/rice.jpg"},
-    {"name": "Potato", "image": "assets/images/potato.jpg"},
-    {"name": "Soybean", "image": "assets/images/soybean.jpg"},
-    {"name": "Green Gram", "image": "assets/images/greengram.jpg"},
-    {"name": "Onion", "image": "assets/images/onion.jpg"},
-    {"name": "Sugarcane", "image": "assets/images/sugarcane.jpg"},
-  ];
+  List<Map<String, String>> get cropNames => crops
+      .map((crop) => {
+            "name": crop["name"]?.toString() ?? "Unknown",
+            "image": crop["image"]?.toString() ?? "assets/images/login_bg.jpg"
+          })
+      .toList();
 
   @override
   Widget build(BuildContext context) {
@@ -362,10 +426,10 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
       body: _selectedIndex == 0
           ? _buildHomeScreen()
           : _selectedIndex == 1
-              ? _buildOrdersScreen()
-              : _selectedIndex == 2
-                  ? _buildHistoryScreen()
-                  : _buildProfileScreen(),
+          ? _buildOrdersScreen()
+          : _selectedIndex == 2
+          ? _buildHistoryScreen()
+          : _buildProfileScreen(),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -385,10 +449,789 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
               children: [
                 _buildNavItem(Icons.home, "Home", 0),
                 _buildNavItem(Icons.shopping_bag, "Orders", 1),
+                _buildCropNotListedNavItem(),
                 _buildNavItem(Icons.history, "History", 2),
                 _buildNavItem(Icons.person, "Profile", 3),
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCropNotListedNavItem() {
+    return Expanded(
+      child: InkWell(
+        onTap: isGuest
+            ? _showGuestRestrictionDialog
+            : () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => CropNotListedScreen()),
+                );
+              },
+        borderRadius: BorderRadius.circular(25),
+        child: Container(
+          height: 50,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF669123), Color(0xFF104f22)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(25),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF669123).withOpacity(0.3),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: const Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.add_circle, color: Colors.white, size: 24),
+              SizedBox(height: 2),
+              Text(
+                "Request",
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHomeScreen() {
+    return Column(
+      children: [
+        /// Header Section
+        Container(
+          height: 200,
+          decoration: const BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage("assets/images/login_bg.jpg"),
+              fit: BoxFit.cover,
+            ),
+            borderRadius: BorderRadius.only(
+              bottomLeft: Radius.circular(30),
+              bottomRight: Radius.circular(30),
+            ),
+          ),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.4),
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(30),
+                bottomRight: Radius.circular(30),
+              ),
+            ),
+            child: SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 10),
+
+                    /// Top Row with Logo and Profile
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        /// Logo Section
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(6),
+                                child: Image.asset(
+                                  "assets/images/logof.png",
+                                  width: 28,
+                                  height: 28,
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            const Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "PoketMandi",
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                Text(
+                                  "Trader Dashboard",
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.white70,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+
+                        /// Profile Section
+                        Container(
+                          padding: const EdgeInsets.all(2),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            shape: BoxShape.circle,
+                          ),
+                          child: CircleAvatar(
+                            radius: 20,
+                            backgroundColor: Colors.white,
+                            backgroundImage: traderImage.startsWith('http')
+                                ? NetworkImage(traderImage)
+                                : null,
+                            child: !traderImage.startsWith('http')
+                                ? const Icon(
+                                    Icons.person,
+                                    size: 22,
+                                    color: Color(0xFF104f22),
+                                  )
+                                : null,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    /// Welcome Section
+                    Column(
+                      children: [
+                        Text(
+                          "Welcome back,",
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.white.withOpacity(0.9),
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          "$traderName Ji",
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 6),
+
+                        /// Status Badge
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isGuest
+                                ? Colors.orange.withOpacity(0.9)
+                                : Colors.green.withOpacity(0.9),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                isGuest
+                                    ? Icons.visibility
+                                    : Icons.verified_user,
+                                color: Colors.white,
+                                size: 14,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                isGuest ? "Guest Mode" : "Verified Trader",
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(height: 8),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+
+        /// Content Section
+        Expanded(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                /// Filter Card
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.08),
+                        blurRadius: 15,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildSectionHeader("Select Crop", Icons.agriculture),
+                      const SizedBox(height: 8),
+                      _buildCropDropdown(
+                        value: selectedCrop,
+                        hint: "Choose crop",
+                        items: cropNames,
+                        onChanged: (value) {
+                          setState(() {
+                            selectedCrop = value;
+                          });
+                        },
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      _buildSectionHeader("Location", Icons.location_on),
+                      const SizedBox(height: 8),
+
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                _buildLabel("State"),
+                                const SizedBox(height: 4),
+                                _buildDropdown(
+                                  value: selectedState,
+                                  hint: "State",
+                                  items: stateDistrictMap.keys.toList(),
+                                  onChanged: (value) {
+                                    setState(() {
+                                      selectedState = value;
+                                      selectedDistrict = null;
+                                      selectedVillage = null;
+                                    });
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                _buildLabel("District"),
+                                const SizedBox(height: 4),
+                                _buildDropdown(
+                                  value: selectedDistrict,
+                                  hint: "District",
+                                  items: selectedState != null
+                                      ? stateDistrictMap[selectedState!] ?? []
+                                      : [],
+                                  onChanged: (value) {
+                                    setState(() {
+                                      selectedDistrict = value;
+                                      selectedVillage = null;
+                                    });
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 8),
+
+                      _buildLabel("Village"),
+                      const SizedBox(height: 4),
+                      _buildDropdown(
+                        value: selectedVillage,
+                        hint: "Village",
+                        items: selectedDistrict != null
+                            ? districtVillageMap[selectedDistrict!] ?? []
+                            : [],
+                        onChanged: (value) {
+                          setState(() {
+                            selectedVillage = value;
+                          });
+                        },
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      _buildSectionHeader("Quality Grade", Icons.star),
+                      const SizedBox(height: 8),
+                      _buildQualityRadioButtons(),
+
+                      const SizedBox(height: 12),
+
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text("Filters applied!"),
+                                backgroundColor: Color(0xFF104f22),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.search, color: Colors.white),
+                          label: const Text(
+                            "Apply Filters",
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF104f22),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                /// Available Crops Card
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.08),
+                        blurRadius: 15,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildSectionHeader("Available Crops", Icons.inventory),
+                      const SizedBox(height: 15),
+                      isLoading
+                          ? const Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(20),
+                                child: CircularProgressIndicator(
+                                  color: Color(0xFF104f22),
+                                ),
+                              ),
+                            )
+                          : crops.isEmpty
+                              ? const Center(
+                                  child: Padding(
+                                    padding: EdgeInsets.all(20),
+                                    child: Text(
+                                      "No crops available.\nPlease check back later!",
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ),
+                                )
+                              : GridView.builder(
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  itemCount: crops.length,
+                                  gridDelegate:
+                                      const SliverGridDelegateWithFixedCrossAxisCount(
+                                        crossAxisCount: 2,
+                                        crossAxisSpacing: 12,
+                                        mainAxisSpacing: 12,
+                                        childAspectRatio: 1.1,
+                                      ),
+                                  itemBuilder: (context, index) {
+                                    return _buildCropCard(
+                                      crops[index],
+                                      index,
+                                    );
+                                  },
+                                ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                /// Crop Not Listed Button - Removed from here since it's now in bottom nav
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSectionHeader(String title, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, color: const Color(0xFF104f22), size: 18),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF104f22),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLabel(String text) {
+    return Text(
+      text,
+      style: const TextStyle(
+        fontWeight: FontWeight.w500,
+        fontSize: 13,
+        color: Colors.black87,
+      ),
+    );
+  }
+
+  Widget _buildCropDropdown({
+    required String? value,
+    required String hint,
+    required List<Map<String, String>> items,
+    required Function(String?) onChanged,
+  }) {
+    return DropdownButtonFormField<String>(
+      value: value,
+      decoration: InputDecoration(
+        filled: true,
+        fillColor: const Color(0xFFF3F3F3),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+      ),
+      hint: Text(hint),
+      items: items
+          .map(
+            (item) => DropdownMenuItem(
+              value: item["name"],
+              child: Text(item["name"]!),
+            ),
+          )
+          .toList(),
+      onChanged: onChanged,
+    );
+  }
+
+  Widget _buildQualityRadioButtons() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8F9FA),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: const Color(0xFF104f22).withOpacity(0.2),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          _buildSimpleRadioOption("A"),
+          _buildSimpleRadioOption("B"),
+          _buildSimpleRadioOption("C"),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSimpleRadioOption(String value) {
+    final isSelected = selectedQuality == value;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            selectedQuality = value;
+          });
+        },
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected ? const Color(0xFF104f22) : Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: isSelected
+                  ? const Color(0xFF104f22)
+                  : Colors.grey.shade300,
+              width: 1,
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 16,
+                height: 16,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: isSelected ? Colors.white : const Color(0xFF104f22),
+                    width: 2,
+                  ),
+                  color: isSelected ? Colors.white : Colors.transparent,
+                ),
+                child: isSelected
+                    ? Center(
+                        child: Container(
+                          width: 6,
+                          height: 6,
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Color(0xFF104f22),
+                          ),
+                        ),
+                      )
+                    : null,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: isSelected ? Colors.white : Colors.black87,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDropdown({
+    required String? value,
+    required String hint,
+    required List<String> items,
+    required Function(String?) onChanged,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade300, width: 1),
+      ),
+      child: DropdownButtonFormField<String>(
+        value: value,
+        isExpanded: true,
+        decoration: InputDecoration(
+          filled: true,
+          fillColor: Colors.white,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 12,
+            vertical: 8,
+          ),
+        ),
+        hint: Text(
+          hint,
+          style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+          overflow: TextOverflow.ellipsis,
+        ),
+        items: items.isEmpty
+            ? []
+            : items
+                  .map(
+                    (item) => DropdownMenuItem(
+                      value: item,
+                      child: Text(
+                        item,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.black87,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  )
+                  .toList(),
+        onChanged: items.isEmpty ? null : onChanged,
+        icon: Icon(
+          Icons.keyboard_arrow_down,
+          color: Colors.grey.shade600,
+          size: 18,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCropCard(Map<String, dynamic> cropData, int index) {
+    final name = cropData["name"]?.toString() ?? "Unknown";
+    final imagePath = cropData["image"]?.toString() ?? "assets/images/login_bg.jpg";
+    
+    return GestureDetector(
+      onTap: isGuest
+          ? _showGuestRestrictionDialog
+          : () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) =>
+                      CropDetailScreen(cropName: name, imagePath: imagePath),
+                ),
+              );
+            },
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Column(
+            children: [
+              /// Image
+              Expanded(
+                flex: 3,
+                child: imagePath.startsWith('http')
+                    ? Image.network(
+                        imagePath,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            color: const Color(0xFF104f22).withOpacity(0.8),
+                            child: const Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.agriculture,
+                                  size: 40,
+                                  color: Colors.white,
+                                ),
+                                SizedBox(height: 4),
+                                Text(
+                                  'Image unavailable',
+                                  style: TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 10,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      )
+                    : Image.asset(
+                        imagePath,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            color: const Color(0xFF104f22).withOpacity(0.8),
+                            child: const Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.agriculture,
+                                  size: 40,
+                                  color: Colors.white,
+                                ),
+                                SizedBox(height: 4),
+                                Text(
+                                  'Image not found',
+                                  style: TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: 10,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+              ),
+
+              /// Name
+              Expanded(
+                flex: 1,
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 4,
+                  ),
+                  child: Center(
+                    child: Text(
+                      name,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 11,
+                        color: Colors.black87,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -433,328 +1276,12 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
     );
   }
 
-  Widget _buildHomeScreen() {
-    return Stack(
-        children: [
-          /// 🌾 Header Background
-          Container(
-            height: 220,
-            decoration: const BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage("assets/images/login_bg.jpg"),
-                fit: BoxFit.cover,
-              ),
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(30),
-                bottomRight: Radius.circular(30),
-              ),
-            ),
-          ),
-
-          /// Dark Overlay
-          Container(
-            height: 220,
-            decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.35),
-              borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(30),
-                bottomRight: Radius.circular(30),
-              ),
-            ),
-          ),
-
-          SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Column(
-                children: [
-                  const SizedBox(height: 20),
-
-                  /// Header with Menu Icon
-                  Row(
-                    children: [
-                      const Spacer(),
-                      Text(
-                          "Welcome $traderName",
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      const Spacer(),
-                    ],
-                  ),
-
-                  const SizedBox(height: 30),
-
-                  /// White Card Container
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.08),
-                          blurRadius: 10,
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildLabel("Crop Name"),
-                        _buildCropDropdown(
-                          value: selectedCrop,
-                          hint: "Select Crop Name",
-                          items: crops,
-                          onChanged: (value) {
-                            setState(() {
-                              selectedCrop = value;
-                            });
-                          },
-                        ),
-
-                        const SizedBox(height: 15),
-
-                        _buildLabel("Location"),
-                        _buildDropdown(
-                          value: selectedLocation,
-                          hint: "Select Location",
-                          items: const ["Mumbai", "Delhi", "Lucknow"],
-                          onChanged: (value) {
-                            setState(() {
-                              selectedLocation = value;
-                            });
-                          },
-                        ),
-
-                        const SizedBox(height: 15),
-
-                        _buildLabel("Quality"),
-                        _buildDropdown(
-                          value: selectedQuality,
-                          hint: "Select Quality",
-                          items: const ["A", "B", "C"],
-                          onChanged: (value) {
-                            setState(() {
-                              selectedQuality = value;
-                            });
-                          },
-                        ),
-
-                        const SizedBox(height: 25),
-
-                        const Text(
-                          "Crops",
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-
-                        const SizedBox(height: 15),
-
-                        GridView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: crops.length,
-                          gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2,
-                                crossAxisSpacing: 12,
-                                mainAxisSpacing: 12,
-                                childAspectRatio: 0.9,
-                              ),
-                          itemBuilder: (context, index) {
-                            return _buildCropCard(
-                              crops[index]["name"]!,
-                              crops[index]["image"]!,
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 100),
-                ],
-              ),
-            ),
-          ),
-
-          /// Floating Button at Bottom
-          Positioned(
-            bottom: 20,
-            left: 20,
-            right: 20,
-            child: SafeArea(
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: isGuest
-                      ? _showGuestRestrictionDialog
-                      : () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => CropNotListedScreen(),
-                            ),
-                          );
-                        },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF104f22),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 5,
-                  ),
-                  child: Text(
-                    isGuest ? "Register to Request Crops" : "Crop not listed?",
-                    style: const TextStyle(color: Colors.white, fontSize: 16),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      );
-  }
-
-  Widget _buildLabel(String text) {
-    return Text(
-      text,
-      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-    );
-  }
-
-  Widget _buildCropDropdown({
-    required String? value,
-    required String hint,
-    required List<Map<String, String>> items,
-    required Function(String?) onChanged,
-  }) {
-    return DropdownButtonFormField<String>(
-      value: value,
-      decoration: InputDecoration(
-        filled: true,
-        fillColor: const Color(0xFFF3F3F3),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
-      ),
-      hint: Text(hint),
-      items: items
-          .map(
-            (item) => DropdownMenuItem(
-              value: item["name"],
-              child: Text(item["name"]!),
-            ),
-          )
-          .toList(),
-      onChanged: onChanged,
-    );
-  }
-
-  Widget _buildDropdown({
-    required String? value,
-    required String hint,
-    required List<String> items,
-    required Function(String?) onChanged,
-  }) {
-    return DropdownButtonFormField<String>(
-      value: value,
-      decoration: InputDecoration(
-        filled: true,
-        fillColor: const Color(0xFFF3F3F3),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
-      ),
-      hint: Text(hint),
-      items: items
-          .map((item) => DropdownMenuItem(value: item, child: Text(item)))
-          .toList(),
-      onChanged: onChanged,
-    );
-  }
-
-  Widget _buildCropCard(String name, String imagePath) {
-    return GestureDetector(
-      onTap: isGuest
-          ? _showGuestRestrictionDialog
-          : () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) =>
-                      CropDetailScreen(cropName: name, imagePath: imagePath),
-                ),
-              );
-            },
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(15),
-          boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 8),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            /// Image
-            ClipRRect(
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(15),
-                topRight: Radius.circular(15),
-              ),
-              child: Image.asset(
-                imagePath,
-                height: 100,
-                width: double.infinity,
-                fit: BoxFit.cover,
-              ),
-            ),
-
-            const SizedBox(height: 10),
-
-            /// Name
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Text(
-                name,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 10),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildOrdersScreen() {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.shopping_bag_outlined,
-            size: 80,
-            color: Colors.grey[400],
-          ),
+          Icon(Icons.shopping_bag_outlined, size: 80, color: Colors.grey[400]),
           const SizedBox(height: 20),
           Text(
             "My Orders",
@@ -767,10 +1294,7 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
           const SizedBox(height: 10),
           Text(
             "Your orders will appear here",
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey[500],
-            ),
+            style: TextStyle(fontSize: 16, color: Colors.grey[500]),
           ),
         ],
       ),
@@ -782,11 +1306,7 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.history,
-            size: 80,
-            color: Colors.grey[400],
-          ),
+          Icon(Icons.history, size: 80, color: Colors.grey[400]),
           const SizedBox(height: 20),
           Text(
             "History",
@@ -799,10 +1319,7 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
           const SizedBox(height: 10),
           Text(
             "Your transaction history will appear here",
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey[500],
-            ),
+            style: TextStyle(fontSize: 16, color: Colors.grey[500]),
           ),
         ],
       ),
@@ -882,7 +1399,11 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
                         child: const Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.visibility, color: Colors.orange, size: 16),
+                            Icon(
+                              Icons.visibility,
+                              color: Colors.orange,
+                              size: 16,
+                            ),
                             SizedBox(width: 6),
                             Text(
                               "Guest Mode",
@@ -996,11 +1517,7 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
                 color: const Color(0xFF104f22).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(
-                icon,
-                color: const Color(0xFF104f22),
-                size: 24,
-              ),
+              child: Icon(icon, color: const Color(0xFF104f22), size: 24),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -1018,19 +1535,12 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
                   const SizedBox(height: 4),
                   Text(
                     subtitle,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey[600],
-                    ),
+                    style: TextStyle(fontSize: 13, color: Colors.grey[600]),
                   ),
                 ],
               ),
             ),
-            const Icon(
-              Icons.arrow_forward_ios,
-              size: 16,
-              color: Colors.grey,
-            ),
+            const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
           ],
         ),
       ),

@@ -291,10 +291,67 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
               children: [
                 _buildNavItem(Icons.home, "Home", 0),
                 _buildNavItem(Icons.shopping_bag, "Orders", 1),
+                _buildAddCropNavItem(),
                 _buildNavItem(Icons.history, "History", 2),
                 _buildNavItem(Icons.person, "Profile", 3),
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAddCropNavItem() {
+    return Expanded(
+      child: InkWell(
+        onTap: isGuest
+            ? _showGuestRestrictionDialog
+            : () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const AddNewCropScreen(),
+                  ),
+                );
+                _loadCrops();
+              },
+        borderRadius: BorderRadius.circular(25),
+        child: Container(
+          height: 50,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF669123), Color(0xFF104f22)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(25),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF669123).withOpacity(0.3),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: const Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.add_circle,
+                color: Colors.white,
+                size: 24,
+              ),
+              SizedBox(height: 2),
+              Text(
+                "Add Crop",
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -490,34 +547,7 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
                             ),
                 ),
                 const SizedBox(height: 15),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: isGuest
-                        ? _showGuestRestrictionDialog
-                        : () async {
-                            await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const AddNewCropScreen(),
-                              ),
-                            );
-                            _loadCrops();
-                          },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF104f22),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: Text(
-                      isGuest ? "Register to Add Crops" : "Crop not listed?",
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 15),
+                /// Removed "Crop not listed?" button from here since it's now in bottom nav
               ],
             ),
           ),
