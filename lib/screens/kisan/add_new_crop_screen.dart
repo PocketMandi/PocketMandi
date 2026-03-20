@@ -270,17 +270,10 @@ class _AddNewCropScreenState extends State<AddNewCropScreen> {
   bool _validateMinimumQuantity() {
     final quantityText = quantityController.text.trim();
     if (quantityText.isEmpty) return false;
-<<<<<<< HEAD
 
     final quantity = double.tryParse(quantityText) ?? 0;
     final unit = selectedUnit ?? "Kg";
 
-=======
-    
-    final quantity = double.tryParse(quantityText) ?? 0;
-    final unit = selectedUnit ?? "Kg";
-    
->>>>>>> 5f202c5fe2e97e0355a98ee87ddf929f8a026b67
     // Convert to kg for validation
     double quantityInKg = quantity;
     switch (unit) {
@@ -295,11 +288,6 @@ class _AddNewCropScreenState extends State<AddNewCropScreen> {
         quantityInKg = quantity;
         break;
     }
-<<<<<<< HEAD
-
-=======
-    
->>>>>>> 5f202c5fe2e97e0355a98ee87ddf929f8a026b67
     return quantityInKg >= 1000; // Minimum 1000 kg required
   }
 
@@ -378,7 +366,6 @@ class _AddNewCropScreenState extends State<AddNewCropScreen> {
                     Row(
                       children: [
                         Expanded(
-<<<<<<< HEAD
                           child: _buildQuantityOption(
                             "1000",
                             "Kg",
@@ -400,17 +387,6 @@ class _AddNewCropScreenState extends State<AddNewCropScreen> {
                             "Ton",
                             Icons.local_shipping,
                           ),
-=======
-                          child: _buildQuantityOption("1000", "Kg", Icons.monitor_weight),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _buildQuantityOption("10", "Quintal", Icons.inventory_2),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _buildQuantityOption("1", "Ton", Icons.local_shipping),
->>>>>>> 5f202c5fe2e97e0355a98ee87ddf929f8a026b67
                         ),
                       ],
                     ),
@@ -428,14 +404,10 @@ class _AddNewCropScreenState extends State<AddNewCropScreen> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
-<<<<<<< HEAD
                         side: BorderSide(
                           color: Colors.grey.shade400,
                           width: 1.5,
                         ),
-=======
-                        side: BorderSide(color: Colors.grey.shade400, width: 1.5),
->>>>>>> 5f202c5fe2e97e0355a98ee87ddf929f8a026b67
                       ),
                       child: Text(
                         "Cancel",
@@ -500,14 +472,7 @@ class _AddNewCropScreenState extends State<AddNewCropScreen> {
           ),
           Text(
             unit,
-<<<<<<< HEAD
             style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-=======
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey.shade600,
-            ),
->>>>>>> 5f202c5fe2e97e0355a98ee87ddf929f8a026b67
           ),
         ],
       ),
@@ -727,7 +692,6 @@ class _AddNewCropScreenState extends State<AddNewCropScreen> {
             ),
           ),
 
-<<<<<<< HEAD
           SafeArea(
             child: Column(
               children: [
@@ -896,129 +860,10 @@ class _AddNewCropScreenState extends State<AddNewCropScreen> {
                                               12,
                                             ),
                                             borderSide: BorderSide.none,
-=======
-          Positioned(
-            top: 50, // Adjust this
-            left: 16,
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.3),
-                shape: BoxShape.circle,
-              ),
-              child: IconButton(
-                onPressed: isUploading ? null : () => Navigator.pop(context),
-                icon: const Icon(Icons.arrow_back, color: Colors.white),
-              ),
-            ),
-          ),
-
-          SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                children: [
-                  const SizedBox(height: 20),
-
-                  /// Title
-                  const Text(
-                    "Add New Crop",
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-
-                  const SizedBox(height: 30),
-
-                  /// White Card Container
-                  isLoading
-                      ? const Center(
-                          child: CircularProgressIndicator(
-                            color: Color(0xFF104f22),
-                          ),
-                        )
-                      : Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.08),
-                                blurRadius: 10,
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildLabel("Crop Name"),
-                              const SizedBox(height: 4),
-                              Text(
-                                "Select from available crops or choose 'Not Listed' for manual entry",
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey[600],
-                                  fontStyle: FontStyle.italic,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              DropdownButtonFormField<String>(
-                                value: selectedCrop,
-                                decoration: InputDecoration(
-                                  filled: true,
-                                  fillColor: const Color(0xFFF3F3F3),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide.none,
-                                  ),
-                                ),
-                                hint: const Text("Select Crop"),
-                                isExpanded: true,
-                                items: _buildDropdownItems(),
-                                onChanged: (value) {
-                                  setState(() {
-                                    selectedCrop = value;
-                                    showManualEntry = value == "Not Listed";
-                                    if (!showManualEntry) {
-                                      cropNameController.clear();
-                                    }
-                                  });
-                                },
-                              ),
-
-                              if (showManualEntry) ...[
-                                const SizedBox(height: 12),
-                                Container(
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: Colors.orange.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(
-                                      color: Colors.orange.withOpacity(0.3),
-                                    ),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Icon(
-                                        Icons.info_outline,
-                                        color: Colors.orange,
-                                        size: 16,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: Text(
-                                          "Enter the name of the crop you want to add",
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.orange[800],
->>>>>>> 5f202c5fe2e97e0355a98ee87ddf929f8a026b67
                                           ),
                                         ),
                                       ),
                                     ],
-<<<<<<< HEAD
 
                                     const SizedBox(height: 18),
 
@@ -1155,39 +1000,6 @@ class _AddNewCropScreenState extends State<AddNewCropScreen> {
                                       keyboardType: TextInputType.number,
                                       decoration: InputDecoration(
                                         hintText: "Enter expected price",
-=======
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                _buildLabel("Enter Crop Name"),
-                                TextField(
-                                  controller: cropNameController,
-                                  decoration: InputDecoration(
-                                    hintText:
-                                        "e.g., Organic Tomato, Basmati Rice",
-                                    filled: true,
-                                    fillColor: const Color(0xFFF3F3F3),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: BorderSide.none,
-                                    ),
-                                  ),
-                                ),
-                              ],
-
-                              const SizedBox(height: 18),
-
-                              _buildLabel("Quantity (Minimum 1000 Kg required)"),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    flex: 2,
-                                    child: TextField(
-                                      controller: quantityController,
-                                      keyboardType: TextInputType.number,
-                                      decoration: InputDecoration(
-                                        hintText: "Enter quantity (min 1000)",
->>>>>>> 5f202c5fe2e97e0355a98ee87ddf929f8a026b67
                                         filled: true,
                                         fillColor: const Color(0xFFF3F3F3),
                                         border: OutlineInputBorder(
@@ -1198,7 +1010,6 @@ class _AddNewCropScreenState extends State<AddNewCropScreen> {
                                         ),
                                       ),
                                     ),
-<<<<<<< HEAD
 
                                     const SizedBox(height: 25),
 
@@ -1239,146 +1050,6 @@ class _AddNewCropScreenState extends State<AddNewCropScreen> {
                   ),
                 ),
               ],
-=======
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: DropdownButtonFormField<String>(
-                                      value: selectedUnit,
-                                      decoration: InputDecoration(
-                                        filled: true,
-                                        fillColor: const Color(0xFFF3F3F3),
-                                        contentPadding:
-                                            const EdgeInsets.symmetric(
-                                              horizontal: 8,
-                                              vertical: 14,
-                                            ),
-                                        border: OutlineInputBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
-                                          borderSide: BorderSide.none,
-                                        ),
-                                      ),
-                                      isExpanded: true,
-                                      items: ["Kg", "Ton", "Quintal"]
-                                          .map(
-                                            (unit) => DropdownMenuItem(
-                                              value: unit,
-                                              child: Text(unit),
-                                            ),
-                                          )
-                                          .toList(),
-                                      onChanged: (value) {
-                                        setState(() {
-                                          selectedUnit = value;
-                                        });
-                                      },
-                                    ),
-                                  ),
-                                ],
-                              ),
-
-                              const SizedBox(height: 18),
-
-                              _buildLabel("Quality Grade (Select Multiple)"),
-                              const SizedBox(height: 8),
-                              Wrap(
-                                spacing: 10,
-                                children: ["A", "B", "C"]
-                                    .map(
-                                      (grade) => FilterChip(
-                                        label: Text(grade),
-                                        selected: selectedQualities.contains(
-                                          grade,
-                                        ),
-                                        onSelected: (selected) {
-                                          setState(() {
-                                            if (selected) {
-                                              selectedQualities.add(grade);
-                                            } else {
-                                              selectedQualities.remove(grade);
-                                            }
-                                          });
-                                        },
-                                        selectedColor: const Color(0xFF104f22),
-                                        labelStyle: TextStyle(
-                                          color:
-                                              selectedQualities.contains(grade)
-                                              ? Colors.white
-                                              : Colors.black,
-                                        ),
-                                      ),
-                                    )
-                                    .toList(),
-                              ),
-
-                              const SizedBox(height: 20),
-
-                              _buildUploadButton(
-                                "Upload / Capture Photo",
-                                Icons.camera_alt,
-                                onPressed: _showImageSourceDialog,
-                                hasFile: _cropImage != null,
-                              ),
-
-                              const SizedBox(height: 12),
-
-                              _buildUploadButton(
-                                "Upload / Capture Video (Max 1 min)",
-                                Icons.videocam,
-                                onPressed: _showVideoSourceDialog,
-                                hasFile: _cropVideo != null,
-                              ),
-
-                              const SizedBox(height: 18),
-
-                              _buildLabel("Expected Price (₹/KG)"),
-                              TextField(
-                                controller: priceController,
-                                keyboardType: TextInputType.number,
-                                decoration: InputDecoration(
-                                  hintText: "Enter expected price",
-                                  filled: true,
-                                  fillColor: const Color(0xFFF3F3F3),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide.none,
-                                  ),
-                                ),
-                              ),
-
-                              const SizedBox(height: 25),
-
-                              SizedBox(
-                                width: double.infinity,
-                                child: ElevatedButton(
-                                  onPressed: isLoading ? null : _submitCrop,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF104f22),
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 16,
-                                    ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    elevation: 3,
-                                  ),
-                                  child: const Text(
-                                    "Submit",
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                ],
-              ),
->>>>>>> 5f202c5fe2e97e0355a98ee87ddf929f8a026b67
             ),
           ),
 

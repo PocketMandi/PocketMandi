@@ -36,12 +36,8 @@ class _SelectedCropScreenState extends State<SelectedCropScreen> {
 
   final TextEditingController quantityController = TextEditingController();
   final TextEditingController priceController = TextEditingController();
-<<<<<<< HEAD
   final TextEditingController specialInstructionsController =
       TextEditingController();
-=======
-  final TextEditingController specialInstructionsController = TextEditingController();
->>>>>>> 5f202c5fe2e97e0355a98ee87ddf929f8a026b67
   final ImagePicker _picker = ImagePicker();
 
   final List<String> locations = ["Rajpur"];
@@ -90,7 +86,6 @@ class _SelectedCropScreenState extends State<SelectedCropScreen> {
             ),
           ),
 
-<<<<<<< HEAD
           SafeArea(
             child: Column(
               children: [
@@ -263,69 +258,6 @@ class _SelectedCropScreenState extends State<SelectedCropScreen> {
                                 value: selectedLocation,
                                 decoration: InputDecoration(
                                   hintText: "Select delivery location",
-=======
-          /// 🔙 Back Button
-          Positioned(
-            top: 50,
-            left: 16,
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.3),
-                shape: BoxShape.circle,
-              ),
-              child: IconButton(
-                onPressed: isLoading ? null : () => Navigator.pop(context),
-                icon: const Icon(Icons.arrow_back, color: Colors.white),
-              ),
-            ),
-          ),
-
-          SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                children: [
-                  const SizedBox(height: 20),
-
-                  /// Title
-                  Text(
-                    widget.cropName,
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-
-                  const SizedBox(height: 30),
-
-                  /// White Card Container
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.08),
-                          blurRadius: 10,
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildLabel("Quantity (Minimum 1000 Kg required)"),
-                        Row(
-                          children: [
-                            Expanded(
-                              flex: 2,
-                              child: TextField(
-                                controller: quantityController,
-                                keyboardType: TextInputType.number,
-                                decoration: InputDecoration(
-                                  hintText: "Enter quantity (min 1000)",
->>>>>>> 5f202c5fe2e97e0355a98ee87ddf929f8a026b67
                                   filled: true,
                                   fillColor: const Color(0xFFF3F3F3),
                                   border: OutlineInputBorder(
@@ -333,44 +265,16 @@ class _SelectedCropScreenState extends State<SelectedCropScreen> {
                                     borderSide: BorderSide.none,
                                   ),
                                 ),
-<<<<<<< HEAD
                                 items: locations
                                     .map(
                                       (location) => DropdownMenuItem(
                                         value: location,
                                         child: Text(location),
-=======
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: DropdownButtonFormField<String>(
-                                value: selectedUnit,
-                                decoration: InputDecoration(
-                                  filled: true,
-                                  fillColor: const Color(0xFFF3F3F3),
-                                  contentPadding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 14,
-                                  ),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide.none,
-                                  ),
-                                ),
-                                isExpanded: true,
-                                items: ["Kg", "Ton", "Quintal"]
-                                    .map(
-                                      (unit) => DropdownMenuItem(
-                                        value: unit,
-                                        child: Text(unit),
->>>>>>> 5f202c5fe2e97e0355a98ee87ddf929f8a026b67
                                       ),
                                     )
                                     .toList(),
                                 onChanged: (value) {
                                   setState(() {
-<<<<<<< HEAD
                                     selectedLocation = value;
                                   });
                                 },
@@ -526,231 +430,13 @@ class _SelectedCropScreenState extends State<SelectedCropScreen> {
                                 ),
                               ),
                             ],
-=======
-                                    selectedUnit = value;
-                                  });
-                                },
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 18),
-
-                        _buildLabel("Quality Grade (Select Multiple)"),
-                        const SizedBox(height: 8),
-                        Wrap(
-                          spacing: 10,
-                          children: ["A", "B", "C"]
-                              .map(
-                                (grade) => FilterChip(
-                                  label: Text(grade),
-                                  selected: selectedQualities.contains(grade),
-                                  onSelected: (selected) {
-                                    setState(() {
-                                      if (selected) {
-                                        selectedQualities.add(grade);
-                                      } else {
-                                        selectedQualities.remove(grade);
-                                      }
-                                    });
-                                  },
-                                  selectedColor: const Color(0xFF104f22),
-                                  labelStyle: TextStyle(
-                                    color: selectedQualities.contains(grade)
-                                        ? Colors.white
-                                        : Colors.black,
-                                  ),
-                                ),
-                              )
-                              .toList(),
-                        ),
-
-                        const SizedBox(height: 20),
-
-                        _buildLabel("Location *"),
-                        DropdownButtonFormField<String>(
-                          value: selectedLocation,
-                          decoration: InputDecoration(
-                            hintText: "Select delivery location",
-                            filled: true,
-                            fillColor: const Color(0xFFF3F3F3),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide.none,
-                            ),
-                          ),
-                          items: locations
-                              .map(
-                                (location) => DropdownMenuItem(
-                                  value: location,
-                                  child: Text(location),
-                                ),
-                              )
-                              .toList(),
-                          onChanged: (value) {
-                            setState(() {
-                              selectedLocation = value;
-                            });
-                          },
-                        ),
-
-                        const SizedBox(height: 20),
-
-                        _buildLabel("Required Delivery Date *"),
-                        InkWell(
-                          onTap: () async {
-                            final DateTime? picked = await showDatePicker(
-                              context: context,
-                              initialDate: DateTime.now().add(
-                                const Duration(days: 1),
-                              ),
-                              firstDate: DateTime.now(),
-                              lastDate: DateTime.now().add(
-                                const Duration(days: 365),
-                              ),
-                              builder: (context, child) {
-                                return Theme(
-                                  data: Theme.of(context).copyWith(
-                                    colorScheme: const ColorScheme.light(
-                                      primary: Color(0xFF104f22),
-                                      onPrimary: Colors.white,
-                                      onSurface: Colors.black,
-                                    ),
-                                  ),
-                                  child: child!,
-                                );
-                              },
-                            );
-                            if (picked != null) {
-                              setState(() {
-                                selectedDeliveryDate = picked;
-                              });
-                            }
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 16,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF3F3F3),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  selectedDeliveryDate == null
-                                      ? "Select delivery date"
-                                      : "${selectedDeliveryDate!.day}/${selectedDeliveryDate!.month}/${selectedDeliveryDate!.year}",
-                                  style: TextStyle(
-                                    color: selectedDeliveryDate == null
-                                        ? Colors.grey[600]
-                                        : Colors.black87,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                                const Icon(
-                                  Icons.calendar_today,
-                                  color: Color(0xFF104f22),
-                                  size: 20,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-
-                        const SizedBox(height: 20),
-
-                        _buildUploadButton(
-                          selectedImage != null
-                              ? "✓ New Photo Selected"
-                              : "Upload / Capture Photo",
-                          Icons.camera_alt,
-                          onPressed: _showImageSourceDialog,
-                          hasFile: selectedImage != null,
-                        ),
-
-                        const SizedBox(height: 12),
-
-                        _buildUploadButton(
-                          selectedVideo != null
-                              ? "✓ New Video Selected"
-                              : "Upload / Capture Video (Max 1 min)",
-                          Icons.videocam,
-                          onPressed: _showVideoSourceDialog,
-                          hasFile: selectedVideo != null,
-                        ),
-
-                        const SizedBox(height: 18),
-
-                        _buildLabel("Expected Price (₹/KG)"),
-                        TextField(
-                          controller: priceController,
-                          keyboardType: TextInputType.number,
-                          decoration: InputDecoration(
-                            hintText: "Enter expected price",
-                            filled: true,
-                            fillColor: const Color(0xFFF3F3F3),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide.none,
-                            ),
-                          ),
-                        ),
-
-                        const SizedBox(height: 18),
-
-                        _buildLabel("Special Instructions (Optional)"),
-                        TextField(
-                          controller: specialInstructionsController,
-                          maxLines: 3,
-                          decoration: InputDecoration(
-                            hintText: "Any special handling, packaging, or delivery instructions...",
-                            filled: true,
-                            fillColor: const Color(0xFFF3F3F3),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide.none,
-                            ),
-                          ),
-                        ),
-
-                        const SizedBox(height: 25),
-
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: isLoading ? null : _submitCrop,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF104f22),
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              elevation: 3,
-                            ),
-                            child: const Text(
-                              "Submit",
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.white,
-                              ),
-                            ),
->>>>>>> 5f202c5fe2e97e0355a98ee87ddf929f8a026b67
                           ),
                         ),
                       ],
                     ),
                   ),
-<<<<<<< HEAD
                 ),
               ],
-=======
-                ],
-              ),
->>>>>>> 5f202c5fe2e97e0355a98ee87ddf929f8a026b67
             ),
           ),
 
@@ -999,17 +685,10 @@ class _SelectedCropScreenState extends State<SelectedCropScreen> {
   bool _validateMinimumQuantity() {
     final quantityText = quantityController.text.trim();
     if (quantityText.isEmpty) return false;
-<<<<<<< HEAD
 
     final quantity = double.tryParse(quantityText) ?? 0;
     final unit = selectedUnit ?? "Kg";
 
-=======
-    
-    final quantity = double.tryParse(quantityText) ?? 0;
-    final unit = selectedUnit ?? "Kg";
-    
->>>>>>> 5f202c5fe2e97e0355a98ee87ddf929f8a026b67
     // Convert to kg for validation
     double quantityInKg = quantity;
     switch (unit) {
@@ -1024,11 +703,6 @@ class _SelectedCropScreenState extends State<SelectedCropScreen> {
         quantityInKg = quantity;
         break;
     }
-<<<<<<< HEAD
-
-=======
-    
->>>>>>> 5f202c5fe2e97e0355a98ee87ddf929f8a026b67
     return quantityInKg >= 1000; // Minimum 1000 kg required
   }
 
@@ -1107,7 +781,6 @@ class _SelectedCropScreenState extends State<SelectedCropScreen> {
                     Row(
                       children: [
                         Expanded(
-<<<<<<< HEAD
                           child: _buildQuantityOption(
                             "1000",
                             "Kg",
@@ -1129,17 +802,6 @@ class _SelectedCropScreenState extends State<SelectedCropScreen> {
                             "Ton",
                             Icons.local_shipping,
                           ),
-=======
-                          child: _buildQuantityOption("1000", "Kg", Icons.monitor_weight),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _buildQuantityOption("10", "Quintal", Icons.inventory_2),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _buildQuantityOption("1", "Ton", Icons.local_shipping),
->>>>>>> 5f202c5fe2e97e0355a98ee87ddf929f8a026b67
                         ),
                       ],
                     ),
@@ -1157,14 +819,10 @@ class _SelectedCropScreenState extends State<SelectedCropScreen> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
-<<<<<<< HEAD
                         side: BorderSide(
                           color: Colors.grey.shade400,
                           width: 1.5,
                         ),
-=======
-                        side: BorderSide(color: Colors.grey.shade400, width: 1.5),
->>>>>>> 5f202c5fe2e97e0355a98ee87ddf929f8a026b67
                       ),
                       child: Text(
                         "Cancel",
@@ -1229,14 +887,7 @@ class _SelectedCropScreenState extends State<SelectedCropScreen> {
           ),
           Text(
             unit,
-<<<<<<< HEAD
             style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-=======
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey.shade600,
-            ),
->>>>>>> 5f202c5fe2e97e0355a98ee87ddf929f8a026b67
           ),
         ],
       ),
@@ -1370,13 +1021,8 @@ class _SelectedCropScreenState extends State<SelectedCropScreen> {
           "deliveryLocation": selectedLocation,
         },
         "requiredDeliveryDate": selectedDeliveryDate!.millisecondsSinceEpoch,
-<<<<<<< HEAD
         "specialInstructions": specialInstructionsController.text.trim().isEmpty
             ? null
-=======
-        "specialInstructions": specialInstructionsController.text.trim().isEmpty 
-            ? null 
->>>>>>> 5f202c5fe2e97e0355a98ee87ddf929f8a026b67
             : specialInstructionsController.text.trim(),
         "status": "pending",
         "createdAt": ServerValue.timestamp,

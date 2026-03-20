@@ -269,10 +269,10 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
       body: _selectedIndex == 0
           ? _buildHomeScreen()
           : _selectedIndex == 1
-              ? _buildOrdersScreen()
-              : _selectedIndex == 2
-                  ? _buildHistoryScreen()
-                  : _buildProfileScreen(),
+          ? _buildOrdersScreen()
+          : _selectedIndex == 2
+          ? _buildHistoryScreen()
+          : _buildProfileScreen(),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -311,9 +311,7 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
             : () async {
                 await Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (_) => const AddNewCropScreen(),
-                  ),
+                  MaterialPageRoute(builder: (_) => const AddNewCropScreen()),
                 );
                 _loadCrops();
               },
@@ -338,11 +336,7 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
           child: const Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                Icons.add_circle,
-                color: Colors.white,
-                size: 24,
-              ),
+              Icon(Icons.add_circle, color: Colors.white, size: 24),
               SizedBox(height: 2),
               Text(
                 "Add Crop",
@@ -519,35 +513,29 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
                           ),
                         )
                       : crops.isEmpty
-                          ? const Center(
-                              child: Text(
-                                "No crops available.\nPlease check back later!",
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                            )
-                          : GridView.builder(
-                              itemCount: crops.length,
-                              gridDelegate:
-                                  const SliverGridDelegateWithFixedCrossAxisCount(
+                      ? const Center(
+                          child: Text(
+                            "No crops available.\nPlease check back later!",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: 16, color: Colors.grey),
+                          ),
+                        )
+                      : GridView.builder(
+                          itemCount: crops.length,
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
                                 crossAxisCount: 2,
                                 crossAxisSpacing: 12,
                                 mainAxisSpacing: 12,
                                 childAspectRatio: 1.6,
                               ),
-                              itemBuilder: (context, index) {
-                                return _buildCropCard(
-                                  context,
-                                  crops[index],
-                                  index,
-                                );
-                              },
-                            ),
+                          itemBuilder: (context, index) {
+                            return _buildCropCard(context, crops[index], index);
+                          },
+                        ),
                 ),
                 const SizedBox(height: 15),
+
                 /// Removed "Crop not listed?" button from here since it's now in bottom nav
               ],
             ),
@@ -700,11 +688,7 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.history,
-            size: 80,
-            color: Colors.grey[400],
-          ),
+          Icon(Icons.history, size: 80, color: Colors.grey[400]),
           const SizedBox(height: 20),
           Text(
             "History",
@@ -717,10 +701,7 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
           const SizedBox(height: 10),
           Text(
             "Your transaction history will appear here",
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey[500],
-            ),
+            style: TextStyle(fontSize: 16, color: Colors.grey[500]),
           ),
         ],
       ),
@@ -764,15 +745,15 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
                                   height: 100,
                                   placeholder: (context, url) =>
                                       const CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Color(0xFF104f22),
-                                  ),
+                                        strokeWidth: 2,
+                                        color: Color(0xFF104f22),
+                                      ),
                                   errorWidget: (context, url, error) =>
                                       const Icon(
-                                    Icons.person,
-                                    size: 50,
-                                    color: Color(0xFF104f22),
-                                  ),
+                                        Icons.person,
+                                        size: 50,
+                                        color: Color(0xFF104f22),
+                                      ),
                                 ),
                               )
                             : const Icon(
@@ -814,7 +795,11 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
                         child: const Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.visibility, color: Colors.orange, size: 16),
+                            Icon(
+                              Icons.visibility,
+                              color: Colors.orange,
+                              size: 16,
+                            ),
                             SizedBox(width: 6),
                             Text(
                               "Guest Mode",
@@ -839,8 +824,8 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
                   icon: Icons.person_outline,
                   title: "Edit Profile",
                   subtitle: "Update your personal information",
-                  onTap: isGuest 
-                      ? _showGuestRestrictionDialog 
+                  onTap: isGuest
+                      ? _showGuestRestrictionDialog
                       : () async {
                           final result = await Navigator.push(
                             context,
@@ -939,11 +924,7 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
                 color: const Color(0xFF104f22).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(
-                icon,
-                color: const Color(0xFF104f22),
-                size: 24,
-              ),
+              child: Icon(icon, color: const Color(0xFF104f22), size: 24),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -961,19 +942,12 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
                   const SizedBox(height: 4),
                   Text(
                     subtitle,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey[600],
-                    ),
+                    style: TextStyle(fontSize: 13, color: Colors.grey[600]),
                   ),
                 ],
               ),
             ),
-            const Icon(
-              Icons.arrow_forward_ios,
-              size: 16,
-              color: Colors.grey,
-            ),
+            const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
           ],
         ),
       ),
