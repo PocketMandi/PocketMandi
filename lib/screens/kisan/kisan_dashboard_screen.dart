@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:poket_mandi/screens/kisan/my_order_screen.dart';
+import 'package:poket_mandi/screens/kisan/edit_profile_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:poket_mandi/main.dart';
 import 'package:poket_mandi/screens/kisan/add_new_crop_screen.dart';
@@ -838,7 +839,20 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
                   icon: Icons.person_outline,
                   title: "Edit Profile",
                   subtitle: "Update your personal information",
-                  onTap: () {},
+                  onTap: isGuest 
+                      ? _showGuestRestrictionDialog 
+                      : () async {
+                          final result = await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const EditProfileScreen(),
+                            ),
+                          );
+                          if (result == true) {
+                            // Refresh profile data
+                            await _loadFarmerData();
+                          }
+                        },
                 ),
                 const SizedBox(height: 12),
                 _buildProfileOption(

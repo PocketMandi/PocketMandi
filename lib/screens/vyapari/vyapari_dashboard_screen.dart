@@ -4,6 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:poket_mandi/main.dart';
 import 'package:poket_mandi/screens/vyapari/crop_detail_screen.dart';
 import 'package:poket_mandi/screens/vyapari/crop_not_listed_screen.dart';
+import 'package:poket_mandi/screens/kisan/edit_profile_screen.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class VyapariDashboardScreen extends StatefulWidget {
   const VyapariDashboardScreen({super.key});
@@ -598,7 +600,7 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
                             radius: 20,
                             backgroundColor: Colors.white,
                             backgroundImage: traderImage.startsWith('http')
-                                ? NetworkImage(traderImage)
+                                ? CachedNetworkImageProvider(traderImage)
                                 : null,
                             child: !traderImage.startsWith('http')
                                 ? const Icon(
@@ -1356,7 +1358,7 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
                         radius: 50,
                         backgroundColor: Colors.white,
                         backgroundImage: traderImage.startsWith('http')
-                            ? NetworkImage(traderImage)
+                            ? CachedNetworkImageProvider(traderImage)
                             : null,
                         child: !traderImage.startsWith('http')
                             ? const Icon(
@@ -1430,7 +1432,20 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
                   icon: Icons.person_outline,
                   title: "Edit Profile",
                   subtitle: "Update your personal information",
-                  onTap: () {},
+                  onTap: isGuest
+                      ? _showGuestRestrictionDialog
+                      : () async {
+                          final result = await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const EditProfileScreen(),
+                            ),
+                          );
+                          if (result == true) {
+                            await _loadTraderData();
+                            setState(() {});
+                          }
+                        },
                 ),
                 const SizedBox(height: 12),
                 _buildProfileOption(

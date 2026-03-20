@@ -267,6 +267,207 @@ class _AddNewCropScreenState extends State<AddNewCropScreen> {
     ];
   }
 
+  bool _validateMinimumQuantity() {
+    final quantityText = quantityController.text.trim();
+    if (quantityText.isEmpty) return false;
+    
+    final quantity = double.tryParse(quantityText) ?? 0;
+    final unit = selectedUnit ?? "Kg";
+    
+    // Convert to kg for validation
+    double quantityInKg = quantity;
+    switch (unit) {
+      case "Ton":
+        quantityInKg = quantity * 1000;
+        break;
+      case "Quintal":
+        quantityInKg = quantity * 100;
+        break;
+      case "Kg":
+      default:
+        quantityInKg = quantity;
+        break;
+    }
+    
+    return quantityInKg >= 1000; // Minimum 1000 kg required
+  }
+
+  void _showMinimumQuantityError() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        elevation: 10,
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Colors.white, Colors.red.shade50],
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade100,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.scale_outlined,
+                  size: 40,
+                  color: Colors.red.shade600,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                "Minimum Quantity Required",
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.red.shade700,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                "To ensure efficient processing and delivery, we require a minimum order quantity of 1000 Kg (1 Ton).",
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey.shade700,
+                  height: 1.4,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 20),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Minimum acceptable quantities:",
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey.shade800,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildQuantityOption("1000", "Kg", Icons.monitor_weight),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildQuantityOption("10", "Quintal", Icons.inventory_2),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildQuantityOption("1", "Ton", Icons.local_shipping),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        side: BorderSide(color: Colors.grey.shade400, width: 1.5),
+                      ),
+                      child: Text(
+                        "Cancel",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey.shade700,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red.shade600,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 2,
+                      ),
+                      child: const Text(
+                        "Got it",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuantityOption(String quantity, String unit, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade300),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, size: 20, color: Colors.grey.shade600),
+          const SizedBox(height: 4),
+          Text(
+            quantity,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
+          ),
+          Text(
+            unit,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey.shade600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _submitCrop() async {
     final cropName = showManualEntry
         ? cropNameController.text.trim()
@@ -285,6 +486,12 @@ class _AddNewCropScreenState extends State<AddNewCropScreen> {
 
     if (quantityController.text.trim().isEmpty) {
       _showError('Please enter quantity');
+      return;
+    }
+
+    // Validate minimum quantity
+    if (!_validateMinimumQuantity()) {
+      _showMinimumQuantityError();
       return;
     }
 
@@ -615,7 +822,7 @@ class _AddNewCropScreenState extends State<AddNewCropScreen> {
 
                               const SizedBox(height: 18),
 
-                              _buildLabel("Quantity"),
+                              _buildLabel("Quantity (Minimum 1000 Kg required)"),
                               Row(
                                 children: [
                                   Expanded(
@@ -624,7 +831,7 @@ class _AddNewCropScreenState extends State<AddNewCropScreen> {
                                       controller: quantityController,
                                       keyboardType: TextInputType.number,
                                       decoration: InputDecoration(
-                                        hintText: "Enter quantity",
+                                        hintText: "Enter quantity (min 1000)",
                                         filled: true,
                                         fillColor: const Color(0xFFF3F3F3),
                                         border: OutlineInputBorder(

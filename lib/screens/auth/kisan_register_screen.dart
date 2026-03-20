@@ -20,6 +20,7 @@ class _KisanRegisterScreenState extends State<KisanRegisterScreen> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController villageController = TextEditingController();
+  final TextEditingController pincodeController = TextEditingController();
 
   String stateValue = "";
   bool isLoading = false;
@@ -309,39 +310,58 @@ class _KisanRegisterScreenState extends State<KisanRegisterScreen> {
     print("Phone: ${phoneController.text}");
     print("Phone length: ${phoneController.text.length}");
     print("Village: ${villageController.text}");
+    print("Pincode: ${pincodeController.text}");
 
+    // Validate all required fields including profile image
     if (nameController.text.isEmpty ||
         phoneController.text.isEmpty ||
         phoneController.text.length != 10 ||
-        villageController.text.isEmpty) {
+        villageController.text.isEmpty ||
+        pincodeController.text.isEmpty ||
+        pincodeController.text.length != 6 ||
+        _profileImage == null) {
       print("Validation failed");
+      
+      String errorMessage = "Please fill all fields correctly";
+      if (_profileImage == null) {
+        errorMessage = "Profile photo is mandatory. Please upload your photo.";
+      } else if (pincodeController.text.isEmpty || pincodeController.text.length != 6) {
+        errorMessage = "Please enter a valid 6-digit pincode.";
+      }
+      
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please fill all fields correctly")),
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+        ),
       );
       return;
     }
 
+    // Upload profile image (now mandatory)
+    setState(() => isLoading = true);
     String? imageUrl;
-    if (_profileImage != null) {
-      setState(() => isLoading = true);
-      try {
-        final storageRef = FirebaseStorage.instance
-            .ref()
-            .child('profile_images')
-            .child(
-              '${phoneController.text}_${DateTime.now().millisecondsSinceEpoch}.jpg',
-            );
-        await storageRef.putFile(_profileImage!);
-        imageUrl = await storageRef.getDownloadURL();
-      } catch (e) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Image upload failed: $e")));
-        setState(() => isLoading = false);
-        return;
-      }
+    try {
+      final storageRef = FirebaseStorage.instance
+          .ref()
+          .child('profile_images')
+          .child(
+            '${phoneController.text}_${DateTime.now().millisecondsSinceEpoch}.jpg',
+          );
+      await storageRef.putFile(_profileImage!);
+      imageUrl = await storageRef.getDownloadURL();
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(
+        content: Text("Image upload failed: $e"),
+        backgroundColor: Colors.red,
+      ));
       setState(() => isLoading = false);
+      return;
     }
+    setState(() => isLoading = false);
 
     print("Navigating to OTP screen");
     Navigator.push(
@@ -353,9 +373,10 @@ class _KisanRegisterScreenState extends State<KisanRegisterScreen> {
             "name": nameController.text,
             "phone": phoneController.text,
             "village": villageController.text,
+            "pincode": pincodeController.text,
             "state": stateValue.isEmpty ? "Uttar Pradesh" : stateValue,
             "country": "India",
-            "profileImage": imageUrl ?? "https://i.pravatar.cc/300",
+            "profileImage": imageUrl!,
             "latitude": userLatitude?.toString() ?? "",
             "longitude": userLongitude?.toString() ?? "",
             "address": userAddress ?? "",
@@ -474,51 +495,108 @@ class _KisanRegisterScreenState extends State<KisanRegisterScreen> {
 
                               const SizedBox(height: 20),
 
-                              /// 👤 Upload Photo
-                              Row(
-                                children: [
-                                  CircleAvatar(
-                                    radius: 28,
-                                    backgroundColor: Colors.grey,
-                                    backgroundImage: _profileImage != null
-                                        ? FileImage(_profileImage!)
-                                        : null,
-                                    child: _profileImage == null
-                                        ? const Icon(
-                                            Icons.person,
-                                            size: 30,
-                                            color: Colors.white,
-                                          )
-                                        : null,
+                              /// 👤 Upload Photo (Mandatory)
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: _profileImage == null
+                                      ? Colors.red.shade50
+                                      : Colors.green.shade50,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: _profileImage == null
+                                        ? Colors.red.shade200
+                                        : Colors.green.shade200,
                                   ),
-                                  const SizedBox(width: 15),
-                                  Expanded(
-                                    child: ElevatedButton.icon(
-                                      onPressed: _showImageSourceDialog,
-                                      icon: const Icon(
-                                        Icons.camera_alt,
-                                        color: Colors.white,
+                                ),
+                                child: Row(
+                                  children: [
+                                    CircleAvatar(
+                                      radius: 28,
+                                      backgroundColor: Colors.grey,
+                                      backgroundImage: _profileImage != null
+                                          ? FileImage(_profileImage!)
+                                          : null,
+                                      child: _profileImage == null
+                                          ? const Icon(
+                                              Icons.person,
+                                              size: 30,
+                                              color: Colors.white,
+                                            )
+                                          : null,
+                                    ),
+                                    const SizedBox(width: 15),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Text(
+                                                "Profile Photo",
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w500,
+                                                  color: _profileImage == null
+                                                      ? Colors.red.shade700
+                                                      : Colors.green.shade700,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                "*",
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.red,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          Text(
+                                            _profileImage == null
+                                                ? "Photo is mandatory for registration"
+                                                : "Photo uploaded successfully",
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey.shade600,
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                      label: const Text(
-                                        "Upload/Capture Photo",
-                                        style: TextStyle(color: Colors.white),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    ElevatedButton.icon(
+                                      onPressed: _showImageSourceDialog,
+                                      icon: Icon(
+                                        _profileImage == null
+                                            ? Icons.camera_alt
+                                            : Icons.edit,
+                                        color: Colors.white,
+                                        size: 16,
+                                      ),
+                                      label: Text(
+                                        _profileImage == null
+                                            ? "Upload"
+                                            : "Change",
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                        ),
                                       ),
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor: const Color(
-                                          0xFF104f22,
-                                        ),
+                                        backgroundColor: const Color(0xFF104f22),
                                         padding: const EdgeInsets.symmetric(
-                                          vertical: 12,
+                                          horizontal: 12,
+                                          vertical: 8,
                                         ),
                                         shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            8,
-                                          ),
+                                          borderRadius: BorderRadius.circular(8),
                                         ),
                                       ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
 
                               const SizedBox(height: 20),
@@ -544,6 +622,15 @@ class _KisanRegisterScreenState extends State<KisanRegisterScreen> {
                               _buildTextField(
                                 "Village *",
                                 controller: villageController,
+                              ),
+
+                              const SizedBox(height: 15),
+
+                              /// Pincode
+                              _buildTextField(
+                                "Pincode *",
+                                isPincode: true,
+                                controller: pincodeController,
                               ),
 
                               const SizedBox(height: 15),
@@ -733,6 +820,7 @@ class _KisanRegisterScreenState extends State<KisanRegisterScreen> {
   Widget _buildTextField(
     String label, {
     bool isMobile = false,
+    bool isPincode = false,
     required TextEditingController controller,
   }) {
     return Column(
@@ -769,15 +857,21 @@ class _KisanRegisterScreenState extends State<KisanRegisterScreen> {
               Expanded(
                 child: TextField(
                   controller: controller,
-                  keyboardType: isMobile
+                  keyboardType: (isMobile || isPincode)
                       ? TextInputType.phone
                       : TextInputType.text,
-                  maxLength: isMobile ? 10 : null,
+                  maxLength: isMobile
+                      ? 10
+                      : isPincode
+                          ? 6
+                          : null,
                   decoration: InputDecoration(
                     counterText: "",
                     hintText: isMobile
                         ? "Enter mobile number"
-                        : "Enter ${label.replaceAll(' *', '')}",
+                        : isPincode
+                            ? "Enter 6-digit pincode"
+                            : "Enter ${label.replaceAll(' *', '')}",
                     hintStyle: const TextStyle(
                       color: Colors.black38,
                       fontSize: 14,
