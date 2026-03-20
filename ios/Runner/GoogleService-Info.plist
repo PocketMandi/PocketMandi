@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>API_KEY</key>
+	<string>AIzaSyAO_ictl_C68ch7RreupaDWBuo3S-QS_O4</string>
+	<key>GCM_SENDER_ID</key>
+	<string>987459758293</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.poketmandi.app</string>
+	<key>PROJECT_ID</key>
+	<string>mypocketmandi</string>
+	<key>STORAGE_BUCKET</key>
+	<string>mypocketmandi.firebasestorage.app</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:987459758293:ios:52fef969fa7a308de69a5c</string>
+	<key>DATABASE_URL</key>
+	<string>https://mypocketmandi-default-rtdb.firebaseio.com</string>
+</dict>
+</plist>
