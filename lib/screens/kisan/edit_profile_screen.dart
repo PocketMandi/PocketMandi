@@ -22,6 +22,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   // Controllers
   final TextEditingController nameController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
+<<<<<<< HEAD
+=======
+  final TextEditingController emailController = TextEditingController();
+>>>>>>> 5f202c5fe2e97e0355a98ee87ddf929f8a026b67
   final TextEditingController addressController = TextEditingController();
   final TextEditingController villageController = TextEditingController();
   final TextEditingController stateController = TextEditingController();
@@ -44,6 +48,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   void dispose() {
     nameController.dispose();
     phoneController.dispose();
+<<<<<<< HEAD
+=======
+    emailController.dispose();
+>>>>>>> 5f202c5fe2e97e0355a98ee87ddf929f8a026b67
     addressController.dispose();
     villageController.dispose();
     stateController.dispose();
@@ -69,6 +77,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           setState(() {
             nameController.text = data['name'] ?? '';
             phoneController.text = data['phone'] ?? '';
+<<<<<<< HEAD
+=======
+            emailController.text = data['email'] ?? '';
+>>>>>>> 5f202c5fe2e97e0355a98ee87ddf929f8a026b67
             addressController.text = data['address'] ?? '';
             villageController.text = data['village'] ?? '';
             stateController.text = data['state'] ?? '';
@@ -252,6 +264,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       // Update user data in Firebase
       await FirebaseDatabase.instance.ref('users/$userId').update({
         'name': nameController.text.trim(),
+<<<<<<< HEAD
+=======
+        'phone': phoneController.text.trim(),
+        'email': emailController.text.trim(),
+>>>>>>> 5f202c5fe2e97e0355a98ee87ddf929f8a026b67
         'address': addressController.text.trim(),
         'village': villageController.text.trim(),
         'state': stateController.text.trim(),
@@ -263,6 +280,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       // Update SharedPreferences
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('name', nameController.text.trim());
+<<<<<<< HEAD
+=======
+      await prefs.setString('phone', phoneController.text.trim());
+      await prefs.setString('email', emailController.text.trim());
+>>>>>>> 5f202c5fe2e97e0355a98ee87ddf929f8a026b67
       await prefs.setString('address', addressController.text.trim());
       await prefs.setString('village', villageController.text.trim());
       await prefs.setString('state', stateController.text.trim());
@@ -484,7 +506,36 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                     label: 'Phone Number',
                                     icon: Icons.phone_outlined,
                                     keyboardType: TextInputType.phone,
+<<<<<<< HEAD
                                     enabled: false, // Make phone number read-only
+=======
+                                    validator: (value) {
+                                      if (value == null || value.trim().isEmpty) {
+                                        return 'Please enter your phone number';
+                                      }
+                                      if (value.length != 10) {
+                                        return 'Please enter a valid 10-digit phone number';
+                                      }
+                                      return null;
+                                    },
+                                  ),
+                                  
+                                  const SizedBox(height: 16),
+                                  
+                                  _buildTextField(
+                                    controller: emailController,
+                                    label: 'Email Address',
+                                    icon: Icons.email_outlined,
+                                    keyboardType: TextInputType.emailAddress,
+                                    validator: (value) {
+                                      if (value != null && value.isNotEmpty) {
+                                        if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                                          return 'Please enter a valid email address';
+                                        }
+                                      }
+                                      return null;
+                                    },
+>>>>>>> 5f202c5fe2e97e0355a98ee87ddf929f8a026b67
                                   ),
                                   
                                   const SizedBox(height: 24),
@@ -606,13 +657,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     TextInputType? keyboardType,
     String? Function(String?)? validator,
     int maxLines = 1,
+<<<<<<< HEAD
     bool enabled = true, // Add enabled parameter
+=======
+>>>>>>> 5f202c5fe2e97e0355a98ee87ddf929f8a026b67
   }) {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
       validator: validator,
       maxLines: maxLines,
+<<<<<<< HEAD
       enabled: enabled, // Use enabled parameter
       decoration: InputDecoration(
         labelText: label,
@@ -620,6 +675,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           icon, 
           color: enabled ? const Color(0xFF104f22) : Colors.grey,
         ),
+=======
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon, color: const Color(0xFF104f22)),
+>>>>>>> 5f202c5fe2e97e0355a98ee87ddf929f8a026b67
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.grey.shade300),
@@ -628,10 +688,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.grey.shade300),
         ),
+<<<<<<< HEAD
         disabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.grey.shade200),
         ),
+=======
+>>>>>>> 5f202c5fe2e97e0355a98ee87ddf929f8a026b67
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: Color(0xFF104f22), width: 2),
@@ -645,7 +708,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           borderSide: const BorderSide(color: Colors.red, width: 2),
         ),
         filled: true,
+<<<<<<< HEAD
         fillColor: enabled ? Colors.grey.shade50 : Colors.grey.shade100,
+=======
+        fillColor: Colors.grey.shade50,
+>>>>>>> 5f202c5fe2e97e0355a98ee87ddf929f8a026b67
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       ),
     );

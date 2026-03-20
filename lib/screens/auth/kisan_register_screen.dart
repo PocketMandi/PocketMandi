@@ -451,6 +451,7 @@ class _KisanRegisterScreenState extends State<KisanRegisterScreen> {
 
                         const SizedBox(height: 20),
 
+<<<<<<< HEAD
                         /// 📄 Main Registration Card
                         Container(
                           decoration: BoxDecoration(
@@ -462,10 +463,24 @@ class _KisanRegisterScreenState extends State<KisanRegisterScreen> {
                                 blurRadius: 20,
                                 offset: const Offset(0, 8),
                                 spreadRadius: 2,
+=======
+                        /// 📄 Form Card with Farmer Image
+                        Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.95),
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 10,
+                                offset: const Offset(0, 5),
+>>>>>>> 5f202c5fe2e97e0355a98ee87ddf929f8a026b67
                               ),
                             ],
                           ),
                           child: Column(
+<<<<<<< HEAD
                             children: [
                               /// 🎯 Header Section
                               Container(
@@ -549,10 +564,50 @@ class _KisanRegisterScreenState extends State<KisanRegisterScreen> {
                                     end: Alignment.bottomRight,
                                   ),
                                   borderRadius: BorderRadius.circular(16),
+=======
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              /// Farmer Image + Title Row
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Image.asset(
+                                    "assets/images/farmer2.png",
+                                    height: 80,
+                                  ),
+                                  const SizedBox(width: 15),
+                                  const Expanded(
+                                    child: Padding(
+                                      padding: EdgeInsets.only(top: 20),
+                                      child: Text(
+                                        "I am Kisan",
+                                        style: TextStyle(
+                                          fontSize: 24,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF104f22),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+
+                              const SizedBox(height: 20),
+
+                              /// 👤 Upload Photo (Mandatory)
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: _profileImage == null
+                                      ? Colors.red.shade50
+                                      : Colors.green.shade50,
+                                  borderRadius: BorderRadius.circular(10),
+>>>>>>> 5f202c5fe2e97e0355a98ee87ddf929f8a026b67
                                   border: Border.all(
                                     color: _profileImage == null
                                         ? Colors.red.shade200
                                         : Colors.green.shade200,
+<<<<<<< HEAD
                                     width: 1.5,
                                   ),
                                   boxShadow: [
@@ -1070,14 +1125,306 @@ class _KisanRegisterScreenState extends State<KisanRegisterScreen> {
                                                 color: Colors.blue.shade700,
                                                 fontWeight: FontWeight.w500,
                                               ),
+=======
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    CircleAvatar(
+                                      radius: 28,
+                                      backgroundColor: Colors.grey,
+                                      backgroundImage: _profileImage != null
+                                          ? FileImage(_profileImage!)
+                                          : null,
+                                      child: _profileImage == null
+                                          ? const Icon(
+                                              Icons.person,
+                                              size: 30,
+                                              color: Colors.white,
+                                            )
+                                          : null,
+                                    ),
+                                    const SizedBox(width: 15),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Text(
+                                                "Profile Photo",
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w500,
+                                                  color: _profileImage == null
+                                                      ? Colors.red.shade700
+                                                      : Colors.green.shade700,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                "*",
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.red,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          Text(
+                                            _profileImage == null
+                                                ? "Photo is mandatory for registration"
+                                                : "Photo uploaded successfully",
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey.shade600,
+>>>>>>> 5f202c5fe2e97e0355a98ee87ddf929f8a026b67
                                             ),
                                           ),
                                         ],
                                       ),
                                     ),
+<<<<<<< HEAD
                                   ],
                                 ),
                               ),
+=======
+                                    const SizedBox(width: 8),
+                                    ElevatedButton.icon(
+                                      onPressed: _showImageSourceDialog,
+                                      icon: Icon(
+                                        _profileImage == null
+                                            ? Icons.camera_alt
+                                            : Icons.edit,
+                                        color: Colors.white,
+                                        size: 16,
+                                      ),
+                                      label: Text(
+                                        _profileImage == null
+                                            ? "Upload"
+                                            : "Change",
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(0xFF104f22),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 8,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                              const SizedBox(height: 20),
+
+                              /// Name
+                              _buildTextField(
+                                "Name *",
+                                controller: nameController,
+                              ),
+
+                              const SizedBox(height: 15),
+
+                              /// Mobile
+                              _buildTextField(
+                                "Mobile Number *",
+                                isMobile: true,
+                                controller: phoneController,
+                              ),
+
+                              const SizedBox(height: 15),
+
+                              /// Village
+                              _buildTextField(
+                                "Village *",
+                                controller: villageController,
+                              ),
+
+                              const SizedBox(height: 15),
+
+                              /// Pincode
+                              _buildTextField(
+                                "Pincode *",
+                                isPincode: true,
+                                controller: pincodeController,
+                              ),
+
+                              const SizedBox(height: 15),
+
+                              /// CSC Picker
+                              CSCPickerPlus(
+                                layout: Layout.vertical,
+                                showStates: true,
+                                showCities: false,
+                                flagState: CountryFlag.DISABLE,
+                                dropdownDecoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(10),
+                                  color: const Color(0xFFF2EEDC),
+                                  border: Border.all(color: Colors.transparent),
+                                ),
+                                selectedItemStyle: const TextStyle(
+                                  color: Colors.black87,
+                                  fontSize: 14,
+                                ),
+                                dropdownItemStyle: const TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 14,
+                                ),
+                                onCountryChanged: (value) {},
+                                onStateChanged: (value) {
+                                  if (value != null) {
+                                    setState(() {
+                                      stateValue = value;
+                                    });
+                                  }
+                                },
+                              ),
+
+                              const SizedBox(height: 15),
+
+                              /// Location
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: userLatitude != null
+                                      ? Colors.green.shade50
+                                      : Colors.orange.shade50,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: userLatitude != null
+                                        ? Colors.green.shade200
+                                        : Colors.orange.shade200,
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      userLatitude != null
+                                          ? Icons.location_on
+                                          : Icons.location_off,
+                                      color: userLatitude != null
+                                          ? Colors.green
+                                          : Colors.orange,
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            userLatitude != null
+                                                ? "Location Captured"
+                                                : "Capture Your Location",
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w500,
+                                              color: userLatitude != null
+                                                  ? Colors.green.shade700
+                                                  : Colors.orange.shade700,
+                                            ),
+                                          ),
+                                          if (userAddress != null)
+                                            Text(
+                                              userAddress!,
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.grey.shade600,
+                                              ),
+                                            ),
+                                          if (userLatitude == null)
+                                            Text(
+                                              "Help buyers find you easily",
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.grey.shade600,
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    isLocationLoading
+                                        ? const SizedBox(
+                                            width: 20,
+                                            height: 20,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                              valueColor:
+                                                  AlwaysStoppedAnimation<Color>(
+                                                    Colors.green,
+                                                  ),
+                                            ),
+                                          )
+                                        : IconButton(
+                                            onPressed: _checkAndRequestLocation,
+                                            icon: Icon(
+                                              userLatitude != null
+                                                  ? Icons.refresh
+                                                  : Icons.my_location,
+                                              color: userLatitude != null
+                                                  ? Colors.green
+                                                  : Colors.orange,
+                                              size: 20,
+                                            ),
+                                          ),
+                                  ],
+                                ),
+                              ),
+
+                              const SizedBox(height: 20),
+
+                              /// Register Button
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton(
+                                  onPressed: isLoading ? null : sendToOtpScreen,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF104f22),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 14,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                  ),
+                                  child: isLoading
+                                      ? const CircularProgressIndicator(
+                                          color: Colors.white,
+                                        )
+                                      : const Text(
+                                          "Register",
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                ),
+                              ),
+
+                              const SizedBox(height: 10),
+
+                              Center(
+                                child: Text(
+                                  "By registering, you agree to the Terms & Conditions",
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                ),
+                              ),
+>>>>>>> 5f202c5fe2e97e0355a98ee87ddf929f8a026b67
                             ],
                           ),
                         ),
@@ -1095,6 +1442,7 @@ class _KisanRegisterScreenState extends State<KisanRegisterScreen> {
     );
   }
 
+<<<<<<< HEAD
   /// 🎨 Section Header Widget
   Widget _buildSectionHeader(String title, IconData icon) {
     return Container(
@@ -1143,16 +1491,23 @@ class _KisanRegisterScreenState extends State<KisanRegisterScreen> {
   }
 
   /// 🔹 Enhanced TextField
+=======
+  /// 🔹 Reusable TextField
+>>>>>>> 5f202c5fe2e97e0355a98ee87ddf929f8a026b67
   Widget _buildTextField(
     String label, {
     bool isMobile = false,
     bool isPincode = false,
     required TextEditingController controller,
+<<<<<<< HEAD
     IconData? icon,
+=======
+>>>>>>> 5f202c5fe2e97e0355a98ee87ddf929f8a026b67
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+<<<<<<< HEAD
         Row(
           children: [
             Icon(
@@ -1268,6 +1623,67 @@ class _KisanRegisterScreenState extends State<KisanRegisterScreen> {
                 ),
               ],
             ),
+=======
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Container(
+          height: 48,
+          decoration: BoxDecoration(
+            color: const Color(0xFFF2EEDC),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Row(
+            children: [
+              if (isMobile)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: const Text(
+                    "+91",
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                  ),
+                ),
+              if (isMobile)
+                Container(height: 24, width: 1, color: Colors.black26),
+              if (isMobile) const SizedBox(width: 8),
+              Expanded(
+                child: TextField(
+                  controller: controller,
+                  keyboardType: (isMobile || isPincode)
+                      ? TextInputType.phone
+                      : TextInputType.text,
+                  maxLength: isMobile
+                      ? 10
+                      : isPincode
+                          ? 6
+                          : null,
+                  decoration: InputDecoration(
+                    counterText: "",
+                    hintText: isMobile
+                        ? "Enter mobile number"
+                        : isPincode
+                            ? "Enter 6-digit pincode"
+                            : "Enter ${label.replaceAll(' *', '')}",
+                    hintStyle: const TextStyle(
+                      color: Colors.black38,
+                      fontSize: 14,
+                    ),
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 14,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+>>>>>>> 5f202c5fe2e97e0355a98ee87ddf929f8a026b67
           ),
         ),
       ],
