@@ -5,6 +5,7 @@ import 'package:poket_mandi/main.dart';
 import 'package:poket_mandi/screens/vyapari/crop_detail_screen.dart';
 import 'package:poket_mandi/screens/vyapari/crop_not_listed_screen.dart';
 import 'package:poket_mandi/screens/kisan/edit_profile_screen.dart';
+import 'package:poket_mandi/screens/common/about_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 class VyapariDashboardScreen extends StatefulWidget {
@@ -1466,7 +1467,14 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
                   icon: Icons.info_outline,
                   title: "About",
                   subtitle: "App version and information",
-                  onTap: () {},
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const AboutScreen(),
+                      ),
+                    );
+                  },
                 ),
                 const SizedBox(height: 24),
                 SizedBox(

@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:csc_picker_plus/csc_picker_plus.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:poket_mandi/screens/auth/otp_verification_screen.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:geocoding/geocoding.dart';
 
 class VyapariRegisterScreen extends StatefulWidget {
   const VyapariRegisterScreen({super.key});
@@ -16,12 +20,29 @@ class _VyapariRegisterScreenState extends State<VyapariRegisterScreen> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController mandiNameController = TextEditingController();
+  final TextEditingController villageController = TextEditingController();
+  final TextEditingController pincodeController = TextEditingController();
 
   String stateValue = "";
   String cityValue = "";
   bool isLoading = false;
   File? _profileImage;
   final ImagePicker _picker = ImagePicker();
+
+  // Location variables
+  double? userLatitude;
+  double? userLongitude;
+  String? userAddress;
+  bool isLocationLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Automatically request location when screen loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAndRequestLocation();
+    });
+  }
 
   Future<void> _pickImage(ImageSource source) async {
     final pickedFile = await _picker.pickImage(source: source);
@@ -62,36 +83,280 @@ class _VyapariRegisterScreenState extends State<VyapariRegisterScreen> {
     );
   }
 
+  // Location functionality methods
+  Future<void> _checkAndRequestLocation() async {
+    try {
+      setState(() => isLocationLoading = true);
+
+      // Check if location services are enabled
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        setState(() => isLocationLoading = false);
+        _showLocationServiceDialog();
+        return;
+      }
+
+      // Check location permission
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          setState(() => isLocationLoading = false);
+          _showLocationPermissionDialog();
+          return;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        setState(() => isLocationLoading = false);
+        _showLocationPermissionDialog();
+        return;
+      }
+
+      // Get current position
+      await Geolocator.getLastKnownPosition();
+      Position? position = await Geolocator.getLastKnownPosition();
+
+      position ??= await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.medium,
+        timeLimit: const Duration(seconds: 20),
+      );
+
+      // Get address from coordinates
+      List<Placemark> placemarks = await placemarkFromCoordinates(
+        position.latitude,
+        position.longitude,
+      );
+
+      String address = "Location captured";
+      if (placemarks.isNotEmpty) {
+        Placemark place = placemarks[0];
+        address =
+            "${place.locality}, ${place.administrativeArea}, ${place.country}";
+      }
+
+      setState(() {
+        userLatitude = position!.latitude;
+        userLongitude = position!.longitude;
+        userAddress = address;
+        isLocationLoading = false;
+      });
+
+      _showLocationSuccessDialog();
+    } catch (e) {
+      setState(() => isLocationLoading = false);
+      _showLocationErrorDialog(e.toString());
+    }
+  }
+
+  void _showLocationServiceDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: const [
+            Icon(Icons.location_off, color: Colors.orange, size: 28),
+            SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                "Location Services Disabled",
+                style: TextStyle(fontSize: 18),
+              ),
+            ),
+          ],
+        ),
+        content: const Text(
+          "Please enable location services to help buyers find you easily.",
+          style: TextStyle(fontSize: 16),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await Geolocator.openLocationSettings();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF085927),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text("Enable"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showLocationPermissionDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: const [
+            Icon(Icons.location_disabled, color: Colors.red, size: 28),
+            SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                "Location Permission Required",
+                style: TextStyle(fontSize: 18),
+              ),
+            ),
+          ],
+        ),
+        content: const Text(
+          "Location access helps buyers find you. Please grant permission in settings.",
+          style: TextStyle(fontSize: 16),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await openAppSettings();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF085927),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text("Settings"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showLocationSuccessDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: const [
+            Icon(Icons.check_circle, color: Colors.green, size: 28),
+            SizedBox(width: 12),
+            Expanded(
+              child: Text("Location Captured!", style: TextStyle(fontSize: 18)),
+            ),
+          ],
+        ),
+        content: Text(
+          "Your location has been successfully captured: ${userAddress ?? 'Location saved'}",
+          style: const TextStyle(fontSize: 16),
+        ),
+        actions: [
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF085927),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text("OK"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showLocationErrorDialog(String error) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: const [
+            Icon(Icons.error, color: Colors.red, size: 28),
+            SizedBox(width: 12),
+            Expanded(
+              child: Text("Location Error", style: TextStyle(fontSize: 18)),
+            ),
+          ],
+        ),
+        content: Text(
+          "Failed to get location: ${error.contains('TimeoutException') ? 'Request timed out. Please try again.' : 'Please check your GPS and internet connection.'}",
+          style: const TextStyle(fontSize: 16),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _checkAndRequestLocation();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF085927),
+              foregroundColor: Colors.white,
+            ),
+            child: const Text("Retry"),
+          ),
+        ],
+      ),
+    );
+  }
+
   void sendToOtpScreen() async {
+    // Validate all required fields including profile image
     if (nameController.text.isEmpty ||
         phoneController.text.isEmpty ||
         phoneController.text.length != 10 ||
-        mandiNameController.text.isEmpty) {
+        mandiNameController.text.isEmpty ||
+        villageController.text.isEmpty ||
+        pincodeController.text.isEmpty ||
+        pincodeController.text.length != 6 ||
+        _profileImage == null) {
+      String errorMessage = "Please fill all fields correctly";
+      if (_profileImage == null) {
+        errorMessage = "Profile photo is mandatory. Please upload your photo.";
+      } else if (pincodeController.text.isEmpty ||
+          pincodeController.text.length != 6) {
+        errorMessage = "Please enter a valid 6-digit pincode.";
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please fill all fields correctly")),
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+        ),
       );
       return;
     }
 
+    // Upload profile image (now mandatory)
+    setState(() => isLoading = true);
     String? imageUrl;
-    if (_profileImage != null) {
-      setState(() => isLoading = true);
-      try {
-        final storageRef = FirebaseStorage.instance
-            .ref()
-            .child('profile_images')
-            .child('${phoneController.text}_${DateTime.now().millisecondsSinceEpoch}.jpg');
-        await storageRef.putFile(_profileImage!);
-        imageUrl = await storageRef.getDownloadURL();
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Image upload failed: $e")),
-        );
-        setState(() => isLoading = false);
-        return;
-      }
+    try {
+      final storageRef = FirebaseStorage.instance
+          .ref()
+          .child('profile_images')
+          .child(
+            '${phoneController.text}_${DateTime.now().millisecondsSinceEpoch}.jpg',
+          );
+      await storageRef.putFile(_profileImage!);
+      imageUrl = await storageRef.getDownloadURL();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Image upload failed: $e"),
+          backgroundColor: Colors.red,
+        ),
+      );
       setState(() => isLoading = false);
+      return;
     }
+    setState(() => isLoading = false);
 
     Navigator.push(
       context,
@@ -102,10 +367,14 @@ class _VyapariRegisterScreenState extends State<VyapariRegisterScreen> {
             "name": nameController.text,
             "phone": phoneController.text,
             "mandiName": mandiNameController.text,
-            "city": cityValue.isEmpty ? "Not specified" : cityValue,
+            "village": villageController.text,
+            "pincode": pincodeController.text,
             "state": stateValue.isEmpty ? "Uttar Pradesh" : stateValue,
             "country": "India",
-            "profileImage": imageUrl ?? "https://i.pravatar.cc/300",
+            "profileImage": imageUrl!,
+            "latitude": userLatitude?.toString() ?? "",
+            "longitude": userLongitude?.toString() ?? "",
+            "address": userAddress ?? "",
           },
           isTrader: true,
         ),
@@ -296,57 +565,259 @@ class _VyapariRegisterScreenState extends State<VyapariRegisterScreen> {
 
                               const SizedBox(height: 15),
 
-                              /// CSC Picker
-                              CSCPickerPlus(
-                                layout: Layout.vertical,
-                                showStates: true,
-                                showCities: true,
-                                flagState: CountryFlag.DISABLE,
-                                dropdownDecoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(10),
-                                  color: const Color(0xFFF2EEDC),
-                                  border: Border.all(color: Colors.transparent),
-                                ),
-                                selectedItemStyle: const TextStyle(
-                                  color: Colors.black87,
-                                  fontSize: 14,
-                                ),
-                                dropdownItemStyle: const TextStyle(
-                                  color: Colors.black,
-                                  fontSize: 14,
-                                ),
-                                onCountryChanged: (value) {},
-                                onStateChanged: (value) {
-                                  if (value != null) {
-                                    setState(() {
-                                      stateValue = value;
-                                    });
-                                  }
-                                },
-                                onCityChanged: (value) {
-                                  if (value != null) {
-                                    setState(() {
-                                      cityValue = value;
-                                    });
-                                  }
-                                },
+                              /// Village Field
+                              _buildTextField(
+                                "Village/Town *",
+                                controller: villageController,
+                                icon: Icons.location_city_rounded,
                               ),
 
                               const SizedBox(height: 15),
 
-                              /// Location
-                              Row(
-                                children: const [
-                                  Icon(Icons.location_on, color: Colors.green),
-                                  SizedBox(width: 8),
-                                  Text(
-                                    "Google Location on Google map",
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.black54,
+                              /// Pincode Field
+                              _buildTextField(
+                                "Pincode *",
+                                isPincode: true,
+                                controller: pincodeController,
+                                icon: Icons.pin_drop_rounded,
+                              ),
+
+                              const SizedBox(height: 15),
+
+                              /// State Picker with Enhanced UI
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.map_rounded,
+                                        size: 16,
+                                        color: const Color(0xFF104f22),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      const Text(
+                                        "State *",
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.black87,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(12),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.05),
+                                          blurRadius: 4,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                    child: CSCPickerPlus(
+                                      layout: Layout.vertical,
+                                      showStates: true,
+                                      showCities: false,
+                                      flagState: CountryFlag.DISABLE,
+                                      dropdownDecoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(12),
+                                        color: Colors.white,
+                                        border: Border.all(
+                                          color: Colors.grey.shade300,
+                                          width: 1.5,
+                                        ),
+                                      ),
+                                      selectedItemStyle: const TextStyle(
+                                        color: Colors.black87,
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                      dropdownItemStyle: const TextStyle(
+                                        color: Colors.black87,
+                                        fontSize: 14,
+                                      ),
+                                      onCountryChanged: (value) {},
+                                      onStateChanged: (value) {
+                                        if (value != null) {
+                                          setState(() {
+                                            stateValue = value;
+                                          });
+                                        }
+                                      },
                                     ),
                                   ),
                                 ],
+                              ),
+
+                              const SizedBox(height: 24),
+
+                              /// Location Section
+                              Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      userLatitude != null
+                                          ? Colors.green.shade50
+                                          : Colors.orange.shade50,
+                                      userLatitude != null
+                                          ? Colors.green.shade100
+                                          : Colors.orange.shade100,
+                                    ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: userLatitude != null
+                                        ? Colors.green.shade200
+                                        : Colors.orange.shade200,
+                                    width: 1.5,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: (userLatitude != null
+                                              ? Colors.green
+                                              : Colors.orange)
+                                          .withOpacity(0.1),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Column(
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.all(12),
+                                          decoration: BoxDecoration(
+                                            color: userLatitude != null
+                                                ? Colors.green.shade100
+                                                : Colors.orange.shade100,
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: Icon(
+                                            userLatitude != null
+                                                ? Icons.location_on_rounded
+                                                : Icons.location_searching_rounded,
+                                            color: userLatitude != null
+                                                ? Colors.green.shade700
+                                                : Colors.orange.shade700,
+                                            size: 24,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 16),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Row(
+                                                children: [
+                                                  Icon(
+                                                    userLatitude != null
+                                                        ? Icons.check_circle_rounded
+                                                        : Icons.info_rounded,
+                                                    size: 18,
+                                                    color: userLatitude != null
+                                                        ? Colors.green.shade600
+                                                        : Colors.orange.shade600,
+                                                  ),
+                                                  const SizedBox(width: 6),
+                                                  Expanded(
+                                                    child: Text(
+                                                      userLatitude != null
+                                                          ? "Location Captured"
+                                                          : "Capture Your Location",
+                                                      style: TextStyle(
+                                                        fontSize: 16,
+                                                        fontWeight: FontWeight.bold,
+                                                        color: userLatitude != null
+                                                            ? Colors.green.shade700
+                                                            : Colors.orange.shade700,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                userAddress ??
+                                                    "Help buyers find you easily",
+                                                style: TextStyle(
+                                                  fontSize: 13,
+                                                  color: Colors.grey.shade700,
+                                                  height: 1.2,
+                                                ),
+                                                maxLines: 2,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 16),
+                                    SizedBox(
+                                      width: double.infinity,
+                                      child: ElevatedButton.icon(
+                                        onPressed: isLocationLoading
+                                            ? null
+                                            : _checkAndRequestLocation,
+                                        icon: isLocationLoading
+                                            ? const SizedBox(
+                                                width: 18,
+                                                height: 18,
+                                                child: CircularProgressIndicator(
+                                                  strokeWidth: 2,
+                                                  valueColor:
+                                                      AlwaysStoppedAnimation<Color>(
+                                                          Colors.white),
+                                                ),
+                                              )
+                                            : Icon(
+                                                userLatitude != null
+                                                    ? Icons.refresh_rounded
+                                                    : Icons.my_location_rounded,
+                                                color: Colors.white,
+                                                size: 18,
+                                              ),
+                                        label: Text(
+                                          isLocationLoading
+                                              ? "Getting Location..."
+                                              : userLatitude != null
+                                              ? "Update Location"
+                                              : "Get My Location",
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: userLatitude != null
+                                              ? Colors.green.shade600
+                                              : Colors.orange.shade600,
+                                          disabledBackgroundColor:
+                                              Colors.grey.shade400,
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 20,
+                                            vertical: 12,
+                                          ),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          elevation: 2,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
 
                               const SizedBox(height: 20),
@@ -408,63 +879,129 @@ class _VyapariRegisterScreenState extends State<VyapariRegisterScreen> {
     );
   }
 
-  /// 🔹 Same TextField Method (Reuse from Kisan)
+  /// 🔹 Enhanced TextField
   Widget _buildTextField(
     String label, {
     bool isMobile = false,
+    bool isPincode = false,
     required TextEditingController controller,
+    IconData? icon,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: Colors.black87,
-          ),
+        Row(
+          children: [
+            Icon(
+              icon ?? Icons.text_fields_rounded,
+              size: 16,
+              color: const Color(0xFF104f22),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 6),
+        const SizedBox(height: 8),
         Container(
-          height: 48,
           decoration: BoxDecoration(
-            color: const Color(0xFFF2EEDC),
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 6,
+                offset: const Offset(0, 3),
+              ),
+            ],
           ),
-          child: Row(
-            children: [
-              if (isMobile)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: const Text(
-                    "+91",
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+          child: Container(
+            height: 56,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade300, width: 1.5),
+            ),
+            child: Row(
+              children: [
+                if (isMobile) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          const Color(0xFF104f22).withOpacity(0.1),
+                          const Color(0xFF104f22).withOpacity(0.05),
+                        ],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                      ),
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(12),
+                        bottomLeft: Radius.circular(12),
+                      ),
+                    ),
+                    child: const Center(
+                      child: Text(
+                        "+91",
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF104f22),
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-              if (isMobile)
-                Container(height: 24, width: 1, color: Colors.black26),
-              if (isMobile) const SizedBox(width: 8),
-              Expanded(
-                child: TextField(
-                  controller: controller,
-                  keyboardType:
-                      isMobile ? TextInputType.phone : TextInputType.text,
-                  maxLength: isMobile ? 10 : null,
-                  decoration: InputDecoration(
-                    counterText: "",
-                    hintText: isMobile
-                        ? "Enter mobile number"
-                        : "Enter ${label.replaceAll(' *', '')}",
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 14,
+                  Container(
+                    height: 32,
+                    width: 1.5,
+                    color: Colors.grey.shade300,
+                  ),
+                ],
+                Expanded(
+                  child: TextField(
+                    controller: controller,
+                    keyboardType: (isMobile || isPincode)
+                        ? TextInputType.phone
+                        : TextInputType.text,
+                    maxLength: isMobile
+                        ? 10
+                        : isPincode
+                        ? 6
+                        : null,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                      letterSpacing: 0.3,
+                    ),
+                    decoration: InputDecoration(
+                      counterText: "",
+                      hintText: isMobile
+                          ? "Enter mobile number"
+                          : isPincode
+                          ? "Enter 6-digit pincode"
+                          : "Enter ${label.replaceAll(' *', '').toLowerCase()}",
+                      hintStyle: TextStyle(
+                        color: Colors.grey.shade500,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 18,
+                        vertical: 18,
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ],
