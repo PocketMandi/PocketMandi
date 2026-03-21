@@ -6,6 +6,7 @@ import 'package:poket_mandi/screens/vyapari/crop_detail_screen.dart';
 import 'package:poket_mandi/screens/vyapari/crop_not_listed_screen.dart';
 import 'package:poket_mandi/screens/kisan/edit_profile_screen.dart';
 import 'package:poket_mandi/screens/common/about_screen.dart';
+import 'package:poket_mandi/screens/common/policies_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 class VyapariDashboardScreen extends StatefulWidget {
@@ -1457,10 +1458,17 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
                 ),
                 const SizedBox(height: 12),
                 _buildProfileOption(
-                  icon: Icons.help_outline,
-                  title: "Help & Support",
-                  subtitle: "Get help and contact support",
-                  onTap: () {},
+                  icon: Icons.policy_outlined,
+                  title: "Policies & Guidelines",
+                  subtitle: "Privacy policy, community guidelines & data policy",
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const PoliciesScreen(),
+                      ),
+                    );
+                  },
                 ),
                 const SizedBox(height: 12),
                 _buildProfileOption(

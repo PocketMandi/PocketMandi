@@ -28,6 +28,7 @@ class _VyapariRegisterScreenState extends State<VyapariRegisterScreen> {
   bool isLoading = false;
   File? _profileImage;
   final ImagePicker _picker = ImagePicker();
+  bool acceptedTerms = false;
 
   // Location variables
   double? userLatitude;
@@ -306,6 +307,205 @@ class _VyapariRegisterScreenState extends State<VyapariRegisterScreen> {
     );
   }
 
+  void _showTermsAndConditions() {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Container(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.8,
+            maxWidth: MediaQuery.of(context).size.width * 0.9,
+          ),
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF104f22), Color(0xFF0d3f1c)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(20),
+                    topRight: Radius.circular(20),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.article_outlined, color: Colors.white, size: 24),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Text(
+                        "Terms and Conditions",
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close, color: Colors.white),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildTermsSection(
+                        "1. Introduction",
+                        "Welcome to Poketmandi. These Terms and Conditions govern your use of the Poketmandi mobile application and related services. By downloading, registering, or using the application, you agree to comply with these Terms.",
+                      ),
+                      _buildTermsSection(
+                        "2. Definitions",
+                        "Platform refers to the Poketmandi application and related services. User refers to any farmer, trader, buyer, or seller using the platform. Company refers to Poketmandi.com",
+                      ),
+                      _buildTermsSection(
+                        "3. Eligibility",
+                        "Users must be at least 18 years old and provide accurate information during registration. Users must comply with applicable laws related to agricultural trade in India.",
+                      ),
+                      _buildTermsSection(
+                        "4. Account Registration",
+                        "Users must keep their login credentials secure. Poketmandi is not responsible for losses resulting from unauthorized use of accounts.",
+                      ),
+                      _buildTermsSection(
+                        "5. Platform Services",
+                        "Poketmandi provides a digital marketplace connecting farmers, traders, and buyers. The platform enables listing of agricultural produce, price discovery, and communication between parties.",
+                      ),
+                      _buildTermsSection(
+                        "6. Transactions Between Users",
+                        "Transactions don't occur directly between users. Poketmandi acts as a technology facilitator but does not guarantee quality, quantity, or delivery unless explicitly stated.",
+                      ),
+                      _buildTermsSection(
+                        "7. User Responsibilities",
+                        "Users must not post misleading information, engage in fraud, or sell prohibited goods. Violations may result in suspension or termination of accounts.",
+                      ),
+                      _buildTermsSection(
+                        "8. Payments and Fees",
+                        "Certain services may include service fees, transaction charges, or subscription fees. These charges will be disclosed before confirmation.",
+                      ),
+                      _buildTermsSection(
+                        "9. Intellectual Property",
+                        "All platform content including design, software, and branding belongs to Poketmandi.",
+                      ),
+                      _buildTermsSection(
+                        "10. Limitation of Liability",
+                        "Poketmandi is not responsible for disputes, delivery delays, product quality issues, or financial losses resulting from user transactions.",
+                      ),
+                      _buildTermsSection(
+                        "11. Governing Law",
+                        "These Terms are governed by the laws of India. Any dispute should be settled within the jurisdiction of Ambikapur, Chattisgarh court.",
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(20),
+                    bottomRight: Radius.circular(20),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          side: const BorderSide(color: Color(0xFF104f22)),
+                        ),
+                        child: const Text(
+                          "Close",
+                          style: TextStyle(
+                            color: Color(0xFF104f22),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          setState(() {
+                            acceptedTerms = true;
+                          });
+                          Navigator.pop(context);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF104f22),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: const Text(
+                          "Accept",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTermsSection(String title, String content) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF104f22),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            content,
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey.shade700,
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   void sendToOtpScreen() async {
     // Validate all required fields including profile image
     if (nameController.text.isEmpty ||
@@ -315,13 +515,16 @@ class _VyapariRegisterScreenState extends State<VyapariRegisterScreen> {
         villageController.text.isEmpty ||
         pincodeController.text.isEmpty ||
         pincodeController.text.length != 6 ||
-        _profileImage == null) {
+        _profileImage == null ||
+        !acceptedTerms) {
       String errorMessage = "Please fill all fields correctly";
       if (_profileImage == null) {
         errorMessage = "Profile photo is mandatory. Please upload your photo.";
       } else if (pincodeController.text.isEmpty ||
           pincodeController.text.length != 6) {
         errorMessage = "Please enter a valid 6-digit pincode.";
+      } else if (!acceptedTerms) {
+        errorMessage = "Please accept the Terms & Conditions to continue.";
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -860,6 +1063,139 @@ class _VyapariRegisterScreenState extends State<VyapariRegisterScreen> {
                                     fontSize: 12,
                                     color: Colors.grey.shade600,
                                   ),
+                                ),
+                              ),
+
+                              /// Terms & Conditions Checkbox
+                              Container(
+                                margin: const EdgeInsets.only(top: 16),
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      acceptedTerms ? Colors.green.shade50 : Colors.orange.shade50,
+                                      acceptedTerms ? Colors.green.shade100 : Colors.orange.shade100,
+                                    ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: acceptedTerms ? Colors.green.shade200 : Colors.orange.shade200,
+                                    width: 1.5,
+                                  ),
+                                ),
+                                child: Column(
+                                  children: [
+                                    Row(
+                                      children: [
+                                        GestureDetector(
+                                          onTap: () {
+                                            setState(() {
+                                              acceptedTerms = !acceptedTerms;
+                                            });
+                                          },
+                                          child: Container(
+                                            width: 24,
+                                            height: 24,
+                                            decoration: BoxDecoration(
+                                              color: acceptedTerms ? const Color(0xFF104f22) : Colors.white,
+                                              borderRadius: BorderRadius.circular(6),
+                                              border: Border.all(
+                                                color: acceptedTerms ? const Color(0xFF104f22) : Colors.grey.shade400,
+                                                width: 2,
+                                              ),
+                                            ),
+                                            child: acceptedTerms
+                                                ? const Icon(Icons.check, color: Colors.white, size: 16)
+                                                : null,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Wrap(
+                                                children: [
+                                                  Text(
+                                                    "I agree to the ",
+                                                    style: TextStyle(
+                                                      fontSize: 14,
+                                                      color: Colors.grey.shade700,
+                                                    ),
+                                                  ),
+                                                  GestureDetector(
+                                                    onTap: _showTermsAndConditions,
+                                                    child: const Text(
+                                                      "Terms & Conditions",
+                                                      style: TextStyle(
+                                                        fontSize: 14,
+                                                        color: Color(0xFF104f22),
+                                                        fontWeight: FontWeight.w600,
+                                                        decoration: TextDecoration.underline,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  Text(
+                                                    " *",
+                                                    style: TextStyle(
+                                                      fontSize: 14,
+                                                      color: Colors.red.shade600,
+                                                      fontWeight: FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                acceptedTerms
+                                                    ? "Thank you for accepting our terms"
+                                                    : "Please read and accept to continue",
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: Colors.grey.shade600,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 12),
+                                    SizedBox(
+                                      width: double.infinity,
+                                      child: OutlinedButton.icon(
+                                        onPressed: _showTermsAndConditions,
+                                        icon: const Icon(
+                                          Icons.article_outlined,
+                                          size: 16,
+                                          color: Color(0xFF104f22),
+                                        ),
+                                        label: const Text(
+                                          "Read Terms & Conditions",
+                                          style: TextStyle(
+                                            color: Color(0xFF104f22),
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        style: OutlinedButton.styleFrom(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 16,
+                                            vertical: 10,
+                                          ),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(10),
+                                          ),
+                                          side: const BorderSide(
+                                            color: Color(0xFF104f22),
+                                            width: 1.5,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],

@@ -3,6 +3,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:poket_mandi/screens/kisan/my_order_screen.dart';
 import 'package:poket_mandi/screens/kisan/edit_profile_screen.dart';
 import 'package:poket_mandi/screens/common/about_screen.dart';
+import 'package:poket_mandi/screens/common/policies_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:poket_mandi/main.dart';
 import 'package:poket_mandi/screens/kisan/add_new_crop_screen.dart';
@@ -849,10 +850,17 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
                 ),
                 const SizedBox(height: 12),
                 _buildProfileOption(
-                  icon: Icons.help_outline,
-                  title: "Help & Support",
-                  subtitle: "Get help and contact support",
-                  onTap: () {},
+                  icon: Icons.policy_outlined,
+                  title: "Policies & Guidelines",
+                  subtitle: "Privacy policy, community guidelines & data policy",
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const PoliciesScreen(),
+                      ),
+                    );
+                  },
                 ),
                 const SizedBox(height: 12),
                 _buildProfileOption(
