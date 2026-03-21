@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:poket_mandi/screens/kisan/selected_crop_screen.dart';
 
 class MyOrdersScreen extends StatefulWidget {
@@ -520,7 +519,9 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
                                     vertical: 2,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF104f22).withOpacity(0.08),
+                                    color: const Color(
+                                      0xFF104f22,
+                                    ).withOpacity(0.08),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: Text(

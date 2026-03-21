@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:csc_picker_plus/csc_picker_plus.dart';
 import 'package:image_picker/image_picker.dart';
@@ -334,7 +333,11 @@ class _VyapariRegisterScreenState extends State<VyapariRegisterScreen> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.article_outlined, color: Colors.white, size: 24),
+                    const Icon(
+                      Icons.article_outlined,
+                      color: Colors.white,
+                      size: 24,
+                    ),
                     const SizedBox(width: 12),
                     const Expanded(
                       child: Text(
@@ -883,10 +886,11 @@ class _VyapariRegisterScreenState extends State<VyapariRegisterScreen> {
                                   ),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: (userLatitude != null
-                                              ? Colors.green
-                                              : Colors.orange)
-                                          .withOpacity(0.1),
+                                      color:
+                                          (userLatitude != null
+                                                  ? Colors.green
+                                                  : Colors.orange)
+                                              .withOpacity(0.1),
                                       blurRadius: 8,
                                       offset: const Offset(0, 2),
                                     ),
@@ -907,7 +911,8 @@ class _VyapariRegisterScreenState extends State<VyapariRegisterScreen> {
                                           child: Icon(
                                             userLatitude != null
                                                 ? Icons.location_on_rounded
-                                                : Icons.location_searching_rounded,
+                                                : Icons
+                                                      .location_searching_rounded,
                                             color: userLatitude != null
                                                 ? Colors.green.shade700
                                                 : Colors.orange.shade700,
@@ -924,12 +929,15 @@ class _VyapariRegisterScreenState extends State<VyapariRegisterScreen> {
                                                 children: [
                                                   Icon(
                                                     userLatitude != null
-                                                        ? Icons.check_circle_rounded
+                                                        ? Icons
+                                                              .check_circle_rounded
                                                         : Icons.info_rounded,
                                                     size: 18,
                                                     color: userLatitude != null
                                                         ? Colors.green.shade600
-                                                        : Colors.orange.shade600,
+                                                        : Colors
+                                                              .orange
+                                                              .shade600,
                                                   ),
                                                   const SizedBox(width: 6),
                                                   Expanded(
@@ -939,10 +947,16 @@ class _VyapariRegisterScreenState extends State<VyapariRegisterScreen> {
                                                           : "Capture Your Location",
                                                       style: TextStyle(
                                                         fontSize: 16,
-                                                        fontWeight: FontWeight.bold,
-                                                        color: userLatitude != null
-                                                            ? Colors.green.shade700
-                                                            : Colors.orange.shade700,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        color:
+                                                            userLatitude != null
+                                                            ? Colors
+                                                                  .green
+                                                                  .shade700
+                                                            : Colors
+                                                                  .orange
+                                                                  .shade700,
                                                       ),
                                                     ),
                                                   ),
@@ -979,8 +993,9 @@ class _VyapariRegisterScreenState extends State<VyapariRegisterScreen> {
                                                 child: CircularProgressIndicator(
                                                   strokeWidth: 2,
                                                   valueColor:
-                                                      AlwaysStoppedAnimation<Color>(
-                                                          Colors.white),
+                                                      AlwaysStoppedAnimation<
+                                                        Color
+                                                      >(Colors.white),
                                                 ),
                                               )
                                             : Icon(
@@ -1013,7 +1028,9 @@ class _VyapariRegisterScreenState extends State<VyapariRegisterScreen> {
                                             vertical: 12,
                                           ),
                                           shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(12),
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
                                           ),
                                           elevation: 2,
                                         ),
@@ -1073,15 +1090,21 @@ class _VyapariRegisterScreenState extends State<VyapariRegisterScreen> {
                                 decoration: BoxDecoration(
                                   gradient: LinearGradient(
                                     colors: [
-                                      acceptedTerms ? Colors.green.shade50 : Colors.orange.shade50,
-                                      acceptedTerms ? Colors.green.shade100 : Colors.orange.shade100,
+                                      acceptedTerms
+                                          ? Colors.green.shade50
+                                          : Colors.orange.shade50,
+                                      acceptedTerms
+                                          ? Colors.green.shade100
+                                          : Colors.orange.shade100,
                                     ],
                                     begin: Alignment.topLeft,
                                     end: Alignment.bottomRight,
                                   ),
                                   borderRadius: BorderRadius.circular(16),
                                   border: Border.all(
-                                    color: acceptedTerms ? Colors.green.shade200 : Colors.orange.shade200,
+                                    color: acceptedTerms
+                                        ? Colors.green.shade200
+                                        : Colors.orange.shade200,
                                     width: 1.5,
                                   ),
                                 ),
@@ -1099,22 +1122,32 @@ class _VyapariRegisterScreenState extends State<VyapariRegisterScreen> {
                                             width: 24,
                                             height: 24,
                                             decoration: BoxDecoration(
-                                              color: acceptedTerms ? const Color(0xFF104f22) : Colors.white,
-                                              borderRadius: BorderRadius.circular(6),
+                                              color: acceptedTerms
+                                                  ? const Color(0xFF104f22)
+                                                  : Colors.white,
+                                              borderRadius:
+                                                  BorderRadius.circular(6),
                                               border: Border.all(
-                                                color: acceptedTerms ? const Color(0xFF104f22) : Colors.grey.shade400,
+                                                color: acceptedTerms
+                                                    ? const Color(0xFF104f22)
+                                                    : Colors.grey.shade400,
                                                 width: 2,
                                               ),
                                             ),
                                             child: acceptedTerms
-                                                ? const Icon(Icons.check, color: Colors.white, size: 16)
+                                                ? const Icon(
+                                                    Icons.check,
+                                                    color: Colors.white,
+                                                    size: 16,
+                                                  )
                                                 : null,
                                           ),
                                         ),
                                         const SizedBox(width: 12),
                                         Expanded(
                                           child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
                                             children: [
                                               Wrap(
                                                 children: [
@@ -1122,18 +1155,25 @@ class _VyapariRegisterScreenState extends State<VyapariRegisterScreen> {
                                                     "I agree to the ",
                                                     style: TextStyle(
                                                       fontSize: 14,
-                                                      color: Colors.grey.shade700,
+                                                      color:
+                                                          Colors.grey.shade700,
                                                     ),
                                                   ),
                                                   GestureDetector(
-                                                    onTap: _showTermsAndConditions,
+                                                    onTap:
+                                                        _showTermsAndConditions,
                                                     child: const Text(
                                                       "Terms & Conditions",
                                                       style: TextStyle(
                                                         fontSize: 14,
-                                                        color: Color(0xFF104f22),
-                                                        fontWeight: FontWeight.w600,
-                                                        decoration: TextDecoration.underline,
+                                                        color: Color(
+                                                          0xFF104f22,
+                                                        ),
+                                                        fontWeight:
+                                                            FontWeight.w600,
+                                                        decoration:
+                                                            TextDecoration
+                                                                .underline,
                                                       ),
                                                     ),
                                                   ),
@@ -1141,8 +1181,10 @@ class _VyapariRegisterScreenState extends State<VyapariRegisterScreen> {
                                                     " *",
                                                     style: TextStyle(
                                                       fontSize: 14,
-                                                      color: Colors.red.shade600,
-                                                      fontWeight: FontWeight.bold,
+                                                      color:
+                                                          Colors.red.shade600,
+                                                      fontWeight:
+                                                          FontWeight.bold,
                                                     ),
                                                   ),
                                                 ],
@@ -1186,7 +1228,9 @@ class _VyapariRegisterScreenState extends State<VyapariRegisterScreen> {
                                             vertical: 10,
                                           ),
                                           shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(10),
+                                            borderRadius: BorderRadius.circular(
+                                              10,
+                                            ),
                                           ),
                                           side: const BorderSide(
                                             color: Color(0xFF104f22),

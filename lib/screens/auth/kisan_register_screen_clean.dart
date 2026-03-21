@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:csc_picker_plus/csc_picker_plus.dart';
 import 'package:image_picker/image_picker.dart';
@@ -121,7 +120,8 @@ class _KisanRegisterScreenState extends State<KisanRegisterScreen> {
       String address = "Location captured";
       if (placemarks.isNotEmpty) {
         Placemark place = placemarks[0];
-        address = "${place.locality}, ${place.administrativeArea}, ${place.country}";
+        address =
+            "${place.locality}, ${place.administrativeArea}, ${place.country}";
       }
 
       setState(() {
@@ -304,14 +304,14 @@ class _KisanRegisterScreenState extends State<KisanRegisterScreen> {
         pincodeController.text.isEmpty ||
         pincodeController.text.length != 6 ||
         _profileImage == null) {
-      
       String errorMessage = "Please fill all fields correctly";
       if (_profileImage == null) {
         errorMessage = "Profile photo is mandatory. Please upload your photo.";
-      } else if (pincodeController.text.isEmpty || pincodeController.text.length != 6) {
+      } else if (pincodeController.text.isEmpty ||
+          pincodeController.text.length != 6) {
         errorMessage = "Please enter a valid 6-digit pincode.";
       }
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(errorMessage),
@@ -335,10 +335,12 @@ class _KisanRegisterScreenState extends State<KisanRegisterScreen> {
       await storageRef.putFile(_profileImage!);
       imageUrl = await storageRef.getDownloadURL();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text("Image upload failed: $e"),
-        backgroundColor: Colors.red,
-      ));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Image upload failed: $e"),
+          backgroundColor: Colors.red,
+        ),
+      );
       setState(() => isLoading = false);
       return;
     }
@@ -462,7 +464,7 @@ class _KisanRegisterScreenState extends State<KisanRegisterScreen> {
                                 ],
                               ),
                               const SizedBox(height: 20),
-                              
+
                               // Profile Photo (Mandatory)
                               Container(
                                 padding: const EdgeInsets.all(12),
@@ -496,7 +498,8 @@ class _KisanRegisterScreenState extends State<KisanRegisterScreen> {
                                     const SizedBox(width: 15),
                                     Expanded(
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           Row(
                                             children: [
@@ -553,13 +556,17 @@ class _KisanRegisterScreenState extends State<KisanRegisterScreen> {
                                         ),
                                       ),
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor: const Color(0xFF104f22),
+                                        backgroundColor: const Color(
+                                          0xFF104f22,
+                                        ),
                                         padding: const EdgeInsets.symmetric(
                                           horizontal: 12,
                                           vertical: 8,
                                         ),
                                         shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(8),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
                                         ),
                                       ),
                                     ),
@@ -569,13 +576,27 @@ class _KisanRegisterScreenState extends State<KisanRegisterScreen> {
 
                               const SizedBox(height: 20),
 
-                              _buildTextField("Name *", controller: nameController),
+                              _buildTextField(
+                                "Name *",
+                                controller: nameController,
+                              ),
                               const SizedBox(height: 15),
-                              _buildTextField("Mobile Number *", isMobile: true, controller: phoneController),
+                              _buildTextField(
+                                "Mobile Number *",
+                                isMobile: true,
+                                controller: phoneController,
+                              ),
                               const SizedBox(height: 15),
-                              _buildTextField("Village *", controller: villageController),
+                              _buildTextField(
+                                "Village *",
+                                controller: villageController,
+                              ),
                               const SizedBox(height: 15),
-                              _buildTextField("Pincode *", isPincode: true, controller: pincodeController),
+                              _buildTextField(
+                                "Pincode *",
+                                isPincode: true,
+                                controller: pincodeController,
+                              ),
                               const SizedBox(height: 15),
 
                               CSCPickerPlus(
@@ -635,7 +656,8 @@ class _KisanRegisterScreenState extends State<KisanRegisterScreen> {
                                     const SizedBox(width: 8),
                                     Expanded(
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           Text(
                                             userLatitude != null
@@ -675,7 +697,10 @@ class _KisanRegisterScreenState extends State<KisanRegisterScreen> {
                                             height: 20,
                                             child: CircularProgressIndicator(
                                               strokeWidth: 2,
-                                              valueColor: AlwaysStoppedAnimation<Color>(Colors.green),
+                                              valueColor:
+                                                  AlwaysStoppedAnimation<Color>(
+                                                    Colors.green,
+                                                  ),
                                             ),
                                           )
                                         : IconButton(
@@ -702,13 +727,17 @@ class _KisanRegisterScreenState extends State<KisanRegisterScreen> {
                                   onPressed: isLoading ? null : sendToOtpScreen,
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: const Color(0xFF104f22),
-                                    padding: const EdgeInsets.symmetric(vertical: 14),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 14,
+                                    ),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                   ),
                                   child: isLoading
-                                      ? const CircularProgressIndicator(color: Colors.white)
+                                      ? const CircularProgressIndicator(
+                                          color: Colors.white,
+                                        )
                                       : const Text(
                                           "Register",
                                           style: TextStyle(
@@ -793,15 +822,15 @@ class _KisanRegisterScreenState extends State<KisanRegisterScreen> {
                   maxLength: isMobile
                       ? 10
                       : isPincode
-                          ? 6
-                          : null,
+                      ? 6
+                      : null,
                   decoration: InputDecoration(
                     counterText: "",
                     hintText: isMobile
                         ? "Enter mobile number"
                         : isPincode
-                            ? "Enter 6-digit pincode"
-                            : "Enter ${label.replaceAll(' *', '')}",
+                        ? "Enter 6-digit pincode"
+                        : "Enter ${label.replaceAll(' *', '')}",
                     hintStyle: const TextStyle(
                       color: Colors.black38,
                       fontSize: 14,

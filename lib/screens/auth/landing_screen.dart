@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:poket_mandi/screens/admin/admin_dashboard_screen.dart';
 import 'package:poket_mandi/screens/auth/login_screen.dart';
 import 'package:poket_mandi/screens/auth/register_screen.dart';
 import 'package:poket_mandi/screens/auth/guest_selection_screen.dart';
@@ -37,8 +36,9 @@ class LandingScreen extends StatelessWidget {
             child: SingleChildScrollView(
               child: ConstrainedBox(
                 constraints: BoxConstraints(
-                  minHeight: MediaQuery.of(context).size.height - 
-                      MediaQuery.of(context).padding.top - 
+                  minHeight:
+                      MediaQuery.of(context).size.height -
+                      MediaQuery.of(context).padding.top -
                       MediaQuery.of(context).padding.bottom,
                 ),
                 child: Column(
@@ -248,7 +248,8 @@ class LandingScreen extends StatelessWidget {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (_) => const GuestSelectionScreen(),
+                                    builder: (_) =>
+                                        const GuestSelectionScreen(),
                                   ),
                                 );
                               },
@@ -372,17 +373,11 @@ class LandingScreen extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(16),
           child: Container(
-            padding: const EdgeInsets.symmetric(
-              vertical: 20,
-              horizontal: 16,
-            ),
+            padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
             decoration: BoxDecoration(
               gradient: isPrimary
                   ? const LinearGradient(
-                      colors: [
-                        Color(0xFF104f22),
-                        Color(0xFF0d3f1c),
-                      ],
+                      colors: [Color(0xFF104f22), Color(0xFF0d3f1c)],
                     )
                   : LinearGradient(
                       colors: [

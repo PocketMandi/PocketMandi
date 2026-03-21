@@ -5,7 +5,6 @@ import 'package:poket_mandi/screens/kisan/kisan_dashboard_screen.dart';
 import 'package:poket_mandi/screens/vyapari/vyapari_dashboard_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
-import 'package:poket_mandi/utils/add_crops_to_firebase.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

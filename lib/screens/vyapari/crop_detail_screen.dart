@@ -1,12 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:video_player/video_player.dart';
-import 'package:flutter_image_compress/flutter_image_compress.dart';
-import 'dart:io';
-import 'package:path_provider/path_provider.dart';
 
 class CropDetailScreen extends StatefulWidget {
   final String cropName;
@@ -26,25 +20,119 @@ class _CropDetailScreenState extends State<CropDetailScreen> {
   Set<String> selectedQualities = {};
   String? selectedUnit = "Kg";
   String? selectedLocation;
+  String? selectedMandi;
   DateTime? selectedDeliveryDate;
   bool isLoading = false;
-  File? selectedImage;
-  File? selectedVideo;
-  VideoPlayerController? videoController;
+  String savedAddress = "";
+  bool showAddNewAddress = false;
+  bool showAddNewMandi = false;
+  Map<String, dynamic> userProfile = {};
 
   final TextEditingController quantityController = TextEditingController();
   final TextEditingController priceController = TextEditingController();
-  final TextEditingController specialInstructionsController = TextEditingController();
-  final ImagePicker _picker = ImagePicker();
+  final TextEditingController specialInstructionsController =
+      TextEditingController();
+  final TextEditingController newAddressController = TextEditingController();
+  final TextEditingController newMandiController = TextEditingController();
 
-  final List<String> locations = ["Rajpur"];
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedAddress();
+  }
+
+  Future<void> _loadSavedAddress() async {
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('user_id');
+
+    if (userId != null) {
+      try {
+        final snapshot = await FirebaseDatabase.instance
+            .ref('users/$userId')
+            .once();
+
+        if (snapshot.snapshot.value != null) {
+          final data = snapshot.snapshot.value as Map;
+          setState(() {
+            userProfile = Map<String, dynamic>.from(data);
+
+            // Build complete address from all available fields
+            final village = data['village']?.toString().trim() ?? '';
+            final state = data['state']?.toString().trim() ?? '';
+            final country = data['country']?.toString().trim() ?? '';
+            final address = data['address']?.toString().trim() ?? '';
+            final pincode = data['pincode']?.toString().trim() ?? '';
+            final mandiName = data['mandiName']?.toString().trim() ?? '';
+
+            print('Firebase data: $data'); // Debug log
+
+            // Always build complete address with all components
+            List<String> addressParts = [];
+
+            // Add mandi name if available (for vyapari)
+            if (mandiName.isNotEmpty) {
+              addressParts.add(mandiName);
+            }
+
+            // Add village/town
+            if (village.isNotEmpty) {
+              addressParts.add(village);
+            }
+
+            // Add state
+            if (state.isNotEmpty) {
+              addressParts.add(state);
+            }
+
+            // Add country
+            if (country.isNotEmpty) {
+              addressParts.add(country);
+            }
+
+            // Always add pincode at the end if available
+            if (pincode.isNotEmpty) {
+              addressParts.add('PIN: $pincode');
+            }
+
+            // If we have components, use them; otherwise fall back to address field
+            if (addressParts.isNotEmpty) {
+              savedAddress = addressParts.join(', ');
+            } else if (address.isNotEmpty) {
+              // If no components but address field exists, add pincode to it
+              savedAddress = pincode.isNotEmpty
+                  ? '$address, PIN: $pincode'
+                  : address;
+            } else {
+              savedAddress = "No address saved";
+            }
+
+            print('Complete address built: $savedAddress'); // Debug log
+
+            // Set default selection to saved address
+            selectedLocation = savedAddress != "No address saved"
+                ? "saved_address"
+                : null;
+            
+            // Set default mandi selection
+            selectedMandi = mandiName.isNotEmpty ? "saved_mandi" : null;
+          });
+        }
+      } catch (e) {
+        print('Error loading user profile: $e');
+        setState(() {
+          savedAddress = "Error loading address";
+        });
+      }
+    }
+  }
 
   @override
   void dispose() {
-    videoController?.dispose();
     quantityController.dispose();
     priceController.dispose();
     specialInstructionsController.dispose();
+    newAddressController.dispose();
+    newMandiController.dispose();
     super.dispose();
   }
 
@@ -221,32 +309,171 @@ class _CropDetailScreenState extends State<CropDetailScreen> {
 
                         const SizedBox(height: 20),
 
-                        _buildLabel("Location *"),
+                        _buildLabel("Select Mandi *"),
+                        const SizedBox(height: 8),
+
+                        /// Mandi Dropdown
                         DropdownButtonFormField<String>(
-                          value: selectedLocation,
+                          isExpanded: true,
+                          value: selectedMandi,
                           decoration: InputDecoration(
-                            hintText: "Select delivery location",
                             filled: true,
                             fillColor: const Color(0xFFF3F3F3),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide: BorderSide.none,
                             ),
+                            prefixIcon: const Icon(
+                              Icons.store,
+                              color: Color(0xFF104f22),
+                            ),
                           ),
-                          items: locations
-                              .map(
-                                (location) => DropdownMenuItem(
-                                  value: location,
-                                  child: Text(location),
+                          hint: const Text("Select mandi"),
+                          items: [
+                            if (userProfile['mandiName'] != null && userProfile['mandiName'].toString().trim().isNotEmpty)
+                              DropdownMenuItem(
+                                value: "saved_mandi",
+                                child: Text(
+                                  userProfile['mandiName'].toString(),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
-                              )
-                              .toList(),
+                              ),
+                            const DropdownMenuItem(
+                              value: "add_new_mandi",
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.add_business,
+                                    color: Color(0xFF104f22),
+                                    size: 20,
+                                  ),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    "Add New Mandi",
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF104f22),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                           onChanged: (value) {
                             setState(() {
-                              selectedLocation = value;
+                              selectedMandi = value;
+                              showAddNewMandi = value == "add_new_mandi";
                             });
                           },
                         ),
+
+                        /// New Mandi Input Field
+                        if (showAddNewMandi) ...[
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: newMandiController,
+                            decoration: InputDecoration(
+                              hintText: "Enter mandi name...",
+                              filled: true,
+                              fillColor: const Color(0xFFF3F3F3),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide.none,
+                              ),
+                              prefixIcon: const Icon(
+                                Icons.business_outlined,
+                                color: Color(0xFF104f22),
+                              ),
+                            ),
+                          ),
+                        ],
+
+                        const SizedBox(height: 20),
+
+                        _buildLabel("Delivery Location *"),
+                        const SizedBox(height: 8),
+
+                        /// Address Dropdown
+                        DropdownButtonFormField<String>(
+                          isExpanded: true,
+                          value: selectedLocation,
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: const Color(0xFFF3F3F3),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
+                            ),
+                            prefixIcon: const Icon(
+                              Icons.location_on,
+                              color: Color(0xFF104f22),
+                            ),
+                          ),
+                          hint: const Text("Select delivery address"),
+                          items: [
+                            if (savedAddress != "No address saved" &&
+                                savedAddress != "Error loading address")
+                              DropdownMenuItem(
+                                value: "saved_address",
+                                child: Text(
+                                  "$savedAddress",
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            const DropdownMenuItem(
+                              value: "add_new",
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.add_location_alt,
+                                    color: Color(0xFF104f22),
+                                    size: 20,
+                                  ),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    "Add New Address",
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF104f22),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                          onChanged: (value) {
+                            setState(() {
+                              selectedLocation = value;
+                              showAddNewAddress = value == "add_new";
+                            });
+                          },
+                        ),
+
+                        /// New Address Input Field
+                        if (showAddNewAddress) ...[
+                          const SizedBox(height: 12),
+                          TextField(
+                            controller: newAddressController,
+                            maxLines: 3,
+                            decoration: InputDecoration(
+                              hintText: "Enter your new delivery address...",
+                              filled: true,
+                              fillColor: const Color(0xFFF3F3F3),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide.none,
+                              ),
+                              prefixIcon: const Icon(
+                                Icons.location_on_outlined,
+                                color: Color(0xFF104f22),
+                              ),
+                            ),
+                          ),
+                        ],
 
                         const SizedBox(height: 20),
 
@@ -314,28 +541,6 @@ class _CropDetailScreenState extends State<CropDetailScreen> {
                           ),
                         ),
 
-                        const SizedBox(height: 20),
-
-                        _buildUploadButton(
-                          selectedImage != null
-                              ? "✓ New Photo Selected"
-                              : "Upload / Capture Photo",
-                          Icons.camera_alt,
-                          onPressed: _showImageSourceDialog,
-                          hasFile: selectedImage != null,
-                        ),
-
-                        const SizedBox(height: 12),
-
-                        _buildUploadButton(
-                          selectedVideo != null
-                              ? "✓ New Video Selected"
-                              : "Upload / Capture Video (Max 1 min)",
-                          Icons.videocam,
-                          onPressed: _showVideoSourceDialog,
-                          hasFile: selectedVideo != null,
-                        ),
-
                         const SizedBox(height: 18),
 
                         _buildLabel("Expected Price (₹/KG)"),
@@ -360,7 +565,8 @@ class _CropDetailScreenState extends State<CropDetailScreen> {
                           controller: specialInstructionsController,
                           maxLines: 3,
                           decoration: InputDecoration(
-                            hintText: "Any special handling, packaging, or delivery instructions...",
+                            hintText:
+                                "Any special handling, packaging, or delivery instructions...",
                             filled: true,
                             fillColor: const Color(0xFFF3F3F3),
                             border: OutlineInputBorder(
@@ -451,205 +657,13 @@ class _CropDetailScreenState extends State<CropDetailScreen> {
     );
   }
 
-  Widget _buildUploadButton(
-    String text,
-    IconData icon, {
-    required VoidCallback onPressed,
-    bool hasFile = false,
-  }) {
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.symmetric(vertical: 4),
-      child: OutlinedButton(
-        onPressed: onPressed,
-        style: OutlinedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-          side: BorderSide(
-            color: hasFile ? Colors.green : const Color(0xFF104f22),
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              color: hasFile ? Colors.green : const Color(0xFF104f22),
-              size: 20,
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                text,
-                style: TextStyle(
-                  color: hasFile ? Colors.green : const Color(0xFF104f22),
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-            if (hasFile)
-              const Icon(Icons.check_circle, color: Colors.green, size: 20),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showImageSourceDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Choose Image Source"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.camera_alt),
-              title: const Text("Camera"),
-              onTap: () {
-                Navigator.pop(context);
-                _pickImage(ImageSource.camera);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library),
-              title: const Text("Gallery"),
-              onTap: () {
-                Navigator.pop(context);
-                _pickImage(ImageSource.gallery);
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showVideoSourceDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Choose Video Source"),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.videocam),
-              title: const Text("Camera"),
-              onTap: () {
-                Navigator.pop(context);
-                _pickVideo(ImageSource.camera);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.video_library),
-              title: const Text("Gallery"),
-              onTap: () {
-                Navigator.pop(context);
-                _pickVideo(ImageSource.gallery);
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _pickImage(ImageSource source) async {
-    try {
-      final pickedFile = await _picker.pickImage(
-        source: source,
-        imageQuality: 85, // Reduce quality for faster upload
-      );
-
-      if (pickedFile != null) {
-        setState(() {
-          isLoading = true;
-        });
-
-        // Compress image for faster upload
-        final compressedFile = await _compressImage(File(pickedFile.path));
-
-        setState(() {
-          selectedImage = compressedFile;
-          isLoading = false;
-        });
-      }
-    } catch (e) {
-      print('Error picking image: $e');
-      if (mounted) {
-        setState(() {
-          isLoading = false;
-        });
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Failed to pick image')));
-      }
-    }
-  }
-
-  Future<File> _compressImage(File file) async {
-    try {
-      final dir = await getTemporaryDirectory();
-      final targetPath =
-          '${dir.path}/${DateTime.now().millisecondsSinceEpoch}_compressed.jpg';
-
-      final result = await FlutterImageCompress.compressAndGetFile(
-        file.absolute.path,
-        targetPath,
-        quality: 70, // 70% quality - good balance
-        minWidth: 1024, // Max width 1024px
-        minHeight: 1024, // Max height 1024px
-      );
-
-      return result != null ? File(result.path) : file;
-    } catch (e) {
-      print('Compression error: $e');
-      return file; // Return original if compression fails
-    }
-  }
-
-  Future<void> _pickVideo(ImageSource source) async {
-    final pickedFile = await _picker.pickVideo(
-      source: source,
-      maxDuration: const Duration(minutes: 1),
-    );
-
-    if (pickedFile != null) {
-      final file = File(pickedFile.path);
-
-      final controller = VideoPlayerController.file(file);
-      await controller.initialize();
-
-      final duration = controller.value.duration;
-
-      if (duration.inSeconds > 60) {
-        controller.dispose();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Video must be 1 minute or less")),
-          );
-        }
-        return;
-      }
-
-      setState(() {
-        selectedVideo = file;
-        videoController?.dispose();
-        videoController = controller;
-      });
-    }
-  }
-
   bool _validateMinimumQuantity() {
     final quantityText = quantityController.text.trim();
     if (quantityText.isEmpty) return false;
-    
+
     final quantity = double.tryParse(quantityText) ?? 0;
     final unit = selectedUnit ?? "Kg";
-    
+
     // Convert to kg for validation
     double quantityInKg = quantity;
     switch (unit) {
@@ -664,7 +678,7 @@ class _CropDetailScreenState extends State<CropDetailScreen> {
         quantityInKg = quantity;
         break;
     }
-    
+
     return quantityInKg >= 1000; // Minimum 1000 kg required
   }
 
@@ -743,15 +757,27 @@ class _CropDetailScreenState extends State<CropDetailScreen> {
                     Row(
                       children: [
                         Expanded(
-                          child: _buildQuantityOption("1000", "Kg", Icons.monitor_weight),
+                          child: _buildQuantityOption(
+                            "1000",
+                            "Kg",
+                            Icons.monitor_weight,
+                          ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: _buildQuantityOption("10", "Quintal", Icons.inventory_2),
+                          child: _buildQuantityOption(
+                            "10",
+                            "Quintal",
+                            Icons.inventory_2,
+                          ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: _buildQuantityOption("1", "Ton", Icons.local_shipping),
+                          child: _buildQuantityOption(
+                            "1",
+                            "Ton",
+                            Icons.local_shipping,
+                          ),
                         ),
                       ],
                     ),
@@ -769,7 +795,10 @@ class _CropDetailScreenState extends State<CropDetailScreen> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        side: BorderSide(color: Colors.grey.shade400, width: 1.5),
+                        side: BorderSide(
+                          color: Colors.grey.shade400,
+                          width: 1.5,
+                        ),
                       ),
                       child: Text(
                         "Cancel",
@@ -834,10 +863,7 @@ class _CropDetailScreenState extends State<CropDetailScreen> {
           ),
           Text(
             unit,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey.shade600,
-            ),
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
           ),
         ],
       ),
@@ -870,7 +896,30 @@ class _CropDetailScreenState extends State<CropDetailScreen> {
 
     if (selectedLocation == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a delivery location')),
+        const SnackBar(content: Text('Please select a delivery address')),
+      );
+      return;
+    }
+
+    if (selectedMandi == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a mandi')),
+      );
+      return;
+    }
+
+    if (selectedLocation == "add_new" &&
+        newAddressController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter your new delivery address')),
+      );
+      return;
+    }
+
+    if (selectedMandi == "add_new_mandi" &&
+        newMandiController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter the new mandi name')),
       );
       return;
     }
@@ -898,53 +947,18 @@ class _CropDetailScreenState extends State<CropDetailScreen> {
 
       final timestamp = DateTime.now().millisecondsSinceEpoch;
 
-      UploadTask? imageTask;
-      UploadTask? videoTask;
-
-      Reference? imageRef;
-      Reference? videoRef;
-
-      /// IMAGE UPLOAD
-      if (selectedImage != null) {
-        imageRef = FirebaseStorage.instance
-            .ref()
-            .child('crop_images')
-            .child('${userId}_$timestamp.jpg');
-
-        imageTask = imageRef.putFile(
-          selectedImage!,
-          SettableMetadata(contentType: 'image/jpeg'),
-        );
+      // Determine delivery address
+      String deliveryAddress = savedAddress;
+      if (selectedLocation == "add_new" &&
+          newAddressController.text.trim().isNotEmpty) {
+        deliveryAddress = newAddressController.text.trim();
       }
 
-      /// VIDEO UPLOAD
-      if (selectedVideo != null) {
-        videoRef = FirebaseStorage.instance
-            .ref()
-            .child('crop_videos')
-            .child('${userId}_$timestamp.mp4');
-
-        videoTask = videoRef.putFile(
-          selectedVideo!,
-          SettableMetadata(contentType: 'video/mp4'),
-        );
-      }
-
-      /// RUN UPLOADS IN PARALLEL
-      await Future.wait([
-        if (imageTask != null) imageTask,
-        if (videoTask != null) videoTask,
-      ]);
-
-      String? imageUrl;
-      String? videoUrl;
-
-      if (imageRef != null) {
-        imageUrl = await imageRef.getDownloadURL();
-      }
-
-      if (videoRef != null) {
-        videoUrl = await videoRef.getDownloadURL();
+      // Determine mandi name
+      String mandiName = userProfile['mandiName']?.toString() ?? '';
+      if (selectedMandi == "add_new_mandi" &&
+          newMandiController.text.trim().isNotEmpty) {
+        mandiName = newMandiController.text.trim();
       }
 
       /// SAVE TO GLOBAL CROP REQUESTS COLLECTION (for traders)
@@ -963,16 +977,16 @@ class _CropDetailScreenState extends State<CropDetailScreen> {
         "unit": selectedUnit,
         "pricePerUnit": double.parse(priceController.text.trim()),
         "qualityGrades": selectedQualities.toList(),
-        "imageUrl": imageUrl ?? widget.imagePath,
-        "videoUrl": videoUrl,
+        "imageUrl": widget.imagePath,
         "location": {
           "state": userState,
           "village": village,
-          "deliveryLocation": selectedLocation,
+          "deliveryAddress": deliveryAddress,
+          "mandiName": mandiName,
         },
         "requiredDeliveryDate": selectedDeliveryDate!.millisecondsSinceEpoch,
-        "specialInstructions": specialInstructionsController.text.trim().isEmpty 
-            ? null 
+        "specialInstructions": specialInstructionsController.text.trim().isEmpty
+            ? null
             : specialInstructionsController.text.trim(),
         "status": "pending",
         "createdAt": ServerValue.timestamp,
@@ -982,7 +996,9 @@ class _CropDetailScreenState extends State<CropDetailScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("Crop request submitted successfully! Status: Pending"),
+            content: Text(
+              "Crop request submitted successfully! Status: Pending",
+            ),
             backgroundColor: Colors.green,
           ),
         );

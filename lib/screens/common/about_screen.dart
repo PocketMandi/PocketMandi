@@ -104,8 +104,8 @@ class AboutScreen extends StatelessWidget {
                     icon: Icons.rocket_launch_outlined,
                     title: "Our Mission",
                     content: [
-                      "Poketmandi is a digital marketplace designed to connect farmers, traders, and buyers in a simple and transparent way. Our platform helps farmers list their agricultural produce and enables traders and buyers to discover and source products directly from reliable suppliers.",
-                      "By bringing mandi-style trading into a mobile platform, Poketmandi aims to make agricultural commerce more accessible, efficient, and transparent.",
+                      "PoketMandi is a digital marketplace designed to connect farmers, traders, and buyers in a simple and transparent way. Our platform helps farmers list their agricultural produce and enables traders and buyers to discover and source products directly from reliable suppliers.",
+                      "By bringing mandi-style trading into a mobile platform, PoketMandi aims to make agricultural commerce more accessible, efficient, and transparent.",
                     ],
                   ),
 
@@ -483,7 +483,7 @@ class AboutScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  "Poketmandi was founded by Ram Prajapati, Vivek, and Nishikant, who share a vision of using technology to modernize agricultural trade and strengthen the connection between farmers and markets.",
+                  "PoketMandi was founded by Ram Prajapati, Vivek, and Nishikant, who share a vision of using technology to modernize agricultural trade and strengthen the connection between farmers and markets.",
                   style: TextStyle(
                     fontSize: 16,
                     color: Colors.black87,

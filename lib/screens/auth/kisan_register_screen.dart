@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:csc_picker_plus/csc_picker_plus.dart';
 import 'package:image_picker/image_picker.dart';
@@ -332,7 +331,11 @@ class _KisanRegisterScreenState extends State<KisanRegisterScreen> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.article_outlined, color: Colors.white, size: 24),
+                    const Icon(
+                      Icons.article_outlined,
+                      color: Colors.white,
+                      size: 24,
+                    ),
                     const SizedBox(width: 12),
                     const Expanded(
                       child: Text(
@@ -1263,15 +1266,21 @@ class _KisanRegisterScreenState extends State<KisanRegisterScreen> {
                                       decoration: BoxDecoration(
                                         gradient: LinearGradient(
                                           colors: [
-                                            acceptedTerms ? Colors.green.shade50 : Colors.orange.shade50,
-                                            acceptedTerms ? Colors.green.shade100 : Colors.orange.shade100,
+                                            acceptedTerms
+                                                ? Colors.green.shade50
+                                                : Colors.orange.shade50,
+                                            acceptedTerms
+                                                ? Colors.green.shade100
+                                                : Colors.orange.shade100,
                                           ],
                                           begin: Alignment.topLeft,
                                           end: Alignment.bottomRight,
                                         ),
                                         borderRadius: BorderRadius.circular(16),
                                         border: Border.all(
-                                          color: acceptedTerms ? Colors.green.shade200 : Colors.orange.shade200,
+                                          color: acceptedTerms
+                                              ? Colors.green.shade200
+                                              : Colors.orange.shade200,
                                           width: 1.5,
                                         ),
                                       ),
@@ -1282,29 +1291,48 @@ class _KisanRegisterScreenState extends State<KisanRegisterScreen> {
                                               GestureDetector(
                                                 onTap: () {
                                                   setState(() {
-                                                    acceptedTerms = !acceptedTerms;
+                                                    acceptedTerms =
+                                                        !acceptedTerms;
                                                   });
                                                 },
                                                 child: Container(
                                                   width: 24,
                                                   height: 24,
                                                   decoration: BoxDecoration(
-                                                    color: acceptedTerms ? const Color(0xFF104f22) : Colors.white,
-                                                    borderRadius: BorderRadius.circular(6),
+                                                    color: acceptedTerms
+                                                        ? const Color(
+                                                            0xFF104f22,
+                                                          )
+                                                        : Colors.white,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          6,
+                                                        ),
                                                     border: Border.all(
-                                                      color: acceptedTerms ? const Color(0xFF104f22) : Colors.grey.shade400,
+                                                      color: acceptedTerms
+                                                          ? const Color(
+                                                              0xFF104f22,
+                                                            )
+                                                          : Colors
+                                                                .grey
+                                                                .shade400,
                                                       width: 2,
                                                     ),
                                                   ),
                                                   child: acceptedTerms
-                                                      ? const Icon(Icons.check, color: Colors.white, size: 16)
+                                                      ? const Icon(
+                                                          Icons.check,
+                                                          color: Colors.white,
+                                                          size: 16,
+                                                        )
                                                       : null,
                                                 ),
                                               ),
                                               const SizedBox(width: 12),
                                               Expanded(
                                                 child: Column(
-                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
                                                   children: [
                                                     Wrap(
                                                       children: [
@@ -1312,18 +1340,27 @@ class _KisanRegisterScreenState extends State<KisanRegisterScreen> {
                                                           "I agree to the ",
                                                           style: TextStyle(
                                                             fontSize: 14,
-                                                            color: Colors.grey.shade700,
+                                                            color: Colors
+                                                                .grey
+                                                                .shade700,
                                                           ),
                                                         ),
                                                         GestureDetector(
-                                                          onTap: _showTermsAndConditions,
+                                                          onTap:
+                                                              _showTermsAndConditions,
                                                           child: const Text(
                                                             "Terms & Conditions",
                                                             style: TextStyle(
                                                               fontSize: 14,
-                                                              color: Color(0xFF104f22),
-                                                              fontWeight: FontWeight.w600,
-                                                              decoration: TextDecoration.underline,
+                                                              color: Color(
+                                                                0xFF104f22,
+                                                              ),
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w600,
+                                                              decoration:
+                                                                  TextDecoration
+                                                                      .underline,
                                                             ),
                                                           ),
                                                         ),
@@ -1331,8 +1368,11 @@ class _KisanRegisterScreenState extends State<KisanRegisterScreen> {
                                                           " *",
                                                           style: TextStyle(
                                                             fontSize: 14,
-                                                            color: Colors.red.shade600,
-                                                            fontWeight: FontWeight.bold,
+                                                            color: Colors
+                                                                .red
+                                                                .shade600,
+                                                            fontWeight:
+                                                                FontWeight.bold,
                                                           ),
                                                         ),
                                                       ],
@@ -1344,7 +1384,9 @@ class _KisanRegisterScreenState extends State<KisanRegisterScreen> {
                                                           : "Please read and accept to continue",
                                                       style: TextStyle(
                                                         fontSize: 12,
-                                                        color: Colors.grey.shade600,
+                                                        color: Colors
+                                                            .grey
+                                                            .shade600,
                                                       ),
                                                     ),
                                                   ],
@@ -1356,7 +1398,8 @@ class _KisanRegisterScreenState extends State<KisanRegisterScreen> {
                                           SizedBox(
                                             width: double.infinity,
                                             child: OutlinedButton.icon(
-                                              onPressed: _showTermsAndConditions,
+                                              onPressed:
+                                                  _showTermsAndConditions,
                                               icon: const Icon(
                                                 Icons.article_outlined,
                                                 size: 16,
@@ -1371,12 +1414,14 @@ class _KisanRegisterScreenState extends State<KisanRegisterScreen> {
                                                 ),
                                               ),
                                               style: OutlinedButton.styleFrom(
-                                                padding: const EdgeInsets.symmetric(
-                                                  horizontal: 16,
-                                                  vertical: 10,
-                                                ),
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 16,
+                                                      vertical: 10,
+                                                    ),
                                                 shape: RoundedRectangleBorder(
-                                                  borderRadius: BorderRadius.circular(10),
+                                                  borderRadius:
+                                                      BorderRadius.circular(10),
                                                 ),
                                                 side: const BorderSide(
                                                   color: Color(0xFF104f22),
