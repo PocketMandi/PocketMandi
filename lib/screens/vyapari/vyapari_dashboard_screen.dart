@@ -1331,9 +1331,9 @@ class _MyOrdersVyapariWidgetState extends State<MyOrdersVyapariWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-      body: Column(
+    return Container(
+      color: const Color(0xFFF5F5F5),
+      child: Column(
         children: [
           _buildCustomAppBar(),
           Expanded(
@@ -1372,22 +1372,37 @@ class _MyOrdersVyapariWidgetState extends State<MyOrdersVyapariWidget> {
       ),
       child: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
             children: [
-              const Text(
-                "My Orders",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
+              const Icon(
+                Icons.shopping_bag,
+                color: Colors.white,
+                size: 24,
               ),
-              const SizedBox(height: 4),
-              const Text(
-                "Manage your crop requests",
-                style: TextStyle(color: Colors.white70, fontSize: 14),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      "My Orders",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      "Track your crop requests",
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -1458,15 +1473,15 @@ class _MyOrdersVyapariWidgetState extends State<MyOrdersVyapariWidget> {
     Color color,
   ) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -1474,21 +1489,29 @@ class _MyOrdersVyapariWidgetState extends State<MyOrdersVyapariWidget> {
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, color: color, size: 20),
-          const SizedBox(height: 1),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: color, size: 24),
+          ),
+          const SizedBox(height: 8),
           Text(
             value,
             style: TextStyle(
-              fontSize: 20,
+              fontSize: 24,
               fontWeight: FontWeight.bold,
               color: color,
             ),
             overflow: TextOverflow.ellipsis,
           ),
+          const SizedBox(height: 4),
           Text(
             title,
             style: const TextStyle(
-              fontSize: 14,
+              fontSize: 12,
               color: Colors.grey,
               fontWeight: FontWeight.w500,
             ),
@@ -1566,32 +1589,39 @@ class _MyOrdersVyapariWidgetState extends State<MyOrdersVyapariWidget> {
   Widget _buildFilterChips() {
     final filters = ["All", "Pending", "Confirmed", "Delivered"];
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      height: 60,
-      child: ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
-        itemCount: filters.length,
-        itemBuilder: (context, index) {
-          final filter = filters[index];
-          final isSelected = selectedFilter == filter;
-          return Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: FilterChip(
-              label: Text(filter),
-              selected: isSelected,
-              onSelected: (selected) => _applyFilter(filter),
-              selectedColor: const Color(0xFF104f22),
-              backgroundColor: Colors.white,
-              labelStyle: TextStyle(
-                color: isSelected ? Colors.white : Colors.black87,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+        child: Row(
+          children: filters.map((filter) {
+            final isSelected = selectedFilter == filter;
+            return Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: FilterChip(
+                label: Text(filter),
+                selected: isSelected,
+                onSelected: (selected) => _applyFilter(filter),
+                selectedColor: const Color(0xFF104f22),
+                backgroundColor: Colors.white,
+                labelStyle: TextStyle(
+                  color: isSelected ? Colors.white : Colors.black87,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                  fontSize: 14,
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                elevation: isSelected ? 4 : 1,
+                shadowColor: const Color(0xFF104f22).withOpacity(0.3),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  side: BorderSide(
+                    color: isSelected ? const Color(0xFF104f22) : Colors.grey.shade300,
+                    width: isSelected ? 0 : 1,
+                  ),
+                ),
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              elevation: isSelected ? 4 : 0,
-              shadowColor: const Color(0xFF104f22).withOpacity(0.3),
-            ),
-          );
-        },
+            );
+          }).toList(),
+        ),
       ),
     );
   }
