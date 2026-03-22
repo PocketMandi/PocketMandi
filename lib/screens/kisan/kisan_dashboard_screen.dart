@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:poket_mandi/main.dart';
 import 'package:poket_mandi/screens/kisan/add_new_crop_screen.dart';
 import 'package:poket_mandi/screens/kisan/selected_crop_screen.dart';
+import 'package:poket_mandi/screens/kisan/services_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 class KisanDashboardScreen extends StatefulWidget {
@@ -259,6 +260,16 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
       _showGuestRestrictionDialog();
       return;
     }
+    
+    // Handle Services navigation separately
+    if (index == 4) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const ServicesScreen()),
+      );
+      return;
+    }
+    
     setState(() {
       _selectedIndex = index;
     });
@@ -294,7 +305,7 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
               children: [
                 _buildNavItem(Icons.home, "Home", 0),
                 _buildNavItem(Icons.shopping_bag, "Orders", 1),
-                _buildAddCropNavItem(),
+                _buildNavItem(Icons.miscellaneous_services, "Services", 4),
                 _buildNavItem(Icons.history, "History", 2),
                 _buildNavItem(Icons.person, "Profile", 3),
               ],
@@ -305,55 +316,7 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
     );
   }
 
-  Widget _buildAddCropNavItem() {
-    return Expanded(
-      child: InkWell(
-        onTap: isGuest
-            ? _showGuestRestrictionDialog
-            : () async {
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const AddNewCropScreen()),
-                );
-                _loadCrops();
-              },
-        borderRadius: BorderRadius.circular(25),
-        child: Container(
-          height: 50,
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF669123), Color(0xFF104f22)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(25),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF669123).withOpacity(0.3),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: const Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.add_circle, color: Colors.white, size: 24),
-              SizedBox(height: 2),
-              Text(
-                "Add Crop",
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+
 
   Widget _buildNavItem(IconData icon, String label, int index) {
     final isSelected = _selectedIndex == index;
@@ -503,9 +466,48 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 10),
-                const Text(
-                  "Available Crops",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      "Available Crops",
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    ElevatedButton.icon(
+                      onPressed: isGuest
+                          ? _showGuestRestrictionDialog
+                          : () async {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const AddNewCropScreen(),
+                                ),
+                              );
+                              _loadCrops();
+                            },
+                      icon: const Icon(Icons.add, size: 18, color: Colors.white),
+                      label: const Text(
+                        "Add Crop",
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF104f22),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 10,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 2,
+                      ),
+                    ),
+                  ],
                 ),
                 Expanded(
                   child: isLoading
