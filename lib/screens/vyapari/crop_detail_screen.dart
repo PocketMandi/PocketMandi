@@ -112,7 +112,7 @@ class _CropDetailScreenState extends State<CropDetailScreen> {
             selectedLocation = savedAddress != "No address saved"
                 ? "saved_address"
                 : null;
-            
+
             // Set default mandi selection
             selectedMandi = mandiName.isNotEmpty ? "saved_mandi" : null;
           });
@@ -330,7 +330,11 @@ class _CropDetailScreenState extends State<CropDetailScreen> {
                           ),
                           hint: const Text("Select mandi"),
                           items: [
-                            if (userProfile['mandiName'] != null && userProfile['mandiName'].toString().trim().isNotEmpty)
+                            if (userProfile['mandiName'] != null &&
+                                userProfile['mandiName']
+                                    .toString()
+                                    .trim()
+                                    .isNotEmpty)
                               DropdownMenuItem(
                                 value: "saved_mandi",
                                 child: Text(
@@ -902,9 +906,9 @@ class _CropDetailScreenState extends State<CropDetailScreen> {
     }
 
     if (selectedMandi == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a mandi')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please select a mandi')));
       return;
     }
 
@@ -963,7 +967,7 @@ class _CropDetailScreenState extends State<CropDetailScreen> {
 
       /// SAVE TO GLOBAL CROP REQUESTS COLLECTION (for traders)
       final ref = FirebaseDatabase.instance
-          .ref('croprequestsbyvyapari/$userId')
+          .ref('addedcropsbyvyapari/$userId')
           .push();
       final cropId = ref.key!;
 
