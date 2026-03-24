@@ -25,68 +25,51 @@ class _CropsManagementScreenState extends State<CropsManagementScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Crops Management', style: TextStyle(fontWeight: FontWeight.bold)),
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Color(0xFF104f22), Color(0xFF1a7a33)],
-            ),
-          ),
-        ),
-        elevation: 0,
-      ),
       body: Column(
         children: [
           Container(
-            color: const Color(0xFF104f22),
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
-            child: Column(
-              children: [
-                StreamBuilder(
-                  stream: _cropsRef.onValue,
-                  builder: (context, AsyncSnapshot<DatabaseEvent> statsSnapshot) {
-                    int totalCrops = 0;
-
-                    if (statsSnapshot.hasData && statsSnapshot.data!.snapshot.value != null) {
-                      var cropsData = statsSnapshot.data!.snapshot.value;
-                      if (cropsData is List) {
-                        totalCrops = cropsData.where((e) => e != null).length;
-                      }
-                    }
-
-                    return Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.white.withOpacity(0.3)),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Icon(Icons.eco, color: Colors.white, size: 32),
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF104f22), Color(0xFF1a7a33)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            child: SafeArea(
+              bottom: false,
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                          const SizedBox(width: 16),
-                          Column(
+                          child: const Icon(
+                            Icons.eco,
+                            color: Colors.white,
+                            size: 28,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        const Expanded(
+                          child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                totalCrops.toString(),
-                                style: const TextStyle(
-                                  fontSize: 32,
+                                'Crops Management',
+                                style: TextStyle(
+                                  fontSize: 24,
                                   fontWeight: FontWeight.bold,
                                   color: Colors.white,
                                 ),
                               ),
-                              const Text(
-                                'Total Crops',
+                              Text(
+                                'Manage all available crops',
                                 style: TextStyle(
                                   fontSize: 14,
                                   color: Colors.white70,
@@ -94,39 +77,121 @@ class _CropsManagementScreenState extends State<CropsManagementScreen> {
                               ),
                             ],
                           ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _searchController,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: InputDecoration(
-                    hintText: 'Search crops...',
-                    hintStyle: const TextStyle(color: Colors.white60),
-                    prefixIcon: const Icon(Icons.search, color: Colors.white70),
-                    suffixIcon: _searchQuery.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear, color: Colors.white70),
-                            onPressed: () {
-                              _searchController.clear();
-                              setState(() => _searchQuery = '');
-                            },
-                          )
-                        : null,
-                    filled: true,
-                    fillColor: Colors.white.withOpacity(0.15),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
+                        ),
+                      ],
                     ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   ),
-                  onChanged: (val) => setState(() => _searchQuery = val.toLowerCase()),
-                ),
-              ],
+                  StreamBuilder(
+                    stream: _cropsRef.onValue,
+                    builder:
+                        (context, AsyncSnapshot<DatabaseEvent> statsSnapshot) {
+                          int totalCrops = 0;
+
+                          if (statsSnapshot.hasData &&
+                              statsSnapshot.data!.snapshot.value != null) {
+                            var cropsData = statsSnapshot.data!.snapshot.value;
+                            if (cropsData is List) {
+                              totalCrops = cropsData
+                                  .where((e) => e != null)
+                                  .length;
+                            }
+                          }
+
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(0.3),
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.start,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.2),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: const Icon(
+                                      Icons.grass,
+                                      color: Colors.white,
+                                      size: 28,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        totalCrops.toString(),
+                                        style: const TextStyle(
+                                          fontSize: 32,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                      const Text(
+                                        'Total Crops',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.white70,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                    child: TextField(
+                      controller: _searchController,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: InputDecoration(
+                        hintText: 'Search crops...',
+                        hintStyle: const TextStyle(color: Colors.white60),
+                        prefixIcon: const Icon(
+                          Icons.search,
+                          color: Colors.white70,
+                        ),
+                        suffixIcon: _searchQuery.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(
+                                  Icons.clear,
+                                  color: Colors.white70,
+                                ),
+                                onPressed: () {
+                                  _searchController.clear();
+                                  setState(() => _searchQuery = '');
+                                },
+                              )
+                            : null,
+                        filled: true,
+                        fillColor: Colors.white.withOpacity(0.15),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
+                      ),
+                      onChanged: (val) =>
+                          setState(() => _searchQuery = val.toLowerCase()),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           Expanded(
@@ -137,7 +202,9 @@ class _CropsManagementScreenState extends State<CropsManagementScreen> {
                 builder: (context, AsyncSnapshot<DatabaseEvent> snapshot) {
                   if (!snapshot.hasData) {
                     return const Center(
-                      child: CircularProgressIndicator(color: Color(0xFF104f22)),
+                      child: CircularProgressIndicator(
+                        color: Color(0xFF104f22),
+                      ),
                     );
                   }
 
@@ -146,7 +213,7 @@ class _CropsManagementScreenState extends State<CropsManagementScreen> {
                   }
 
                   var cropsData = snapshot.data!.snapshot.value;
-                  
+
                   if (cropsData is! List) {
                     return const Center(child: Text('Invalid data format'));
                   }
@@ -157,11 +224,13 @@ class _CropsManagementScreenState extends State<CropsManagementScreen> {
                     if (cropsData[i] != null) {
                       var crop = Map<String, dynamic>.from(cropsData[i] as Map);
                       crop['index'] = i; // Store the index for updates/deletes
-                      
+
                       if (_searchQuery.isEmpty) {
                         cropsList.add(crop);
                       } else {
-                        var name = (crop['name'] ?? '').toString().toLowerCase();
+                        var name = (crop['name'] ?? '')
+                            .toString()
+                            .toLowerCase();
                         if (name.contains(_searchQuery)) {
                           cropsList.add(crop);
                         }
@@ -175,12 +244,13 @@ class _CropsManagementScreenState extends State<CropsManagementScreen> {
 
                   return GridView.builder(
                     padding: const EdgeInsets.all(16),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      childAspectRatio: 0.75,
-                      crossAxisSpacing: 16,
-                      mainAxisSpacing: 16,
-                    ),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          childAspectRatio: 0.75,
+                          crossAxisSpacing: 16,
+                          mainAxisSpacing: 16,
+                        ),
                     itemCount: cropsList.length,
                     itemBuilder: (context, index) {
                       var crop = cropsList[index];
@@ -196,8 +266,11 @@ class _CropsManagementScreenState extends State<CropsManagementScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _addCrop,
         backgroundColor: const Color(0xFF104f22),
-        icon: const Icon(Icons.add),
-        label: const Text('Add Crop', style: TextStyle(fontWeight: FontWeight.bold)),
+        icon: const Icon(Icons.add, color: Colors.white),
+        label: const Text(
+          'Add Crop',
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+        ),
         elevation: 4,
       ),
     );
@@ -237,27 +310,66 @@ class _CropsManagementScreenState extends State<CropsManagementScreen> {
 
   Widget _buildCropCard(Map<String, dynamic> crop) {
     return Card(
-      elevation: 2,
+      elevation: 4,
+      shadowColor: Colors.black26,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Expanded(
-            child: ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-              child: crop['image'] != null
-                  ? Image.network(
-                      crop['image'],
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Container(
-                        color: Colors.green.shade100,
-                        child: const Icon(Icons.eco, size: 50, color: Colors.green),
-                      ),
-                    )
-                  : Container(
-                      color: Colors.green.shade100,
-                      child: const Icon(Icons.eco, size: 50, color: Colors.green),
+            child: Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(16),
+                  ),
+                  child: crop['image'] != null
+                      ? Image.network(
+                          crop['image'],
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                          errorBuilder: (context, error, stackTrace) =>
+                              Container(
+                                color: Colors.green.shade100,
+                                child: const Icon(
+                                  Icons.eco,
+                                  size: 50,
+                                  color: Colors.green,
+                                ),
+                              ),
+                        )
+                      : Container(
+                          color: Colors.green.shade100,
+                          child: const Icon(
+                            Icons.eco,
+                            size: 50,
+                            color: Colors.green,
+                          ),
+                        ),
+                ),
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
                     ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF104f22),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      'ID: ${crop['id'] ?? crop['index']}',
+                      style: const TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           Container(
@@ -280,18 +392,29 @@ class _CropsManagementScreenState extends State<CropsManagementScreen> {
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  'ID: ${crop['id'] ?? crop['index']}',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.grey[600],
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    crop['category'] ?? 'N/A',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.green.shade700,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 8),
                 Row(
                   children: [
                     Expanded(
-                      child: ElevatedButton(
+                      child: ElevatedButton.icon(
                         onPressed: () => _editCrop(crop),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.blue,
@@ -302,12 +425,16 @@ class _CropsManagementScreenState extends State<CropsManagementScreen> {
                           ),
                           elevation: 0,
                         ),
-                        child: const Icon(Icons.edit, size: 16),
+                        icon: const Icon(Icons.edit, size: 14),
+                        label: const Text(
+                          'Edit',
+                          style: TextStyle(fontSize: 12),
+                        ),
                       ),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: ElevatedButton(
+                      child: ElevatedButton.icon(
                         onPressed: () => _deleteCrop(crop),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.red,
@@ -318,7 +445,11 @@ class _CropsManagementScreenState extends State<CropsManagementScreen> {
                           ),
                           elevation: 0,
                         ),
-                        child: const Icon(Icons.delete, size: 16),
+                        icon: const Icon(Icons.delete, size: 14),
+                        label: const Text(
+                          'Delete',
+                          style: TextStyle(fontSize: 12),
+                        ),
                       ),
                     ),
                   ],
@@ -341,7 +472,9 @@ class _CropsManagementScreenState extends State<CropsManagementScreen> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           title: Row(
             children: [
               Container(
@@ -365,8 +498,13 @@ class _CropsManagementScreenState extends State<CropsManagementScreen> {
                   decoration: InputDecoration(
                     labelText: 'Crop Name',
                     hintText: 'e.g., Tomato (टमाटर)',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    prefixIcon: const Icon(Icons.grass, color: Color(0xFF104f22)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    prefixIcon: const Icon(
+                      Icons.grass,
+                      color: Color(0xFF104f22),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -374,20 +512,32 @@ class _CropsManagementScreenState extends State<CropsManagementScreen> {
                   controller: categoryController,
                   decoration: InputDecoration(
                     labelText: 'Category',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    prefixIcon: const Icon(Icons.category, color: Color(0xFF104f22)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    prefixIcon: const Icon(
+                      Icons.category,
+                      color: Color(0xFF104f22),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
                 if (imageFile != null)
                   ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    child: Image.file(imageFile!, height: 150, width: double.infinity, fit: BoxFit.cover),
+                    child: Image.file(
+                      imageFile!,
+                      height: 150,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                    ),
                   ),
                 const SizedBox(height: 12),
                 OutlinedButton.icon(
                   onPressed: () async {
-                    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+                    final pickedFile = await picker.pickImage(
+                      source: ImageSource.gallery,
+                    );
                     if (pickedFile != null) {
                       setDialogState(() {
                         imageFile = File(pickedFile.path);
@@ -395,12 +545,19 @@ class _CropsManagementScreenState extends State<CropsManagementScreen> {
                     }
                   },
                   icon: const Icon(Icons.image),
-                  label: Text(imageFile == null ? 'Select Image' : 'Change Image'),
+                  label: Text(
+                    imageFile == null ? 'Select Image' : 'Change Image',
+                  ),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: const Color(0xFF104f22),
                     side: const BorderSide(color: Color(0xFF104f22)),
-                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 12,
+                      horizontal: 24,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 ),
               ],
@@ -429,7 +586,7 @@ class _CropsManagementScreenState extends State<CropsManagementScreen> {
                   var data = snapshot.snapshot.value as List;
                   newId = data.where((e) => e != null).length + 1;
                 }
-                
+
                 String? imageUrl;
                 if (imageFile != null) {
                   final ref = FirebaseStorage.instance
@@ -458,8 +615,13 @@ class _CropsManagementScreenState extends State<CropsManagementScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF104f22),
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
               child: const Text('Add Crop'),
             ),
@@ -480,7 +642,9 @@ class _CropsManagementScreenState extends State<CropsManagementScreen> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           title: Row(
             children: [
               Container(
@@ -503,8 +667,13 @@ class _CropsManagementScreenState extends State<CropsManagementScreen> {
                   controller: nameController,
                   decoration: InputDecoration(
                     labelText: 'Crop Name',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    prefixIcon: const Icon(Icons.grass, color: Color(0xFF104f22)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    prefixIcon: const Icon(
+                      Icons.grass,
+                      color: Color(0xFF104f22),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -512,25 +681,42 @@ class _CropsManagementScreenState extends State<CropsManagementScreen> {
                   controller: categoryController,
                   decoration: InputDecoration(
                     labelText: 'Category',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                    prefixIcon: const Icon(Icons.category, color: Color(0xFF104f22)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    prefixIcon: const Icon(
+                      Icons.category,
+                      color: Color(0xFF104f22),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
                 if (imageFile != null)
                   ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    child: Image.file(imageFile!, height: 150, width: double.infinity, fit: BoxFit.cover),
+                    child: Image.file(
+                      imageFile!,
+                      height: 150,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                    ),
                   )
                 else if (crop['image'] != null)
                   ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    child: Image.network(crop['image'], height: 150, width: double.infinity, fit: BoxFit.cover),
+                    child: Image.network(
+                      crop['image'],
+                      height: 150,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                    ),
                   ),
                 const SizedBox(height: 12),
                 OutlinedButton.icon(
                   onPressed: () async {
-                    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+                    final pickedFile = await picker.pickImage(
+                      source: ImageSource.gallery,
+                    );
                     if (pickedFile != null) {
                       setDialogState(() {
                         imageFile = File(pickedFile.path);
@@ -542,8 +728,13 @@ class _CropsManagementScreenState extends State<CropsManagementScreen> {
                   style: OutlinedButton.styleFrom(
                     foregroundColor: const Color(0xFF104f22),
                     side: const BorderSide(color: Color(0xFF104f22)),
-                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 12,
+                      horizontal: 24,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 ),
               ],
@@ -592,8 +783,13 @@ class _CropsManagementScreenState extends State<CropsManagementScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blue,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
               child: const Text('Update'),
             ),
@@ -615,7 +811,9 @@ class _CropsManagementScreenState extends State<CropsManagementScreen> {
             Text('Delete Crop'),
           ],
         ),
-        content: Text('Are you sure you want to delete "${crop['name']}"? This action cannot be undone.'),
+        content: Text(
+          'Are you sure you want to delete "${crop['name']}"? This action cannot be undone.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -625,7 +823,9 @@ class _CropsManagementScreenState extends State<CropsManagementScreen> {
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
             child: const Text('Delete'),
           ),

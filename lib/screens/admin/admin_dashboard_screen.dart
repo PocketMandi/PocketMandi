@@ -29,33 +29,82 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     }
   }
 
+  Widget _buildNavItem(int index, IconData icon, String label) {
+    final isSelected = _selectedIndex == index;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _selectedIndex = index),
+        behavior: HitTestBehavior.opaque,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? const Color(0xFF104f22).withOpacity(0.1)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? const Color(0xFF104f22)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  icon,
+                  color: isSelected ? Colors.white : Colors.grey[600],
+                  size: 24,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                  color: isSelected ? const Color(0xFF104f22) : Colors.grey[600],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: _getCurrentScreen(),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
+          color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 20,
+              offset: const Offset(0, -4),
             ),
           ],
         ),
-        child: BottomNavigationBar(
-          currentIndex: _selectedIndex,
-          onTap: (index) => setState(() => _selectedIndex = index),
-          selectedItemColor: const Color(0xFF104f22),
-          unselectedItemColor: Colors.grey,
-          type: BottomNavigationBarType.fixed,
-          elevation: 0,
-          items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Dashboard'),
-            BottomNavigationBarItem(icon: Icon(Icons.people), label: 'Users'),
-            BottomNavigationBarItem(icon: Icon(Icons.grass), label: 'Crops'),
-            BottomNavigationBarItem(icon: Icon(Icons.request_page), label: 'Requests'),
-          ],
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildNavItem(0, Icons.dashboard_rounded, 'Dashboard'),
+                _buildNavItem(1, Icons.people_rounded, 'Users'),
+                _buildNavItem(2, Icons.eco_rounded, 'Crops'),
+                _buildNavItem(3, Icons.assignment_rounded, 'Requests'),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -156,73 +205,85 @@ class AdminHomeScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 16),
                         StreamBuilder(
-                          stream: FirebaseDatabase.instance.ref('users').onValue,
-                          builder: (context, AsyncSnapshot<DatabaseEvent> snapshot) {
-                            int totalUsers = 0;
-                            int farmers = 0;
-                            int traders = 0;
-                            int pendingKyc = 0;
+                          stream: FirebaseDatabase.instance
+                              .ref('users')
+                              .onValue,
+                          builder:
+                              (context, AsyncSnapshot<DatabaseEvent> snapshot) {
+                                int totalUsers = 0;
+                                int farmers = 0;
+                                int traders = 0;
+                                int pendingKyc = 0;
 
-                            if (snapshot.hasData && snapshot.data!.snapshot.value != null) {
-                              var usersData = snapshot.data!.snapshot.value as Map<dynamic, dynamic>;
-                              totalUsers = usersData.length;
-                              farmers = usersData.values.where((u) => u['role'] == 'farmer').length;
-                              traders = usersData.values.where((u) => u['role'] == 'trader').length;
-                              pendingKyc = usersData.values.where((u) => u['kycStatus'] == 'pending').length;
-                            }
+                                if (snapshot.hasData &&
+                                    snapshot.data!.snapshot.value != null) {
+                                  var usersData =
+                                      snapshot.data!.snapshot.value
+                                          as Map<dynamic, dynamic>;
+                                  totalUsers = usersData.length;
+                                  farmers = usersData.values
+                                      .where((u) => u['role'] == 'farmer')
+                                      .length;
+                                  traders = usersData.values
+                                      .where((u) => u['role'] == 'trader')
+                                      .length;
+                                  pendingKyc = usersData.values
+                                      .where((u) => u['kycStatus'] == 'pending')
+                                      .length;
+                                }
 
-                            return Column(
-                              children: [
-                                Row(
+                                return Column(
                                   children: [
-                                    Expanded(
-                                      child: _buildStatCard(
-                                        'Total Users',
-                                        totalUsers.toString(),
-                                        Icons.people,
-                                        const Color(0xFF2196F3),
-                                        const Color(0xFFE3F2FD),
-                                      ),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: _buildStatCard(
+                                            'Total Users',
+                                            totalUsers.toString(),
+                                            Icons.people,
+                                            const Color(0xFF2196F3),
+                                            const Color(0xFFE3F2FD),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: _buildStatCard(
+                                            'Pending KYC',
+                                            pendingKyc.toString(),
+                                            Icons.pending_actions,
+                                            const Color(0xFFFF9800),
+                                            const Color(0xFFFFF3E0),
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: _buildStatCard(
-                                        'Pending KYC',
-                                        pendingKyc.toString(),
-                                        Icons.pending_actions,
-                                        const Color(0xFFFF9800),
-                                        const Color(0xFFFFF3E0),
-                                      ),
+                                    const SizedBox(height: 12),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: _buildStatCard(
+                                            'Farmers',
+                                            farmers.toString(),
+                                            Icons.agriculture,
+                                            const Color(0xFF4CAF50),
+                                            const Color(0xFFE8F5E9),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: _buildStatCard(
+                                            'Traders',
+                                            traders.toString(),
+                                            Icons.store,
+                                            const Color(0xFF9C27B0),
+                                            const Color(0xFFF3E5F5),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ],
-                                ),
-                                const SizedBox(height: 12),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: _buildStatCard(
-                                        'Farmers',
-                                        farmers.toString(),
-                                        Icons.agriculture,
-                                        const Color(0xFF4CAF50),
-                                        const Color(0xFFE8F5E9),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: _buildStatCard(
-                                        'Traders',
-                                        traders.toString(),
-                                        Icons.store,
-                                        const Color(0xFF9C27B0),
-                                        const Color(0xFFF3E5F5),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            );
-                          },
+                                );
+                              },
                         ),
                         const SizedBox(height: 24),
                         const Text(
@@ -242,7 +303,9 @@ class AdminHomeScreen extends StatelessWidget {
                           const Color(0xFF2196F3),
                           () => Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (_) => const UsersManagementScreen()),
+                            MaterialPageRoute(
+                              builder: (_) => const UsersManagementScreen(),
+                            ),
                           ),
                         ),
                         const SizedBox(height: 12),
@@ -254,7 +317,9 @@ class AdminHomeScreen extends StatelessWidget {
                           const Color(0xFF4CAF50),
                           () => Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (_) => const CropsManagementScreen()),
+                            MaterialPageRoute(
+                              builder: (_) => const CropsManagementScreen(),
+                            ),
                           ),
                         ),
                         const SizedBox(height: 12),
@@ -266,80 +331,10 @@ class AdminHomeScreen extends StatelessWidget {
                           const Color(0xFFFF9800),
                           () => Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (_) => const RequestsManagementScreen()),
+                            MaterialPageRoute(
+                              builder: (_) => const RequestsManagementScreen(),
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 24),
-                        StreamBuilder(
-                          stream: FirebaseDatabase.instance.ref('allcrops').onValue,
-                          builder: (context, AsyncSnapshot<DatabaseEvent> snapshot) {
-                            int totalCrops = 0;
-
-                            if (snapshot.hasData && snapshot.data!.snapshot.value != null) {
-                              var cropsData = snapshot.data!.snapshot.value;
-                              if (cropsData is Map) {
-                                totalCrops = cropsData.length;
-                              } else if (cropsData is List) {
-                                totalCrops = cropsData.where((e) => e != null).length;
-                              }
-                            }
-
-                            return Container(
-                              padding: const EdgeInsets.all(20),
-                              decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  colors: [Color(0xFF104f22), Color(0xFF1a7a33)],
-                                ),
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: const Color(0xFF104f22).withOpacity(0.3),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(16),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withOpacity(0.2),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: const Icon(
-                                      Icons.eco,
-                                      color: Colors.white,
-                                      size: 32,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          totalCrops.toString(),
-                                          style: const TextStyle(
-                                            fontSize: 32,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                        const Text(
-                                          'Total Crops Available',
-                                          style: TextStyle(
-                                            fontSize: 14,
-                                            color: Colors.white70,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
                         ),
                       ],
                     ),
@@ -353,7 +348,13 @@ class AdminHomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon, Color color, Color bgColor) {
+  Widget _buildStatCard(
+    String title,
+    String value,
+    IconData icon,
+    Color color,
+    Color bgColor,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -439,10 +440,7 @@ class AdminHomeScreen extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     subtitle,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey[600],
-                    ),
+                    style: TextStyle(fontSize: 13, color: Colors.grey[600]),
                   ),
                 ],
               ),
