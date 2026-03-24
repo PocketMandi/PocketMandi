@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:poket_mandi/screens/admin/admin_dashboard_screen.dart';
+import 'package:poket_mandi/screens/admin/debug_data_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:poket_mandi/screens/auth/landing_screen.dart';
 import 'package:poket_mandi/screens/kisan/kisan_dashboard_screen.dart';
@@ -27,7 +29,8 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: const AuthCheck(),
+      // home: const AuthCheck(),
+      home: const AdminDashboardScreen(),
     );
   }
 }

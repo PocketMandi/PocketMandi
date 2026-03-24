@@ -260,7 +260,7 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
       _showGuestRestrictionDialog();
       return;
     }
-    
+
     // Handle Services navigation separately
     if (index == 4) {
       Navigator.push(
@@ -269,7 +269,7 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
       );
       return;
     }
-    
+
     setState(() {
       _selectedIndex = index;
     });
@@ -315,8 +315,6 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
       ),
     );
   }
-
-
 
   Widget _buildNavItem(IconData icon, String label, int index) {
     final isSelected = _selectedIndex == index;
@@ -466,13 +464,16 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 10),
-                
+
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text(
                       "Available Crops",
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     ElevatedButton.icon(
                       onPressed: isGuest
@@ -486,7 +487,11 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
                               );
                               _loadCrops();
                             },
-                      icon: const Icon(Icons.add, size: 18, color: Colors.white),
+                      icon: const Icon(
+                        Icons.add,
+                        size: 18,
+                        color: Colors.white,
+                      ),
                       label: const Text(
                         "Add Crop",
                         style: TextStyle(
@@ -854,13 +859,12 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
                 _buildProfileOption(
                   icon: Icons.policy_outlined,
                   title: "Policies & Guidelines",
-                  subtitle: "Privacy policy, community guidelines & data policy",
+                  subtitle:
+                      "Privacy policy, community guidelines & data policy",
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
-                        builder: (_) => const PoliciesScreen(),
-                      ),
+                      MaterialPageRoute(builder: (_) => const PoliciesScreen()),
                     );
                   },
                 ),
@@ -872,9 +876,7 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
-                        builder: (_) => const AboutScreen(),
-                      ),
+                      MaterialPageRoute(builder: (_) => const AboutScreen()),
                     );
                   },
                 ),
