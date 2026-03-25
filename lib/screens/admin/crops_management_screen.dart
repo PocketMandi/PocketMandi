@@ -251,6 +251,7 @@ class _CropsManagementScreenState extends State<CropsManagementScreen> {
                           crossAxisSpacing: 16,
                           mainAxisSpacing: 16,
                         ),
+                    cacheExtent: 1000,
                     itemCount: cropsList.length,
                     itemBuilder: (context, index) {
                       var crop = cropsList[index];
@@ -328,6 +329,8 @@ class _CropsManagementScreenState extends State<CropsManagementScreen> {
                           crop['image'],
                           fit: BoxFit.cover,
                           width: double.infinity,
+                          cacheWidth: 300,
+                          cacheHeight: 300,
                           errorBuilder: (context, error, stackTrace) =>
                               Container(
                                 color: Colors.green.shade100,
