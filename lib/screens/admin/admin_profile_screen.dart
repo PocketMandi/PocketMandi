@@ -225,6 +225,80 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                                 ? Colors.red
                                 : Colors.green,
                           ),
+                          const SizedBox(height: 24),
+                          const Text(
+                            'Admin Actions',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF2E2E2E),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          InkWell(
+                            onTap: _makeNewAdmin,
+                            borderRadius: BorderRadius.circular(16),
+                            child: Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: Colors.grey.shade200),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.05),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.purple.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: const Icon(
+                                      Icons.admin_panel_settings,
+                                      color: Colors.purple,
+                                      size: 24,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  const Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Make New Admin',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFF2E2E2E),
+                                          ),
+                                        ),
+                                        SizedBox(height: 4),
+                                        Text(
+                                          'Promote a user to admin',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color: Colors.grey,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Icon(
+                                    Icons.arrow_forward_ios,
+                                    size: 16,
+                                    color: Colors.grey[400],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -538,6 +612,252 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
 
       if (mounted) {
         Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+      }
+    }
+  }
+
+  Future<void> _makeNewAdmin() async {
+    final phoneController = TextEditingController();
+    List<Map<String, dynamic>> allUsers = [];
+    List<Map<String, dynamic>> filteredUsers = [];
+    bool isLoading = true;
+
+    await showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          if (isLoading && allUsers.isEmpty) {
+            _loadAllUsers().then((users) {
+              setDialogState(() {
+                allUsers = users;
+                isLoading = false;
+              });
+            });
+          }
+
+          return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.purple.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.admin_panel_settings, color: Colors.purple),
+                ),
+                const SizedBox(width: 12),
+                const Text('Make New Admin', style: TextStyle(fontSize: 18)),
+              ],
+            ),
+            content: SizedBox(
+              width: double.maxFinite,
+              height: 400,
+              child: Column(
+                children: [
+                  TextField(
+                    controller: phoneController,
+                    decoration: InputDecoration(
+                      labelText: 'Search by phone or name',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      prefixIcon: const Icon(Icons.search, color: Color(0xFF104f22)),
+                    ),
+                    onChanged: (value) {
+                      setDialogState(() {
+                        if (value.isEmpty) {
+                          filteredUsers = [];
+                        } else {
+                          filteredUsers = allUsers.where((user) {
+                            final phone = user['phone']?.toString().toLowerCase() ?? '';
+                            final name = user['name']?.toString().toLowerCase() ?? '';
+                            final search = value.toLowerCase();
+                            return phone.contains(search) || name.contains(search);
+                          }).toList();
+                        }
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: isLoading
+                        ? const Center(child: CircularProgressIndicator(color: Color(0xFF104f22)))
+                        : filteredUsers.isEmpty
+                            ? Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.search, size: 64, color: Colors.grey[300]),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      'Search users by phone or name',
+                                      style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : ListView.builder(
+                                itemCount: filteredUsers.length,
+                                itemBuilder: (context, index) {
+                                  final user = filteredUsers[index];
+                                  final isAdmin = user['role'] == 'admin';
+                                  return Card(
+                                    elevation: 2,
+                                    margin: const EdgeInsets.only(bottom: 12),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(12),
+                                      child: Row(
+                                        children: [
+                                          CircleAvatar(
+                                            radius: 28,
+                                            backgroundColor: isAdmin ? Colors.purple : const Color(0xFF104f22),
+                                            backgroundImage: user['profileImage'] != null
+                                                ? NetworkImage(user['profileImage'])
+                                                : null,
+                                            child: user['profileImage'] == null
+                                                ? Text(
+                                                    user['name']?[0]?.toUpperCase() ?? 'U',
+                                                    style: const TextStyle(
+                                                      color: Colors.white,
+                                                      fontSize: 20,
+                                                      fontWeight: FontWeight.bold,
+                                                    ),
+                                                  )
+                                                : null,
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  user['name'] ?? 'Unknown',
+                                                  style: const TextStyle(
+                                                    fontSize: 16,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Color(0xFF2E2E2E),
+                                                  ),
+                                                  overflow: TextOverflow.ellipsis,
+                                                ),
+                                                const SizedBox(height: 4),
+                                                Row(
+                                                  children: [
+                                                    Icon(Icons.phone, size: 14, color: Colors.grey[600]),
+                                                    const SizedBox(width: 4),
+                                                    Expanded(
+                                                      child: Text(
+                                                        user['phone'] ?? 'N/A',
+                                                        style: TextStyle(
+                                                          fontSize: 13,
+                                                          color: Colors.grey[600],
+                                                        ),
+                                                        overflow: TextOverflow.ellipsis,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          isAdmin
+                                              ? Container(
+                                                  padding: const EdgeInsets.symmetric(
+                                                    horizontal: 12,
+                                                    vertical: 6,
+                                                  ),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.purple,
+                                                    borderRadius: BorderRadius.circular(20),
+                                                  ),
+                                                  child: const Text(
+                                                    'Admin',
+                                                    style: TextStyle(
+                                                      color: Colors.white,
+                                                      fontSize: 12,
+                                                      fontWeight: FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                )
+                                              : ElevatedButton(
+                                                  onPressed: () => _promoteToAdmin(user['id'], context),
+                                                  style: ElevatedButton.styleFrom(
+                                                    backgroundColor: const Color(0xFF104f22),
+                                                    foregroundColor: Colors.white,
+                                                    padding: const EdgeInsets.symmetric(
+                                                      horizontal: 16,
+                                                      vertical: 8,
+                                                    ),
+                                                    shape: RoundedRectangleBorder(
+                                                      borderRadius: BorderRadius.circular(8),
+                                                    ),
+                                                  ),
+                                                  child: const Text(
+                                                    'Promote',
+                                                    style: TextStyle(fontSize: 12),
+                                                  ),
+                                                ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Close'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> _loadAllUsers() async {
+    try {
+      final snapshot = await FirebaseDatabase.instance.ref('users').once();
+      if (snapshot.snapshot.value == null) return [];
+
+      final usersMap = Map<String, dynamic>.from(snapshot.snapshot.value as Map);
+      final results = <Map<String, dynamic>>[];
+
+      usersMap.forEach((key, value) {
+        final userData = Map<String, dynamic>.from(value as Map);
+        results.add({'id': key, ...userData});
+      });
+
+      return results;
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<void> _promoteToAdmin(String userId, BuildContext dialogContext) async {
+    try {
+      await FirebaseDatabase.instance.ref('users').child(userId).update({'role': 'admin'});
+      
+      if (mounted) {
+        Navigator.pop(dialogContext);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('User promoted to admin successfully'),
+            backgroundColor: Color(0xFF104f22),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
       }
     }
   }
