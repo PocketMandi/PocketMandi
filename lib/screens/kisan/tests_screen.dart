@@ -12,7 +12,9 @@ class TestsScreen extends StatefulWidget {
 class _TestsScreenState extends State<TestsScreen> {
   bool soilTest = false;
   bool waterTest = false;
-  final TextEditingController addressController = TextEditingController();
+  final TextEditingController addressController = TextEditingController(
+    text: 'C/O SANTOSH KUMAR\nShop Name: Shri Ram Agro (Nextgen Kisan)\nRoad/Street: MAIN ROAD\nCity/Town/Village: Rajpur\nDistrict: Balrampur Ramanujganj\nState: Chhattisgarh\nPIN Code: 497118',
+  );
   final TextEditingController notesController = TextEditingController();
   bool isSubmitting = false;
 
@@ -231,10 +233,34 @@ class _TestsScreenState extends State<TestsScreen> {
                 ),
                 const SizedBox(height: 16),
                 CheckboxListTile(
-                  title: const Text("Soil Test"),
-                  subtitle: const Text(
-                    "Test soil quality, pH, nutrients, etc.",
-                    style: TextStyle(fontSize: 12),
+                  title: Row(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.asset(
+                          'assets/images/soiltest.jpg',
+                          width: 50,
+                          height: 50,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Soil Test",
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                            Text(
+                              "Test soil quality, pH, nutrients, etc.",
+                              style: TextStyle(fontSize: 12, color: Colors.grey),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                   value: soilTest,
                   activeColor: const Color(0xFF104f22),
@@ -248,10 +274,34 @@ class _TestsScreenState extends State<TestsScreen> {
                 ),
                 const Divider(),
                 CheckboxListTile(
-                  title: const Text("Water Test"),
-                  subtitle: const Text(
-                    "Test water quality, pH, contamination, etc.",
-                    style: TextStyle(fontSize: 12),
+                  title: Row(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.asset(
+                          'assets/images/watertest.jpg',
+                          width: 50,
+                          height: 50,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Water Test",
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                            Text(
+                              "Test water quality, pH, contamination, etc.",
+                              style: TextStyle(fontSize: 12, color: Colors.grey),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                   value: waterTest,
                   activeColor: const Color(0xFF104f22),
@@ -297,11 +347,15 @@ class _TestsScreenState extends State<TestsScreen> {
                 const SizedBox(height: 12),
                 TextField(
                   controller: addressController,
-                  maxLines: 3,
+                  maxLines: 7,
+                  readOnly: true,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Colors.black87,
+                  ),
                   decoration: InputDecoration(
-                    hintText: "Enter your complete address for sample collection",
                     filled: true,
-                    fillColor: const Color(0xFFF3F3F3),
+                    fillColor: Colors.grey[100],
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide.none,

@@ -16,6 +16,8 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
   List<Map<String, dynamic>> myOrders = [];
   List<Map<String, dynamic>> filteredOrders = [];
   List<Map<String, dynamic>> crops = [];
+  List<Map<String, dynamic>> saplingOrders = [];
+  List<Map<String, dynamic>> testRequests = [];
   bool isLoading = true;
   bool isCropsLoading = true;
   String selectedFilter = "All";
@@ -29,9 +31,11 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     _loadMyOrders();
     _loadCrops();
+    _loadSaplingOrders();
+    _loadTestRequests();
   }
 
   @override
@@ -200,7 +204,12 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
           Expanded(
             child: TabBarView(
               controller: _tabController,
-              children: [_buildPlaceNewOrderTab(), _buildOrderDashboardTab()],
+              children: [
+                _buildPlaceNewOrderTab(),
+                _buildOrderDashboardTab(),
+                _buildSaplingOrdersTab(),
+                _buildTestRequestsTab(),
+              ],
             ),
           ),
         ],
@@ -247,41 +256,89 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
             SizedBox(height: 20),
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 16),
+              height: 60,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(12),
+                color: Colors.white.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.2),
+                  width: 1,
+                ),
               ),
               child: TabBar(
                 controller: _tabController,
                 indicator: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
+                  gradient: const LinearGradient(
+                    colors: [Colors.white, Colors.white],
+                  ),
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
                 indicatorSize: TabBarIndicatorSize.tab,
                 labelColor: const Color(0xFF104f22),
                 unselectedLabelColor: Colors.white,
                 labelStyle: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 9,
                 ),
-                tabs: const [
+                unselectedLabelStyle: const TextStyle(
+                  fontWeight: FontWeight.w500,
+                  fontSize: 8,
+                ),
+                dividerColor: Colors.transparent,
+                padding: const EdgeInsets.all(4),
+                tabs: [
                   Tab(
-                    child: Row(
+                    height: 52,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(Icons.add_shopping_cart, size: 18),
-                        SizedBox(width: 8),
-                        Text("Place Order"),
+                        SizedBox(height: 4),
+                        Text("Order"),
                       ],
                     ),
                   ),
                   Tab(
-                    child: Row(
+                    height: 52,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(Icons.dashboard, size: 18),
-                        SizedBox(width: 8),
+                        SizedBox(height: 4),
                         Text("Dashboard"),
+                      ],
+                    ),
+                  ),
+                  Tab(
+                    height: 52,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.eco, size: 18),
+                        SizedBox(height: 4),
+                        Text("Saplings"),
+                      ],
+                    ),
+                  ),
+                  Tab(
+                    height: 52,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.science, size: 18),
+                        SizedBox(height: 4),
+                        Text("Tests"),
                       ],
                     ),
                   ),
@@ -1047,5 +1104,290 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
   String _formatDate(int timestamp) {
     final date = DateTime.fromMillisecondsSinceEpoch(timestamp);
     return "${date.day}/${date.month}/${date.year}";
+  }
+
+  Future<void> _loadSaplingOrders() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getString('user_id');
+
+      if (userId == null) return;
+
+      final snapshot = await FirebaseDatabase.instance
+          .ref("saplingorders/$userId")
+          .get();
+
+      if (snapshot.value != null) {
+        final data = snapshot.value as Map;
+        List<Map<String, dynamic>> temp = [];
+
+        data.forEach((key, value) {
+          final order = Map<String, dynamic>.from(value);
+          order['id'] = key;
+          temp.add(order);
+        });
+
+        temp.sort((a, b) => (b['createdAt'] ?? 0).compareTo(a['createdAt'] ?? 0));
+
+        setState(() {
+          saplingOrders = temp;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        saplingOrders = [];
+      });
+    }
+  }
+
+  Future<void> _loadTestRequests() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getString('user_id');
+
+      if (userId == null) return;
+
+      final snapshot = await FirebaseDatabase.instance
+          .ref("testrequests/$userId")
+          .get();
+
+      if (snapshot.value != null) {
+        final data = snapshot.value as Map;
+        List<Map<String, dynamic>> temp = [];
+
+        data.forEach((key, value) {
+          final request = Map<String, dynamic>.from(value);
+          request['id'] = key;
+          temp.add(request);
+        });
+
+        temp.sort((a, b) => (b['createdAt'] ?? 0).compareTo(a['createdAt'] ?? 0));
+
+        setState(() {
+          testRequests = temp;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        testRequests = [];
+      });
+    }
+  }
+
+  Widget _buildSaplingOrdersTab() {
+    if (saplingOrders.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.eco_outlined, size: 80, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            Text(
+              "No sapling orders",
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey[700],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: saplingOrders.length,
+      itemBuilder: (context, index) {
+        final order = saplingOrders[index];
+        final status = order['status'] ?? 'pending';
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: _statusColor(status).withOpacity(0.1),
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(16),
+                    topRight: Radius.circular(16),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: order['cropImage'] != null
+                          ? Image.network(
+                              order['cropImage'],
+                              width: 50,
+                              height: 50,
+                              fit: BoxFit.cover,
+                            )
+                          : Container(
+                              width: 50,
+                              height: 50,
+                              color: Colors.grey[300],
+                              child: const Icon(Icons.eco),
+                            ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            order['cropName'] ?? 'Unknown',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            'Type: ${order['saplingType'] ?? 'N/A'}',
+                            style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: _statusColor(status),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        status.toUpperCase(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _buildInfoRow(Icons.numbers, 'Quantity', '${order['quantity'] ?? 0}'),
+                    ),
+                    Expanded(
+                      child: _buildInfoRow(Icons.calendar_today, 'Date', _formatDate(order['createdAt'] ?? 0)),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildTestRequestsTab() {
+    if (testRequests.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.science_outlined, size: 80, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            Text(
+              "No test requests",
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey[700],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: testRequests.length,
+      itemBuilder: (context, index) {
+        final request = testRequests[index];
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF104f22).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(
+                        Icons.science,
+                        color: Color(0xFF104f22),
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Request #${request['requestId']?.toString().substring(0, 8) ?? 'N/A'}',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            _formatDate(request['createdAt'] ?? 0),
+                            style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                _buildInfoRow(Icons.location_on, 'Address', request['address'] ?? 'N/A'),
+                const SizedBox(height: 8),
+                _buildInfoRow(Icons.notes, 'Notes', request['notes'] ?? 'N/A'),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 }
