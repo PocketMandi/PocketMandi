@@ -3,6 +3,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:poket_mandi/services/notification_service.dart';
 import 'dart:io';
 import 'package:video_player/video_player.dart';
 
@@ -643,6 +644,18 @@ class _AddNewCropScreenState extends State<AddNewCropScreen> {
         "status": "pending",
         "createdAt": ServerValue.timestamp,
       });
+
+      // Send notification to all admins
+      await NotificationService.sendNotificationToAdmins(
+        title: 'New Crop Request',
+        body: '$userName has requested $cropName (${quantityController.text} $selectedUnit)',
+        data: {
+          'type': 'crop_request',
+          'cropName': cropName,
+          'userId': userId,
+          'requestId': ref.key,
+        },
+      );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

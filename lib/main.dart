@@ -6,14 +6,19 @@ import 'package:poket_mandi/screens/auth/landing_screen.dart';
 import 'package:poket_mandi/screens/kisan/kisan_dashboard_screen.dart';
 import 'package:poket_mandi/screens/vyapari/vyapari_dashboard_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:poket_mandi/services/notification_service.dart';
 import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  // Uncomment below line to add crops to Firebase (run once only)
-  // await addAllCropsToFirebase();
+  // Initialize Firebase Messaging background handler
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+
+  // Initialize notification service
+  await NotificationService.initialize();
 
   runApp(const MyApp());
 }
@@ -61,7 +66,7 @@ class _AuthCheckState extends State<AuthCheck> {
         dashboard = KisanDashboardScreen();
       } else if (userRole == 'trader') {
         dashboard = VyapariDashboardScreen();
-      } else if (userRole == 'admin') {
+      } else if (userRole == 'admin' || userRole == 'superadmin') {
         dashboard = const AdminDashboardScreen();
       } else {
         // Default to landing screen if role is unknown

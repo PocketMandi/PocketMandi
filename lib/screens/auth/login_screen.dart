@@ -46,6 +46,25 @@ class _LoginScreenState extends State<LoginScreen> {
         return;
       }
 
+      // Check if user is blocked
+      final userData = Map<String, dynamic>.from(
+        (snapshot.snapshot.value as Map).values.first as Map,
+      );
+      
+      if (userData['isBlocked'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              "You are blocked by Super Admin. You cannot login.",
+            ),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 4),
+          ),
+        );
+        setState(() => isLoading = false);
+        return;
+      }
+
       Navigator.push(
         context,
         MaterialPageRoute(

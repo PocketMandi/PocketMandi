@@ -3,6 +3,8 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:poket_mandi/screens/common/notifications_screen.dart';
+import 'package:poket_mandi/screens/common/test_notification_screen.dart';
 import 'dart:io';
 
 class AdminProfileScreen extends StatefulWidget {
@@ -16,6 +18,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
   String? adminId;
   Map<String, dynamic>? adminData;
   bool isLoading = true;
+  bool isSuperAdmin = false;
 
   @override
   void initState() {
@@ -41,6 +44,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
       if (snapshot.snapshot.value != null) {
         setState(() {
           adminData = Map<String, dynamic>.from(snapshot.snapshot.value as Map);
+          isSuperAdmin = adminId == '-OnhQJypR7JOFi47ZT8S';
           isLoading = false;
         });
       }
@@ -226,17 +230,161 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                                 : Colors.green,
                           ),
                           const SizedBox(height: 24),
-                          const Text(
-                            'Admin Actions',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF2E2E2E),
+                          if (isSuperAdmin) ...[
+                            const Text(
+                              'Super Admin Actions',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF2E2E2E),
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 16),
+                            const SizedBox(height: 16),
+                            InkWell(
+                              onTap: _addNewAdmin,
+                              borderRadius: BorderRadius.circular(16),
+                              child: Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: Colors.grey.shade200,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.05),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: Colors.purple.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: const Icon(
+                                        Icons.person_add,
+                                        color: Colors.purple,
+                                        size: 24,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 16),
+                                    const Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Add New Admin',
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                              color: Color(0xFF2E2E2E),
+                                            ),
+                                          ),
+                                          SizedBox(height: 4),
+                                          Text(
+                                            'Promote a user to admin',
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              color: Colors.grey,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Icon(
+                                      Icons.arrow_forward_ios,
+                                      size: 16,
+                                      color: Colors.grey[400],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            InkWell(
+                              onTap: _viewAllAdmins,
+                              borderRadius: BorderRadius.circular(16),
+                              child: Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: Colors.grey.shade200,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.05),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: Colors.blue.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: const Icon(
+                                        Icons.admin_panel_settings,
+                                        color: Colors.blue,
+                                        size: 24,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 16),
+                                    const Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'View All Admins',
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                              color: Color(0xFF2E2E2E),
+                                            ),
+                                          ),
+                                          SizedBox(height: 4),
+                                          Text(
+                                            'Manage admin accounts',
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              color: Colors.grey,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Icon(
+                                      Icons.arrow_forward_ios,
+                                      size: 16,
+                                      color: Colors.grey[400],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          const SizedBox(height: 12),
                           InkWell(
-                            onTap: _makeNewAdmin,
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const NotificationsScreen(),
+                                ),
+                              );
+                            },
                             borderRadius: BorderRadius.circular(16),
                             child: Container(
                               padding: const EdgeInsets.all(16),
@@ -257,12 +405,12 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                                   Container(
                                     padding: const EdgeInsets.all(12),
                                     decoration: BoxDecoration(
-                                      color: Colors.purple.withOpacity(0.1),
+                                      color: Colors.orange.withOpacity(0.1),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: const Icon(
-                                      Icons.admin_panel_settings,
-                                      color: Colors.purple,
+                                      Icons.notifications,
+                                      color: Colors.orange,
                                       size: 24,
                                     ),
                                   ),
@@ -272,7 +420,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          'Make New Admin',
+                                          'Notifications',
                                           style: TextStyle(
                                             fontSize: 16,
                                             fontWeight: FontWeight.bold,
@@ -281,7 +429,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                                         ),
                                         SizedBox(height: 4),
                                         Text(
-                                          'Promote a user to admin',
+                                          'Manage notification preferences',
                                           style: TextStyle(
                                             fontSize: 13,
                                             color: Colors.grey,
@@ -299,6 +447,79 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                               ),
                             ),
                           ),
+                          const SizedBox(height: 12),
+                          InkWell(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const TestNotificationScreen(),
+                                ),
+                              );
+                            },
+                            borderRadius: BorderRadius.circular(16),
+                            child: Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: Colors.grey.shade200),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.05),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.green.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: const Icon(
+                                      Icons.send,
+                                      color: Colors.green,
+                                      size: 24,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  const Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Test Notifications',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                            color: Color(0xFF2E2E2E),
+                                          ),
+                                        ),
+                                        SizedBox(height: 4),
+                                        Text(
+                                          'Send test notification',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color: Colors.grey,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Icon(
+                                    Icons.arrow_forward_ios,
+                                    size: 16,
+                                    color: Colors.grey[400],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          ],
                         ],
                       ),
                     ),
@@ -616,6 +837,485 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
     }
   }
 
+  Future<void> _addNewAdmin() async {
+    final nameController = TextEditingController();
+    final phoneController = TextEditingController();
+    File? imageFile;
+    final picker = ImagePicker();
+    bool isSubmitting = false;
+
+    await showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.purple.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.person_add, color: Colors.purple),
+              ),
+              const SizedBox(width: 12),
+              const Text('Add New Admin', style: TextStyle(fontSize: 18)),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                GestureDetector(
+                  onTap: () async {
+                    final pickedFile = await picker.pickImage(
+                      source: ImageSource.gallery,
+                    );
+                    if (pickedFile != null) {
+                      setDialogState(() {
+                        imageFile = File(pickedFile.path);
+                      });
+                    }
+                  },
+                  child: Stack(
+                    children: [
+                      CircleAvatar(
+                        radius: 50,
+                        backgroundColor: Colors.grey.shade200,
+                        backgroundImage: imageFile != null
+                            ? FileImage(imageFile!)
+                            : null,
+                        child: imageFile == null
+                            ? const Icon(
+                                Icons.person,
+                                size: 50,
+                                color: Colors.grey,
+                              )
+                            : null,
+                      ),
+                      Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF104f22),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.camera_alt,
+                            size: 16,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: nameController,
+                  decoration: InputDecoration(
+                    labelText: 'Name *',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    prefixIcon: const Icon(
+                      Icons.person,
+                      color: Color(0xFF104f22),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: phoneController,
+                  decoration: InputDecoration(
+                    labelText: 'Phone Number *',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    prefixIcon: const Icon(
+                      Icons.phone,
+                      color: Color(0xFF104f22),
+                    ),
+                  ),
+                  keyboardType: TextInputType.phone,
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: isSubmitting ? null : () => Navigator.pop(context),
+              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              onPressed: isSubmitting
+                  ? null
+                  : () async {
+                      if (nameController.text.trim().isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Please enter name')),
+                        );
+                        return;
+                      }
+                      if (phoneController.text.trim().isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Please enter phone number'),
+                          ),
+                        );
+                        return;
+                      }
+
+                      setDialogState(() => isSubmitting = true);
+
+                      try {
+                        String? imageUrl;
+                        if (imageFile != null) {
+                          final ref = FirebaseStorage.instance
+                              .ref()
+                              .child('profile_images')
+                              .child(
+                                '${phoneController.text}_${DateTime.now().millisecondsSinceEpoch}.jpg',
+                              );
+                          await ref.putFile(imageFile!);
+                          imageUrl = await ref.getDownloadURL();
+                        }
+
+                        final newAdminRef = FirebaseDatabase.instance
+                            .ref('users')
+                            .push();
+                        await newAdminRef.set({
+                          'id': newAdminRef.key,
+                          'name': nameController.text.trim(),
+                          'phone': phoneController.text.trim(),
+                          'role': 'admin',
+                          'profileImage': imageUrl,
+                          'isBlocked': false,
+                          'createdAt': DateTime.now().toIso8601String(),
+                          'updatedAt': ServerValue.timestamp,
+                        });
+
+                        if (mounted) {
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Admin created successfully'),
+                              backgroundColor: Color(0xFF104f22),
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        setDialogState(() => isSubmitting = false);
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Error: $e'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      }
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF104f22),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: isSubmitting
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : const Text('Create Admin'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _viewAllAdmins() async {
+    List<Map<String, dynamic>> admins = [];
+    bool isLoading = true;
+
+    await showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          if (isLoading && admins.isEmpty) {
+            _loadAllAdmins().then((adminList) {
+              setDialogState(() {
+                admins = adminList;
+                isLoading = false;
+              });
+            });
+          }
+
+          return AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.admin_panel_settings,
+                    color: Colors.blue,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Text('All Admins', style: TextStyle(fontSize: 18)),
+              ],
+            ),
+            content: SizedBox(
+              width: double.maxFinite,
+              height: 400,
+              child: isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                        color: Color(0xFF104f22),
+                      ),
+                    )
+                  : admins.isEmpty
+                  ? const Center(child: Text('No admins found'))
+                  : ListView.builder(
+                      itemCount: admins.length,
+                      itemBuilder: (context, index) {
+                        final admin = admins[index];
+                        final isSuperAdmin =
+                            admin['id'] == '-OnhQJypR7JOFi47ZT8S';
+                        final isBlocked = admin['isBlocked'] == true;
+                        return Card(
+                          elevation: 2,
+                          margin: const EdgeInsets.only(bottom: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
+                              children: [
+                                Row(
+                                  children: [
+                                    CircleAvatar(
+                                      radius: 28,
+                                      backgroundColor: isSuperAdmin
+                                          ? Colors.orange
+                                          : Colors.blue,
+                                      backgroundImage:
+                                          admin['profileImage'] != null
+                                          ? NetworkImage(admin['profileImage'])
+                                          : null,
+                                      child: admin['profileImage'] == null
+                                          ? Text(
+                                              admin['name']?[0]
+                                                      ?.toUpperCase() ??
+                                                  'A',
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 20,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            )
+                                          : null,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            admin['name'] ?? 'Unknown',
+                                            style: const TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                              color: Color(0xFF2E2E2E),
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          const SizedBox(height: 4),
+                                          Row(
+                                            children: [
+                                              Icon(
+                                                Icons.phone,
+                                                size: 14,
+                                                color: Colors.grey[600],
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Expanded(
+                                                child: Text(
+                                                  admin['phone'] ?? 'N/A',
+                                                  style: TextStyle(
+                                                    fontSize: 13,
+                                                    color: Colors.grey[600],
+                                                  ),
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 6,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: isSuperAdmin
+                                            ? Colors.orange
+                                            : Colors.blue,
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Text(
+                                        isSuperAdmin ? 'Super Admin' : 'Admin',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                if (!isSuperAdmin) ...[
+                                  const SizedBox(height: 12),
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        isBlocked
+                                            ? Icons.block
+                                            : Icons.check_circle,
+                                        size: 18,
+                                        color: isBlocked
+                                            ? Colors.red
+                                            : Colors.green,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        isBlocked ? 'Blocked' : 'Active',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                          color: isBlocked
+                                              ? Colors.red
+                                              : Colors.green,
+                                        ),
+                                      ),
+                                      const Spacer(),
+                                      Switch(
+                                        value: isBlocked,
+                                        activeColor: Colors.red,
+                                        inactiveThumbColor: Colors.green,
+                                        onChanged: (value) async {
+                                          try {
+                                            await FirebaseDatabase.instance
+                                                .ref('users')
+                                                .child(admin['id'])
+                                                .update({'isBlocked': value});
+
+                                            setDialogState(() {
+                                              admin['isBlocked'] = value;
+                                            });
+
+                                            if (mounted) {
+                                              ScaffoldMessenger.of(
+                                                context,
+                                              ).showSnackBar(
+                                                SnackBar(
+                                                  content: Text(
+                                                    value
+                                                        ? 'Admin blocked successfully'
+                                                        : 'Admin unblocked successfully',
+                                                  ),
+                                                  backgroundColor: const Color(
+                                                    0xFF104f22,
+                                                  ),
+                                                ),
+                                              );
+                                            }
+                                          } catch (e) {
+                                            if (mounted) {
+                                              ScaffoldMessenger.of(
+                                                context,
+                                              ).showSnackBar(
+                                                SnackBar(
+                                                  content: Text('Error: $e'),
+                                                  backgroundColor: Colors.red,
+                                                ),
+                                              );
+                                            }
+                                          }
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Close'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Future<List<Map<String, dynamic>>> _loadAllAdmins() async {
+    try {
+      final snapshot = await FirebaseDatabase.instance.ref('users').once();
+      if (snapshot.snapshot.value == null) return [];
+
+      final usersMap = Map<String, dynamic>.from(
+        snapshot.snapshot.value as Map,
+      );
+      final results = <Map<String, dynamic>>[];
+
+      usersMap.forEach((key, value) {
+        final userData = Map<String, dynamic>.from(value as Map);
+        if (userData['role'] == 'admin') {
+          results.add({'id': key, ...userData});
+        }
+      });
+
+      return results;
+    } catch (e) {
+      return [];
+    }
+  }
+
   Future<void> _makeNewAdmin() async {
     final phoneController = TextEditingController();
     List<Map<String, dynamic>> allUsers = [];
@@ -636,7 +1336,9 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
           }
 
           return AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
             title: Row(
               children: [
                 Container(
@@ -645,7 +1347,10 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                     color: Colors.purple.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.admin_panel_settings, color: Colors.purple),
+                  child: const Icon(
+                    Icons.admin_panel_settings,
+                    color: Colors.purple,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 const Text('Make New Admin', style: TextStyle(fontSize: 18)),
@@ -660,8 +1365,13 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                     controller: phoneController,
                     decoration: InputDecoration(
                       labelText: 'Search by phone or name',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      prefixIcon: const Icon(Icons.search, color: Color(0xFF104f22)),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      prefixIcon: const Icon(
+                        Icons.search,
+                        color: Color(0xFF104f22),
+                      ),
                     ),
                     onChanged: (value) {
                       setDialogState(() {
@@ -669,10 +1379,13 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                           filteredUsers = [];
                         } else {
                           filteredUsers = allUsers.where((user) {
-                            final phone = user['phone']?.toString().toLowerCase() ?? '';
-                            final name = user['name']?.toString().toLowerCase() ?? '';
+                            final phone =
+                                user['phone']?.toString().toLowerCase() ?? '';
+                            final name =
+                                user['name']?.toString().toLowerCase() ?? '';
                             final search = value.toLowerCase();
-                            return phone.contains(search) || name.contains(search);
+                            return phone.contains(search) ||
+                                name.contains(search);
                           }).toList();
                         }
                       });
@@ -681,130 +1394,161 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                   const SizedBox(height: 16),
                   Expanded(
                     child: isLoading
-                        ? const Center(child: CircularProgressIndicator(color: Color(0xFF104f22)))
+                        ? const Center(
+                            child: CircularProgressIndicator(
+                              color: Color(0xFF104f22),
+                            ),
+                          )
                         : filteredUsers.isEmpty
-                            ? Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(Icons.search, size: 64, color: Colors.grey[300]),
-                                    const SizedBox(height: 16),
-                                    Text(
-                                      'Search users by phone or name',
-                                      style: TextStyle(color: Colors.grey[600], fontSize: 14),
-                                    ),
-                                  ],
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.search,
+                                  size: 64,
+                                  color: Colors.grey[300],
                                 ),
-                              )
-                            : ListView.builder(
-                                itemCount: filteredUsers.length,
-                                itemBuilder: (context, index) {
-                                  final user = filteredUsers[index];
-                                  final isAdmin = user['role'] == 'admin';
-                                  return Card(
-                                    elevation: 2,
-                                    margin: const EdgeInsets.only(bottom: 12),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(12),
-                                      child: Row(
-                                        children: [
-                                          CircleAvatar(
-                                            radius: 28,
-                                            backgroundColor: isAdmin ? Colors.purple : const Color(0xFF104f22),
-                                            backgroundImage: user['profileImage'] != null
-                                                ? NetworkImage(user['profileImage'])
-                                                : null,
-                                            child: user['profileImage'] == null
-                                                ? Text(
-                                                    user['name']?[0]?.toUpperCase() ?? 'U',
-                                                    style: const TextStyle(
-                                                      color: Colors.white,
-                                                      fontSize: 20,
-                                                      fontWeight: FontWeight.bold,
-                                                    ),
-                                                  )
-                                                : null,
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  user['name'] ?? 'Unknown',
-                                                  style: const TextStyle(
-                                                    fontSize: 16,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: Color(0xFF2E2E2E),
-                                                  ),
-                                                  overflow: TextOverflow.ellipsis,
+                                const SizedBox(height: 16),
+                                Text(
+                                  'Search users by phone or name',
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : ListView.builder(
+                            itemCount: filteredUsers.length,
+                            itemBuilder: (context, index) {
+                              final user = filteredUsers[index];
+                              final isAdmin = user['role'] == 'admin';
+                              return Card(
+                                elevation: 2,
+                                margin: const EdgeInsets.only(bottom: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(12),
+                                  child: Row(
+                                    children: [
+                                      CircleAvatar(
+                                        radius: 28,
+                                        backgroundColor: isAdmin
+                                            ? Colors.purple
+                                            : const Color(0xFF104f22),
+                                        backgroundImage:
+                                            user['profileImage'] != null
+                                            ? NetworkImage(user['profileImage'])
+                                            : null,
+                                        child: user['profileImage'] == null
+                                            ? Text(
+                                                user['name']?[0]
+                                                        ?.toUpperCase() ??
+                                                    'U',
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 20,
+                                                  fontWeight: FontWeight.bold,
                                                 ),
-                                                const SizedBox(height: 4),
-                                                Row(
-                                                  children: [
-                                                    Icon(Icons.phone, size: 14, color: Colors.grey[600]),
-                                                    const SizedBox(width: 4),
-                                                    Expanded(
-                                                      child: Text(
-                                                        user['phone'] ?? 'N/A',
-                                                        style: TextStyle(
-                                                          fontSize: 13,
-                                                          color: Colors.grey[600],
-                                                        ),
-                                                        overflow: TextOverflow.ellipsis,
-                                                      ),
+                                              )
+                                            : null,
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              user['name'] ?? 'Unknown',
+                                              style: const TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                                color: Color(0xFF2E2E2E),
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Row(
+                                              children: [
+                                                Icon(
+                                                  Icons.phone,
+                                                  size: 14,
+                                                  color: Colors.grey[600],
+                                                ),
+                                                const SizedBox(width: 4),
+                                                Expanded(
+                                                  child: Text(
+                                                    user['phone'] ?? 'N/A',
+                                                    style: TextStyle(
+                                                      fontSize: 13,
+                                                      color: Colors.grey[600],
                                                     ),
-                                                  ],
+                                                    overflow:
+                                                        TextOverflow.ellipsis,
+                                                  ),
                                                 ),
                                               ],
                                             ),
-                                          ),
-                                          isAdmin
-                                              ? Container(
-                                                  padding: const EdgeInsets.symmetric(
+                                          ],
+                                        ),
+                                      ),
+                                      isAdmin
+                                          ? Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
                                                     horizontal: 12,
                                                     vertical: 6,
                                                   ),
-                                                  decoration: BoxDecoration(
-                                                    color: Colors.purple,
-                                                    borderRadius: BorderRadius.circular(20),
-                                                  ),
-                                                  child: const Text(
-                                                    'Admin',
-                                                    style: TextStyle(
-                                                      color: Colors.white,
-                                                      fontSize: 12,
-                                                      fontWeight: FontWeight.bold,
-                                                    ),
-                                                  ),
-                                                )
-                                              : ElevatedButton(
-                                                  onPressed: () => _promoteToAdmin(user['id'], context),
-                                                  style: ElevatedButton.styleFrom(
-                                                    backgroundColor: const Color(0xFF104f22),
-                                                    foregroundColor: Colors.white,
-                                                    padding: const EdgeInsets.symmetric(
+                                              decoration: BoxDecoration(
+                                                color: Colors.purple,
+                                                borderRadius:
+                                                    BorderRadius.circular(20),
+                                              ),
+                                              child: const Text(
+                                                'Admin',
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            )
+                                          : ElevatedButton(
+                                              onPressed: () => _promoteToAdmin(
+                                                user['id'],
+                                                context,
+                                              ),
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: const Color(
+                                                  0xFF104f22,
+                                                ),
+                                                foregroundColor: Colors.white,
+                                                padding:
+                                                    const EdgeInsets.symmetric(
                                                       horizontal: 16,
                                                       vertical: 8,
                                                     ),
-                                                    shape: RoundedRectangleBorder(
-                                                      borderRadius: BorderRadius.circular(8),
-                                                    ),
-                                                  ),
-                                                  child: const Text(
-                                                    'Promote',
-                                                    style: TextStyle(fontSize: 12),
-                                                  ),
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
                                                 ),
-                                        ],
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
+                                              ),
+                                              child: const Text(
+                                                'Promote',
+                                                style: TextStyle(fontSize: 12),
+                                              ),
+                                            ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
                   ),
                 ],
               ),
@@ -826,7 +1570,9 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
       final snapshot = await FirebaseDatabase.instance.ref('users').once();
       if (snapshot.snapshot.value == null) return [];
 
-      final usersMap = Map<String, dynamic>.from(snapshot.snapshot.value as Map);
+      final usersMap = Map<String, dynamic>.from(
+        snapshot.snapshot.value as Map,
+      );
       final results = <Map<String, dynamic>>[];
 
       usersMap.forEach((key, value) {
@@ -840,10 +1586,15 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
     }
   }
 
-  Future<void> _promoteToAdmin(String userId, BuildContext dialogContext) async {
+  Future<void> _promoteToAdmin(
+    String userId,
+    BuildContext dialogContext,
+  ) async {
     try {
-      await FirebaseDatabase.instance.ref('users').child(userId).update({'role': 'admin'});
-      
+      await FirebaseDatabase.instance.ref('users').child(userId).update({
+        'role': 'admin',
+      });
+
       if (mounted) {
         Navigator.pop(dialogContext);
         ScaffoldMessenger.of(context).showSnackBar(

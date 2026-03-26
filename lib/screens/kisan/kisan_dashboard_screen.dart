@@ -4,6 +4,7 @@ import 'package:poket_mandi/screens/kisan/my_order_screen.dart';
 import 'package:poket_mandi/screens/kisan/edit_profile_screen.dart';
 import 'package:poket_mandi/screens/common/about_screen.dart';
 import 'package:poket_mandi/screens/common/policies_screen.dart';
+import 'package:poket_mandi/screens/common/notifications_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:poket_mandi/main.dart';
 import 'package:poket_mandi/screens/kisan/add_new_crop_screen.dart';
@@ -850,10 +851,19 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
                 ),
                 const SizedBox(height: 12),
                 _buildProfileOption(
-                  icon: Icons.settings_outlined,
-                  title: "Settings",
-                  subtitle: "App preferences and configurations",
-                  onTap: () {},
+                  icon: Icons.notifications_outlined,
+                  title: "Notifications",
+                  subtitle: "Manage notification preferences",
+                  onTap: isGuest
+                      ? _showGuestRestrictionDialog
+                      : () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const NotificationsScreen(),
+                            ),
+                          );
+                        },
                 ),
                 const SizedBox(height: 12),
                 _buildProfileOption(

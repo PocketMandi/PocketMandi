@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:poket_mandi/screens/kisan/kisan_dashboard_screen.dart';
 import 'package:poket_mandi/screens/vyapari/vyapari_dashboard_screen.dart';
 import 'package:poket_mandi/screens/admin/admin_dashboard_screen.dart';
+import 'package:poket_mandi/services/notification_service.dart';
 
 class OtpVerificationScreen extends StatefulWidget {
   final String phoneNumber;
@@ -84,6 +85,17 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
           "createdAt": DateTime.now().toIso8601String(),
         });
 
+        // Send notification to all admins about new user
+        await NotificationService.sendNotificationToAdmins(
+          title: 'New User Registered',
+          body: '${widget.userData!["name"]} registered as ${widget.isTrader ? "Trader" : "Farmer"}',
+          data: {
+            'type': 'new_user',
+            'userId': newRef.key,
+            'userRole': widget.isTrader ? 'trader' : 'farmer',
+          },
+        );
+
         // Save user data locally
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('user_id', newRef.key!);
@@ -155,7 +167,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                   return KisanDashboardScreen();
                 } else if (role == "trader") {
                   return VyapariDashboardScreen();
-                } else if (role == "admin") {
+                } else if (role == "admin" || role == "superadmin") {
                   return const AdminDashboardScreen();
                 } else {
                   return KisanDashboardScreen();
