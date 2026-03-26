@@ -8,7 +8,7 @@ class NotificationService {
   static final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
   
   static Future<void> initialize() async {
-    // Request permission for iOS
+    // Request permission for iOS and Android 13+
     NotificationSettings settings = await _firebaseMessaging.requestPermission(
       alert: true,
       badge: true,
@@ -39,6 +39,11 @@ class NotificationService {
         print('Notification tapped: ${response.payload}');
       },
     );
+
+    // Request Android 13+ notification permission
+    await _localNotifications
+        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+        ?.requestNotificationsPermission();
 
     // Create notification channel for Android
     const AndroidNotificationChannel channel = AndroidNotificationChannel(
@@ -135,24 +140,48 @@ class NotificationService {
     Map<String, dynamic>? data,
   }) async {
     try {
-      final snapshot = await FirebaseDatabase.instance
-          .ref('users/$userId/fcmToken')
-          .once();
+      // Save notification to database
+      await FirebaseDatabase.instance
+          .ref('notifications/$userId')
+          .push()
+          .set({
+        'title': title,
+        'body': body,
+        'data': data,
+        'read': false,
+        'createdAt': ServerValue.timestamp,
+      });
       
-      if (snapshot.snapshot.value != null) {
-        await FirebaseDatabase.instance
-            .ref('notifications/$userId')
-            .push()
-            .set({
-          'title': title,
-          'body': body,
-          'data': data,
-          'read': false,
-          'createdAt': ServerValue.timestamp,
-        });
-        
-        print('Notification saved for user: $userId');
-      }
+      // Show local notification immediately
+      const androidDetails = AndroidNotificationDetails(
+        'high_importance_channel',
+        'High Importance Notifications',
+        channelDescription: 'This channel is used for important notifications.',
+        importance: Importance.high,
+        priority: Priority.high,
+        icon: '@mipmap/ic_launcher',
+      );
+      
+      const iosDetails = DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+      );
+      
+      const notificationDetails = NotificationDetails(
+        android: androidDetails,
+        iOS: iosDetails,
+      );
+
+      await _localNotifications.show(
+        id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        title: title,
+        body: body,
+        notificationDetails: notificationDetails,
+        payload: data?.toString(),
+      );
+      
+      print('Notification sent to user: $userId');
     } catch (e) {
       print('Error sending notification: $e');
     }
