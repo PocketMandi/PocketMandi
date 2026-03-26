@@ -374,118 +374,102 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
       child: Column(
         children: [
           // User Info Section
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                // Profile Image
-                Container(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: roleColor, width: 3),
-                    boxShadow: [
-                      BoxShadow(
-                        color: roleColor.withOpacity(0.3),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
+          InkWell(
+            onTap: () => _viewUserProfile(userId, user),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  // Profile Image
+                  Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: roleColor, width: 3),
+                      boxShadow: [
+                        BoxShadow(
+                          color: roleColor.withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: CircleAvatar(
+                      radius: 36,
+                      backgroundColor: roleColor.withOpacity(0.1),
+                      backgroundImage: user['profileImage'] != null
+                          ? NetworkImage(user['profileImage'])
+                          : null,
+                      child: user['profileImage'] == null
+                          ? Icon(
+                              role == 'farmer' ? Icons.agriculture : Icons.store,
+                              size: 36,
+                              color: roleColor,
+                            )
+                          : null,
+                    ),
                   ),
-                  child: CircleAvatar(
-                    radius: 36,
-                    backgroundColor: roleColor.withOpacity(0.1),
-                    backgroundImage: user['profileImage'] != null
-                        ? NetworkImage(user['profileImage'])
-                        : null,
-                    child: user['profileImage'] == null
-                        ? Icon(
-                            role == 'farmer' ? Icons.agriculture : Icons.store,
-                            size: 36,
-                            color: roleColor,
-                          )
-                        : null,
-                  ),
-                ),
-                const SizedBox(width: 16),
+                  const SizedBox(width: 16),
 
-                // User Details
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              user['name'] ?? 'N/A',
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF2E2E2E),
+                  // User Details
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                user['name'] ?? 'N/A',
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF2E2E2E),
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: roleColor.withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(8),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: roleColor.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                role.toUpperCase(),
+                                style: TextStyle(
+                                  color: roleColor,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
-                            child: Text(
-                              role.toUpperCase(),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            Icon(Icons.phone, size: 14, color: Colors.grey[600]),
+                            const SizedBox(width: 4),
+                            Text(
+                              user['phone'] ?? 'N/A',
                               style: TextStyle(
-                                color: roleColor,
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                                color: Colors.grey[700],
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          Icon(Icons.phone, size: 14, color: Colors.grey[600]),
-                          const SizedBox(width: 4),
-                          Text(
-                            user['phone'] ?? 'N/A',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey[700],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Icon(Icons.location_on, size: 14, color: Colors.grey[600]),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              '${user['village'] ?? 'N/A'}, ${user['state'] ?? 'N/A'}',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Colors.grey[600],
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                      if (role == 'trader' && user['mandiName'] != null) ...[
+                          ],
+                        ),
                         const SizedBox(height: 4),
                         Row(
                           children: [
-                            Icon(Icons.store, size: 14, color: Colors.grey[600]),
+                            Icon(Icons.location_on, size: 14, color: Colors.grey[600]),
                             const SizedBox(width: 4),
                             Expanded(
                               child: Text(
-                                user['mandiName'],
+                                '${user['village'] ?? 'N/A'}, ${user['state'] ?? 'N/A'}',
                                 style: TextStyle(
                                   fontSize: 13,
                                   color: Colors.grey[600],
@@ -496,32 +480,52 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
                             ),
                           ],
                         ),
+                        if (role == 'trader' && user['mandiName'] != null) ...[
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Icon(Icons.store, size: 14, color: Colors.grey[600]),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  user['mandiName'],
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.grey[600],
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
-                ),
 
-                // KYC Badge
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: _getKycColor(kycStatus).withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: _getKycColor(kycStatus).withOpacity(0.5),
-                      width: 1.5,
+                  // KYC Badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: _getKycColor(kycStatus).withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: _getKycColor(kycStatus).withOpacity(0.5),
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Text(
+                      kycStatus.toUpperCase(),
+                      style: TextStyle(
+                        color: _getKycColor(kycStatus),
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
-                  child: Text(
-                    kycStatus.toUpperCase(),
-                    style: TextStyle(
-                      color: _getKycColor(kycStatus),
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
 
@@ -560,12 +564,12 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed: () => _updateKycStatus(userId, 'approved'),
-                      icon: const Icon(Icons.check_circle, size: 18),
-                      label: const Text('Approve'),
+                      icon: const Icon(Icons.check_circle, size: 16),
+                      label: const Text('Approve', style: TextStyle(fontSize: 13)),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green,
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -577,12 +581,12 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed: () => _updateKycStatus(userId, 'rejected'),
-                      icon: const Icon(Icons.cancel, size: 18),
-                      label: const Text('Reject'),
+                      icon: const Icon(Icons.cancel, size: 16),
+                      label: const Text('Reject', style: TextStyle(fontSize: 13)),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.red,
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
@@ -597,16 +601,19 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
                     onPressed: () => _toggleBlockUser(userId, isBlocked),
                     icon: Icon(
                       isBlocked ? Icons.lock_open : Icons.block,
-                      size: 18,
+                      size: 16,
                     ),
-                    label: Text(isBlocked ? 'Unblock' : 'Block'),
+                    label: Text(
+                      isBlocked ? 'Unblock' : 'Block',
+                      style: const TextStyle(fontSize: 13),
+                    ),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: isBlocked ? Colors.orange : Colors.grey[700],
                       side: BorderSide(
                         color: isBlocked ? Colors.orange : Colors.grey[400]!,
                         width: 1.5,
                       ),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -697,6 +704,238 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
       );
+    }
+  }
+
+  void _viewUserProfile(String userId, Map<dynamic, dynamic> user) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => UserProfileBottomSheet(userId: userId, userData: user),
+    );
+  }
+}
+
+class UserProfileBottomSheet extends StatelessWidget {
+  final String userId;
+  final Map<dynamic, dynamic> userData;
+
+  const UserProfileBottomSheet({
+    Key? key,
+    required this.userId,
+    required this.userData,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final role = userData['role'] ?? 'farmer';
+    final canMakeAdmin = role == 'farmer' || role == 'trader';
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.7,
+      minChildSize: 0.5,
+      maxChildSize: 0.95,
+      builder: (context, scrollController) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+        ),
+        child: Column(
+          children: [
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                controller: scrollController,
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 40,
+                          backgroundColor: Colors.green.shade100,
+                          backgroundImage: userData['profileImage'] != null
+                              ? NetworkImage(userData['profileImage'])
+                              : null,
+                          child: userData['profileImage'] == null
+                              ? Icon(Icons.person, size: 40, color: Colors.green.shade700)
+                              : null,
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                userData['name'] ?? 'N/A',
+                                style: const TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.green.shade50,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  role.toUpperCase(),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.green.shade700,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    const Text(
+                      'Contact Information',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildInfoTile(Icons.phone, 'Phone', userData['phone'] ?? 'N/A'),
+                    _buildInfoTile(Icons.location_on, 'Village', userData['village'] ?? 'N/A'),
+                    _buildInfoTile(Icons.map, 'State', userData['state'] ?? 'N/A'),
+                    if (role == 'trader' && userData['mandiName'] != null)
+                      _buildInfoTile(Icons.store, 'Mandi', userData['mandiName']),
+                    const SizedBox(height: 24),
+                    if (canMakeAdmin)
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            _makeAdmin(context, userId, userData);
+                          },
+                          icon: const Icon(Icons.admin_panel_settings),
+                          label: const Text('Make Admin'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.purple,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoTile(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, size: 20, color: Colors.grey[700]),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _makeAdmin(BuildContext context, String userId, Map<dynamic, dynamic> user) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.admin_panel_settings, color: Colors.purple),
+            SizedBox(width: 12),
+            Text('Make Admin'),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to make "${user['name']}" an admin? This will give them full access to the admin panel.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.purple,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Confirm'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await FirebaseDatabase.instance.ref('users').child(userId).update({
+        'role': 'Admin',
+        'updatedAt': ServerValue.timestamp,
+      });
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('User promoted to Admin successfully'),
+            backgroundColor: Colors.purple,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     }
   }
 }

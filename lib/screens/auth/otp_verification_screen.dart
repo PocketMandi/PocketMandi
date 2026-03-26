@@ -3,6 +3,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:poket_mandi/screens/kisan/kisan_dashboard_screen.dart';
 import 'package:poket_mandi/screens/vyapari/vyapari_dashboard_screen.dart';
+import 'package:poket_mandi/screens/admin/admin_dashboard_screen.dart';
 
 class OtpVerificationScreen extends StatefulWidget {
   final String phoneNumber;
@@ -149,9 +150,17 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(
-              builder: (_) => role == "farmer"
-                  ? KisanDashboardScreen()
-                  : VyapariDashboardScreen(),
+              builder: (_) {
+                if (role == "farmer") {
+                  return KisanDashboardScreen();
+                } else if (role == "trader") {
+                  return VyapariDashboardScreen();
+                } else if (role == "admin") {
+                  return const AdminDashboardScreen();
+                } else {
+                  return KisanDashboardScreen();
+                }
+              },
             ),
             (route) => false,
           );

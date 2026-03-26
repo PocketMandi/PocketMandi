@@ -29,8 +29,8 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
-      // home: const AuthCheck(),
-      home: const AdminDashboardScreen(),
+      home: const AuthCheck(),
+      // home: const AdminDashboardScreen(),
     );
   }
 }
@@ -55,14 +55,22 @@ class _AuthCheckState extends State<AuthCheck> {
     final userRole = prefs.getString('user_role');
 
     if (userId != null && userRole != null) {
-      // User is logged in, navigate to dashboard
+      // User is logged in, navigate to appropriate dashboard
+      Widget dashboard;
+      if (userRole == 'farmer') {
+        dashboard = KisanDashboardScreen();
+      } else if (userRole == 'trader') {
+        dashboard = VyapariDashboardScreen();
+      } else if (userRole == 'admin') {
+        dashboard = const AdminDashboardScreen();
+      } else {
+        // Default to landing screen if role is unknown
+        dashboard = LandingScreen();
+      }
+
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(
-          builder: (_) => userRole == 'farmer'
-              ? KisanDashboardScreen()
-              : VyapariDashboardScreen(),
-        ),
+        MaterialPageRoute(builder: (_) => dashboard),
       );
     } else {
       // User not logged in, show landing screen

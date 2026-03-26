@@ -3,6 +3,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'users_management_screen.dart';
 import 'crops_management_screen.dart';
 import 'requests_management_screen.dart';
+import 'admin_profile_screen.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({Key? key}) : super(key: key);
@@ -33,7 +34,16 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     final isSelected = _selectedIndex == index;
     return Expanded(
       child: GestureDetector(
-        onTap: () => setState(() => _selectedIndex = index),
+        onTap: () {
+          if (index == 4) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const AdminProfileScreen()),
+            );
+          } else {
+            setState(() => _selectedIndex = index);
+          }
+        },
         behavior: HitTestBehavior.opaque,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
@@ -102,6 +112,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 _buildNavItem(1, Icons.people_rounded, 'Users'),
                 _buildNavItem(2, Icons.eco_rounded, 'Crops'),
                 _buildNavItem(3, Icons.assignment_rounded, 'Requests'),
+                _buildNavItem(4, Icons.person_rounded, 'Profile'),
               ],
             ),
           ),
