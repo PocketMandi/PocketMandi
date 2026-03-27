@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:poket_mandi/services/notification_service.dart';
 
 class TestsScreen extends StatefulWidget {
   const TestsScreen({super.key});
@@ -75,6 +76,23 @@ class _TestsScreenState extends State<TestsScreen> {
         "createdAt": ServerValue.timestamp,
         "updatedAt": ServerValue.timestamp,
       });
+
+      // Send notification to all admins
+      final testTypes = [];
+      if (soilTest) testTypes.add('Soil');
+      if (waterTest) testTypes.add('Water');
+      
+      await NotificationService.sendNotificationToAdmins(
+        title: 'New Test Request',
+        body: '$userName requested ${testTypes.join(' & ')} test',
+        data: {
+          'type': 'test_request',
+          'userId': userId,
+          'requestId': ref.key,
+          'soilTest': soilTest,
+          'waterTest': waterTest,
+        },
+      );
 
       if (mounted) {
         setState(() => isSubmitting = false);

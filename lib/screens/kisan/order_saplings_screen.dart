@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:poket_mandi/services/notification_service.dart';
 
 class OrderSaplingsScreen extends StatefulWidget {
   const OrderSaplingsScreen({super.key});
@@ -249,6 +250,18 @@ class _OrderSaplingsScreenState extends State<OrderSaplingsScreen> {
         "createdAt": ServerValue.timestamp,
         "updatedAt": ServerValue.timestamp,
       });
+
+      // Send notification to all admins
+      await NotificationService.sendNotificationToAdmins(
+        title: 'New Sapling Order',
+        body: '$userName ordered $quantity $saplingType ${crop['name']} saplings',
+        data: {
+          'type': 'sapling_order',
+          'cropName': crop['name'],
+          'userId': userId,
+          'orderId': ref.key,
+        },
+      );
 
       if (mounted) {
         _showThankYouDialog();

@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:video_player/video_player.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:poket_mandi/services/notification_service.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 
@@ -1028,6 +1029,18 @@ class _SelectedCropScreenState extends State<SelectedCropScreen> {
         "createdAt": ServerValue.timestamp,
         "updatedAt": ServerValue.timestamp,
       });
+
+      // Send notification to all admins
+      await NotificationService.sendNotificationToAdmins(
+        title: 'New Crop Order',
+        body: '$userName ordered ${widget.cropName} (${quantityController.text} $selectedUnit)',
+        data: {
+          'type': 'crop_order',
+          'cropName': widget.cropName,
+          'userId': userId,
+          'orderId': cropId,
+        },
+      );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
