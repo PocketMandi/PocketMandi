@@ -15,7 +15,7 @@ class _RequestsManagementScreenState extends State<RequestsManagementScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 6, vsync: this);
   }
 
   @override
@@ -87,46 +87,16 @@ class _RequestsManagementScreenState extends State<RequestsManagementScreen>
                     indicatorPadding: const EdgeInsets.symmetric(horizontal: 8),
                     labelColor: Colors.white,
                     unselectedLabelColor: Colors.white60,
-                    labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                    unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal, fontSize: 14),
-                    labelPadding: const EdgeInsets.symmetric(horizontal: 16),
+                    labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                    unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal, fontSize: 13),
+                    labelPadding: const EdgeInsets.symmetric(horizontal: 12),
                     tabs: const [
-                      Tab(
-                        child: Row(
-                          children: [
-                            Icon(Icons.grass, size: 18),
-                            SizedBox(width: 8),
-                            Text('Unlisted Crops'),
-                          ],
-                        ),
-                      ),
-                      Tab(
-                        child: Row(
-                          children: [
-                            Icon(Icons.local_florist, size: 18),
-                            SizedBox(width: 8),
-                            Text('Sapling Orders'),
-                          ],
-                        ),
-                      ),
-                      Tab(
-                        child: Row(
-                          children: [
-                            Icon(Icons.science, size: 18),
-                            SizedBox(width: 8),
-                            Text('Test Requests'),
-                          ],
-                        ),
-                      ),
-                      Tab(
-                        child: Row(
-                          children: [
-                            Icon(Icons.shopping_bag, size: 18),
-                            SizedBox(width: 8),
-                            Text('Trader Orders'),
-                          ],
-                        ),
-                      ),
+                      Tab(text: 'Farmer\nUnlisted'),
+                      Tab(text: 'Trader\nUnlisted'),
+                      Tab(text: 'Farmer\nCrops'),
+                      Tab(text: 'Trader\nCrops'),
+                      Tab(text: 'Sapling\nOrders'),
+                      Tab(text: 'Test\nRequests'),
                     ],
                   ),
                 ],
@@ -139,10 +109,12 @@ class _RequestsManagementScreenState extends State<RequestsManagementScreen>
               child: TabBarView(
                 controller: _tabController,
                 children: const [
-                  UnlistedCropsTab(),
+                  FarmerUnlistedCropsTab(),
+                  TraderUnlistedCropsTab(),
+                  FarmerCropsTab(),
+                  TraderCropsTab(),
                   SaplingOrdersTab(),
                   TestRequestsTab(),
-                  TraderOrdersTab(),
                 ],
               ),
             ),
@@ -153,8 +125,292 @@ class _RequestsManagementScreenState extends State<RequestsManagementScreen>
   }
 }
 
-class UnlistedCropsTab extends StatelessWidget {
-  const UnlistedCropsTab({Key? key}) : super(key: key);
+class FarmerUnlistedCropsTab extends StatelessWidget {
+  const FarmerUnlistedCropsTab({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final ref = FirebaseDatabase.instance.ref('requestednewcrop');
+
+    return StreamBuilder(
+      stream: ref.limitToLast(50).onValue,
+      builder: (context, AsyncSnapshot<DatabaseEvent> snapshot) {
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator(color: Color(0xFF104f22)));
+        }
+
+        if (snapshot.data!.snapshot.value == null) {
+          return _buildEmptyState('No farmer unlisted crop requests', Icons.grass);
+        }
+
+        var requestsData = snapshot.data!.snapshot.value as Map<dynamic, dynamic>;
+        var requestsList = <MapEntry>[];
+        
+        requestsData.forEach((userId, userRequests) {
+          if (userRequests is Map) {
+            userRequests.forEach((requestId, request) {
+              requestsList.add(MapEntry('$userId/$requestId', request));
+            });
+          }
+        });
+
+        if (requestsList.isEmpty) {
+          return _buildEmptyState('No farmer unlisted crop requests', Icons.grass);
+        }
+
+        requestsList.sort((a, b) {
+          var aTime = (a.value as Map)['createdAt'] ?? 0;
+          var bTime = (b.value as Map)['createdAt'] ?? 0;
+          return bTime.compareTo(aTime);
+        });
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: requestsList.length,
+          itemBuilder: (context, index) {
+            var request = requestsList[index].value as Map<dynamic, dynamic>;
+
+            return Card(
+              margin: const EdgeInsets.only(bottom: 16),
+              elevation: 2,
+              shadowColor: Colors.black12,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Colors.white,
+                      Colors.green.shade50.withOpacity(0.3),
+                    ],
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF104f22), Color(0xFF1a7a33)],
+                              ),
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF104f22).withOpacity(0.3),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: const Icon(Icons.grass, color: Colors.white, size: 28),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  request['cropName'] ?? 'N/A',
+                                  style: const TextStyle(
+                                    fontSize: 19,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF2E2E2E),
+                                    letterSpacing: 0.3,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    Icon(Icons.access_time, size: 14, color: Colors.grey[500]),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      _formatDate(request['createdAt']),
+                                      style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [Colors.orange.shade400, Colors.orange.shade600],
+                              ),
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.orange.withOpacity(0.3),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: const Text(
+                              'PENDING',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.grey.shade200),
+                        ),
+                        child: Column(
+                          children: [
+                            _buildInfoRow(Icons.shopping_basket, 'Quantity', '${request['quantity']} ${request['unit']}'),
+                            const Divider(height: 20),
+                            _buildInfoRow(Icons.currency_rupee, 'Price', '₹${request['expectedPrice']}/${request['unit']}'),
+                            const Divider(height: 20),
+                            _buildInfoRow(Icons.person, 'Farmer', '${request['userName']} (${request['userPhone']})'),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: () => _updateStatus(context, requestsList[index].key, 'confirmed'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.green,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                elevation: 0,
+                              ),
+                              icon: const Icon(Icons.check_circle, size: 18),
+                              label: const Text('Confirm', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: () => _updateStatus(context, requestsList[index].key, 'delivered'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.blue,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                elevation: 0,
+                              ),
+                              icon: const Icon(Icons.local_shipping, size: 18),
+                              label: const Text('Delivered', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String label, String value) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: Colors.grey[600]),
+        const SizedBox(width: 8),
+        Text(
+          '$label: ',
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.grey[600],
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(
+              fontSize: 14,
+              color: Color(0xFF2E2E2E),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEmptyState(String message, IconData icon) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.green.shade50,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, size: 64, color: Colors.grey[400]),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            message,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey[700],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _updateStatus(BuildContext context, String path, String status) async {
+    final parts = path.split('/');
+    await FirebaseDatabase.instance
+        .ref('requestednewcrop')
+        .child(parts[0])
+        .child(parts[1])
+        .update({
+      'status': status,
+      'updatedAt': ServerValue.timestamp,
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Status updated to $status')),
+    );
+  }
+
+  String _formatDate(dynamic timestamp) {
+    if (timestamp == null) return 'N/A';
+    try {
+      var date = DateTime.fromMillisecondsSinceEpoch(timestamp as int);
+      return '${date.day}/${date.month}/${date.year}';
+    } catch (e) {
+      return 'N/A';
+    }
+  }
+}
+
+class TraderUnlistedCropsTab extends StatelessWidget {
+  const TraderUnlistedCropsTab({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -1174,8 +1430,304 @@ class TestRequestsTab extends StatelessWidget {
   }
 }
 
-class TraderOrdersTab extends StatelessWidget {
-  const TraderOrdersTab({Key? key}) : super(key: key);
+class FarmerCropsTab extends StatelessWidget {
+  const FarmerCropsTab({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final ref = FirebaseDatabase.instance.ref('addedcropsbykissan');
+
+    return StreamBuilder(
+      stream: ref.limitToLast(50).onValue,
+      builder: (context, AsyncSnapshot<DatabaseEvent> snapshot) {
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator(color: Color(0xFF104f22)));
+        }
+
+        if (snapshot.data!.snapshot.value == null) {
+          return _buildEmptyState('No farmer crop listings', Icons.agriculture);
+        }
+
+        var cropsData = snapshot.data!.snapshot.value as Map<dynamic, dynamic>;
+        var cropsList = <MapEntry>[];
+        
+        cropsData.forEach((userId, userCrops) {
+          if (userCrops is Map) {
+            userCrops.forEach((cropId, crop) {
+              cropsList.add(MapEntry('$userId/$cropId', crop));
+            });
+          }
+        });
+
+        if (cropsList.isEmpty) {
+          return _buildEmptyState('No farmer crop listings', Icons.agriculture);
+        }
+
+        cropsList.sort((a, b) {
+          var aTime = (a.value as Map)['createdAt'] ?? 0;
+          var bTime = (b.value as Map)['createdAt'] ?? 0;
+          return bTime.compareTo(aTime);
+        });
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: cropsList.length,
+          itemBuilder: (context, index) {
+            var crop = cropsList[index].value as Map<dynamic, dynamic>;
+
+            return Card(
+              margin: const EdgeInsets.only(bottom: 16),
+              elevation: 2,
+              shadowColor: Colors.black12,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Colors.white,
+                      Colors.teal.shade50.withOpacity(0.3),
+                    ],
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [Colors.teal.shade600, Colors.teal.shade800],
+                              ),
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.teal.withOpacity(0.3),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: const Icon(Icons.agriculture, color: Colors.white, size: 28),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  crop['cropType'] ?? 'N/A',
+                                  style: const TextStyle(
+                                    fontSize: 19,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF2E2E2E),
+                                    letterSpacing: 0.3,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    Icon(Icons.access_time, size: 14, color: Colors.grey[500]),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      _formatDate(crop['createdAt']),
+                                      style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [Colors.orange.shade400, Colors.orange.shade600],
+                              ),
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.orange.withOpacity(0.3),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: const Text(
+                              'PENDING',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      if (crop['imageUrl'] != null) ...[
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image.network(
+                            crop['imageUrl'],
+                            height: 150,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.grey.shade200),
+                        ),
+                        child: Column(
+                          children: [
+                            _buildInfoRow(Icons.shopping_basket, 'Quantity', '${crop['quantity']} ${crop['unit']}'),
+                            const Divider(height: 20),
+                            _buildInfoRow(Icons.currency_rupee, 'Price', '₹${crop['pricePerUnit']}/${crop['unit']}'),
+                            const Divider(height: 20),
+                            _buildInfoRow(Icons.person, 'Farmer', '${crop['userName']} (${crop['userPhone']})'),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: () => _updateStatus(context, cropsList[index].key, 'confirmed'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.green,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                elevation: 0,
+                              ),
+                              icon: const Icon(Icons.check_circle, size: 18),
+                              label: const Text('Confirm', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: () => _updateStatus(context, cropsList[index].key, 'delivered'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.blue,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                elevation: 0,
+                              ),
+                              icon: const Icon(Icons.local_shipping, size: 18),
+                              label: const Text('Delivered', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String label, String value) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: Colors.grey[600]),
+        const SizedBox(width: 8),
+        Text(
+          '$label: ',
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.grey[600],
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(
+              fontSize: 14,
+              color: Color(0xFF2E2E2E),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEmptyState(String message, IconData icon) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.green.shade50,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, size: 64, color: Colors.grey[400]),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            message,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey[700],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _updateStatus(BuildContext context, String path, String status) async {
+    final parts = path.split('/');
+    await FirebaseDatabase.instance
+        .ref('addedcropsbykissan')
+        .child(parts[0])
+        .child(parts[1])
+        .update({
+      'status': status,
+      'updatedAt': ServerValue.timestamp,
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Status updated to $status')),
+    );
+  }
+
+  String _formatDate(dynamic timestamp) {
+    if (timestamp == null) return 'N/A';
+    try {
+      var date = DateTime.fromMillisecondsSinceEpoch(timestamp as int);
+      return '${date.day}/${date.month}/${date.year}';
+    } catch (e) {
+      return 'N/A';
+    }
+  }
+}
+
+class TraderCropsTab extends StatelessWidget {
+  const TraderCropsTab({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
