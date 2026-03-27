@@ -2,10 +2,17 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/material.dart';
+import 'package:poket_mandi/screens/common/notifications_list_screen.dart';
 
 class NotificationService {
   static final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
   static final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
+  static BuildContext? _context;
+  
+  static void setContext(BuildContext context) {
+    _context = context;
+  }
   
   static Future<void> initialize() async {
     // Request permission for iOS and Android 13+
@@ -37,6 +44,7 @@ class NotificationService {
       settings: initSettings,
       onDidReceiveNotificationResponse: (NotificationResponse response) {
         print('Notification tapped: ${response.payload}');
+        _handleNotificationTap(response.payload);
       },
     );
 
@@ -247,6 +255,47 @@ class NotificationService {
     }
   }
 
+  // Handle notification tap
+  static void _handleNotificationTap(String? payload) {
+    if (payload == null || _context == null) return;
+
+    try {
+      // Parse payload to get notification type
+      final parts = payload.split('|');
+      if (parts.isEmpty) return;
+
+      final type = parts[0];
+      int tabIndex = 0;
+
+      switch (type) {
+        case 'crop_request':
+          tabIndex = 0; // Farmer Unlisted
+          break;
+        case 'crop_order':
+          tabIndex = 2; // Farmer Crops
+          break;
+        case 'sapling_order':
+          tabIndex = 4; // Sapling Orders
+          break;
+        case 'test_request':
+          tabIndex = 5; // Test Requests
+          break;
+        case 'new_user':
+          // Navigate to users management
+          return;
+      }
+
+      // Navigate to requests management with specific tab
+      Navigator.of(_context!).push(
+        MaterialPageRoute(
+          builder: (_) => RequestsManagementScreenWithTab(initialTab: tabIndex),
+        ),
+      );
+    } catch (e) {
+      print('Error handling notification tap: $e');
+    }
+  }
+
   // Listen to Firebase notifications in real-time
   static Future<void> _listenToNotifications() async {
     try {
@@ -279,6 +328,20 @@ class NotificationService {
 
   // Show notification directly
   static Future<void> _showDirectNotification(String title, String body) async {
+    // Get notification type from body to create payload
+    String notificationType = 'notification';
+    if (body.contains('crop request') || body.contains('requested')) {
+      notificationType = 'crop_request';
+    } else if (body.contains('ordered') && body.contains('sapling')) {
+      notificationType = 'sapling_order';
+    } else if (body.contains('ordered')) {
+      notificationType = 'crop_order';
+    } else if (body.contains('test')) {
+      notificationType = 'test_request';
+    } else if (body.contains('registered')) {
+      notificationType = 'new_user';
+    }
+
     const androidDetails = AndroidNotificationDetails(
       'high_importance_channel',
       'High Importance Notifications',
@@ -304,6 +367,7 @@ class NotificationService {
       title: title,
       body: body,
       notificationDetails: notificationDetails,
+      payload: notificationType,
     );
   }
 

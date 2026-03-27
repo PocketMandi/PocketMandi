@@ -34,11 +34,14 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
+      navigatorKey: _navigatorKey,
       home: const AuthCheck(),
       // home: const AdminDashboardScreen(),
     );
   }
 }
+
+final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
 
 class AuthCheck extends StatefulWidget {
   const AuthCheck({super.key});
@@ -52,6 +55,12 @@ class _AuthCheckState extends State<AuthCheck> {
   void initState() {
     super.initState();
     _checkAuth();
+    // Set notification context after first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _navigatorKey.currentContext != null) {
+        NotificationService.setContext(_navigatorKey.currentContext!);
+      }
+    });
   }
 
   Future<void> _checkAuth() async {
