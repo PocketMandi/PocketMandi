@@ -210,16 +210,6 @@ class NotificationService {
     Map<String, dynamic>? data,
   }) async {
     try {
-      // Always send to super admin first
-      const superAdminId = '-OnhQJypR7JOFi47ZT8S';
-      print('Sending notification to super admin: $superAdminId');
-      await sendNotificationToUser(
-        userId: superAdminId,
-        title: title,
-        body: body,
-        data: data,
-      );
-      
       // Get all users
       final snapshot = await FirebaseDatabase.instance
           .ref('users')
@@ -228,19 +218,15 @@ class NotificationService {
       if (snapshot.snapshot.value != null) {
         final users = Map<String, dynamic>.from(snapshot.snapshot.value as Map);
         
-        // Filter admins and superadmins
+        // Filter and send to all admins and superadmins
         for (var entry in users.entries) {
           final userId = entry.key;
-          
-          // Skip super admin since we already sent to them
-          if (userId == superAdminId) continue;
-          
           final userData = Map<String, dynamic>.from(entry.value as Map);
           final role = userData['role']?.toString() ?? '';
           
           // Send to both admin and superadmin roles
           if (role == 'admin' || role == 'superadmin') {
-            print('Sending notification to admin: $userId with role: $role');
+            print('Sending notification to $role: $userId');
             await sendNotificationToUser(
               userId: userId,
               title: title,
