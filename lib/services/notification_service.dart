@@ -80,6 +80,9 @@ class NotificationService {
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       print('Message clicked!');
     });
+
+    // Listen to Firebase notifications node for real-time updates
+    _listenToNotifications();
   }
 
   static Future<void> _saveFCMToken(String token) async {
@@ -152,36 +155,41 @@ class NotificationService {
         'createdAt': ServerValue.timestamp,
       });
       
-      // Show local notification immediately
-      const androidDetails = AndroidNotificationDetails(
-        'high_importance_channel',
-        'High Importance Notifications',
-        channelDescription: 'This channel is used for important notifications.',
-        importance: Importance.high,
-        priority: Priority.high,
-        icon: '@mipmap/ic_launcher',
-      );
+      // Only show local notification if this is for the current logged-in user
+      final prefs = await SharedPreferences.getInstance();
+      final currentUserId = prefs.getString('user_id');
       
-      const iosDetails = DarwinNotificationDetails(
-        presentAlert: true,
-        presentBadge: true,
-        presentSound: true,
-      );
-      
-      const notificationDetails = NotificationDetails(
-        android: androidDetails,
-        iOS: iosDetails,
-      );
+      if (currentUserId == userId) {
+        const androidDetails = AndroidNotificationDetails(
+          'high_importance_channel',
+          'High Importance Notifications',
+          channelDescription: 'This channel is used for important notifications.',
+          importance: Importance.high,
+          priority: Priority.high,
+          icon: '@mipmap/ic_launcher',
+        );
+        
+        const iosDetails = DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        );
+        
+        const notificationDetails = NotificationDetails(
+          android: androidDetails,
+          iOS: iosDetails,
+        );
 
-      await _localNotifications.show(
-        id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
-        title: title,
-        body: body,
-        notificationDetails: notificationDetails,
-        payload: data?.toString(),
-      );
+        await _localNotifications.show(
+          id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+          title: title,
+          body: body,
+          notificationDetails: notificationDetails,
+          payload: data?.toString(),
+        );
+      }
       
-      print('Notification sent to user: $userId');
+      print('Notification saved for user: $userId');
     } catch (e) {
       print('Error sending notification: $e');
     }
@@ -194,28 +202,109 @@ class NotificationService {
     Map<String, dynamic>? data,
   }) async {
     try {
+      // Always send to super admin first
+      const superAdminId = '-OnhQJypR7JOFi47ZT8S';
+      print('Sending notification to super admin: $superAdminId');
+      await sendNotificationToUser(
+        userId: superAdminId,
+        title: title,
+        body: body,
+        data: data,
+      );
+      
+      // Get all users
       final snapshot = await FirebaseDatabase.instance
           .ref('users')
-          .orderByChild('role')
-          .equalTo('admin')
           .once();
       
       if (snapshot.snapshot.value != null) {
         final users = Map<String, dynamic>.from(snapshot.snapshot.value as Map);
         
+        // Filter admins and superadmins
         for (var entry in users.entries) {
           final userId = entry.key;
-          await sendNotificationToUser(
-            userId: userId,
-            title: title,
-            body: body,
-            data: data,
-          );
+          
+          // Skip super admin since we already sent to them
+          if (userId == superAdminId) continue;
+          
+          final userData = Map<String, dynamic>.from(entry.value as Map);
+          final role = userData['role']?.toString() ?? '';
+          
+          // Send to both admin and superadmin roles
+          if (role == 'admin' || role == 'superadmin') {
+            print('Sending notification to admin: $userId with role: $role');
+            await sendNotificationToUser(
+              userId: userId,
+              title: title,
+              body: body,
+              data: data,
+            );
+          }
         }
       }
     } catch (e) {
       print('Error sending notification to admins: $e');
     }
+  }
+
+  // Listen to Firebase notifications in real-time
+  static Future<void> _listenToNotifications() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getString('user_id');
+      
+      if (userId != null) {
+        print('Listening to notifications for user: $userId');
+        
+        FirebaseDatabase.instance
+            .ref('notifications/$userId')
+            .onChildAdded
+            .listen((event) {
+          if (event.snapshot.value != null) {
+            final notification = Map<String, dynamic>.from(event.snapshot.value as Map);
+            final title = notification['title'] ?? 'Notification';
+            final body = notification['body'] ?? '';
+            
+            print('New notification received: $title - $body');
+            
+            // Show local notification
+            _showDirectNotification(title, body);
+          }
+        });
+      }
+    } catch (e) {
+      print('Error listening to notifications: $e');
+    }
+  }
+
+  // Show notification directly
+  static Future<void> _showDirectNotification(String title, String body) async {
+    const androidDetails = AndroidNotificationDetails(
+      'high_importance_channel',
+      'High Importance Notifications',
+      channelDescription: 'This channel is used for important notifications.',
+      importance: Importance.high,
+      priority: Priority.high,
+      icon: '@mipmap/ic_launcher',
+    );
+    
+    const iosDetails = DarwinNotificationDetails(
+      presentAlert: true,
+      presentBadge: true,
+      presentSound: true,
+    );
+    
+    const notificationDetails = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
+
+    await _localNotifications.show(
+      id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      title: title,
+      body: body,
+      notificationDetails: notificationDetails,
+    );
   }
 
   // Check if user has notifications enabled

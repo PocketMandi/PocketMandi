@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'users_management_screen.dart';
 import 'crops_management_screen.dart';
 import 'requests_management_screen.dart';
 import 'admin_profile_screen.dart';
+import 'package:poket_mandi/screens/common/notifications_list_screen.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({Key? key}) : super(key: key);
@@ -185,6 +187,21 @@ class AdminHomeScreen extends StatelessWidget {
                                 ),
                               ),
                             ],
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const NotificationsListScreen(),
+                              ),
+                            );
+                          },
+                          icon: const Icon(
+                            Icons.notifications,
+                            color: Colors.white,
+                            size: 28,
                           ),
                         ),
                       ],
