@@ -255,8 +255,8 @@ class _OrderSaplingsScreenState extends State<OrderSaplingsScreen> {
       await NotificationService.sendNotificationToAdmins(
         title: 'New Sapling Order',
         body: '$userName ordered $quantity $saplingType ${crop['name']} saplings',
+        type: 'sapling_order',
         data: {
-          'type': 'sapling_order',
           'cropName': crop['name'],
           'userId': userId,
           'orderId': ref.key,

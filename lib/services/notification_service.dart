@@ -148,6 +148,7 @@ class NotificationService {
     required String userId,
     required String title,
     required String body,
+    String? type,
     Map<String, dynamic>? data,
   }) async {
     try {
@@ -158,6 +159,7 @@ class NotificationService {
           .set({
         'title': title,
         'body': body,
+        'type': type ?? 'notification',
         'data': data,
         'read': false,
         'createdAt': ServerValue.timestamp,
@@ -207,6 +209,7 @@ class NotificationService {
   static Future<void> sendNotificationToAdmins({
     required String title,
     required String body,
+    String? type,
     Map<String, dynamic>? data,
   }) async {
     try {
@@ -231,6 +234,7 @@ class NotificationService {
               userId: userId,
               title: title,
               body: body,
+              type: type,
               data: data,
             );
           }

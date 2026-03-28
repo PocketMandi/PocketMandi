@@ -85,8 +85,8 @@ class _TestsScreenState extends State<TestsScreen> {
       await NotificationService.sendNotificationToAdmins(
         title: 'New Test Request',
         body: '$userName requested ${testTypes.join(' & ')} test',
+        type: 'test_request',
         data: {
-          'type': 'test_request',
           'userId': userId,
           'requestId': ref.key,
           'soilTest': soilTest,

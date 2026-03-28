@@ -649,8 +649,8 @@ class _AddNewCropScreenState extends State<AddNewCropScreen> {
       await NotificationService.sendNotificationToAdmins(
         title: 'New Crop Request',
         body: '$userName has requested $cropName (${quantityController.text} $selectedUnit)',
+        type: 'crop_request',
         data: {
-          'type': 'crop_request',
           'cropName': cropName,
           'userId': userId,
           'requestId': ref.key,

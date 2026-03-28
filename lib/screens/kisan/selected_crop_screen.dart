@@ -1034,8 +1034,8 @@ class _SelectedCropScreenState extends State<SelectedCropScreen> {
       await NotificationService.sendNotificationToAdmins(
         title: 'New Crop Order',
         body: '$userName ordered ${widget.cropName} (${quantityController.text} $selectedUnit)',
+        type: 'crop_order',
         data: {
-          'type': 'crop_order',
           'cropName': widget.cropName,
           'userId': userId,
           'orderId': cropId,

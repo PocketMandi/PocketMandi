@@ -8,14 +8,25 @@ import 'package:poket_mandi/screens/vyapari/vyapari_dashboard_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:poket_mandi/services/notification_service.dart';
+import 'package:poket_mandi/screens/common/notifications_list_screen.dart';
 import 'firebase_options.dart';
+
+// Top-level background message handler
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  print('Handling background message: ${message.messageId}');
+  print('Title: ${message.notification?.title}');
+  print('Body: ${message.notification?.body}');
+  print('Data: ${message.data}');
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  // Initialize Firebase Messaging background handler
-  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+  // Register background message handler
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
   // Initialize notification service
   await NotificationService.initialize();
@@ -55,12 +66,60 @@ class _AuthCheckState extends State<AuthCheck> {
   void initState() {
     super.initState();
     _checkAuth();
+    _setupNotificationHandlers();
     // Set notification context after first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && _navigatorKey.currentContext != null) {
         NotificationService.setContext(_navigatorKey.currentContext!);
       }
     });
+  }
+
+  void _setupNotificationHandlers() {
+    // Handle notification when app is opened from terminated state
+    FirebaseMessaging.instance.getInitialMessage().then((RemoteMessage? message) {
+      if (message != null) {
+        print('App opened from terminated state via notification');
+        _handleNotificationNavigation(message);
+      }
+    });
+
+    // Handle notification when app is in background and user taps it
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      print('Notification tapped while app in background');
+      _handleNotificationNavigation(message);
+    });
+  }
+
+  void _handleNotificationNavigation(RemoteMessage message) {
+    final data = message.data;
+    final type = data['type'];
+
+    if (type != null && _navigatorKey.currentContext != null) {
+      int tabIndex = 0;
+
+      switch (type) {
+        case 'crop_request':
+          tabIndex = 0;
+          break;
+        case 'crop_order':
+          tabIndex = 2;
+          break;
+        case 'sapling_order':
+          tabIndex = 4;
+          break;
+        case 'test_request':
+          tabIndex = 5;
+          break;
+      }
+
+      // Navigate to requests management
+      Navigator.of(_navigatorKey.currentContext!).push(
+        MaterialPageRoute(
+          builder: (_) => RequestsManagementScreenWithTab(initialTab: tabIndex),
+        ),
+      );
+    }
   }
 
   Future<void> _checkAuth() async {
