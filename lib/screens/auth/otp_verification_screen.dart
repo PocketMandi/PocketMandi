@@ -89,8 +89,8 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         await NotificationService.sendNotificationToAdmins(
           title: 'New User Registered',
           body: '${widget.userData!["name"]} registered as ${widget.isTrader ? "Trader" : "Farmer"}',
+          type: 'new_user',
           data: {
-            'type': 'new_user',
             'userId': newRef.key,
             'userRole': widget.isTrader ? 'trader' : 'farmer',
           },

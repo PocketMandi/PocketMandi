@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'farmer_unlisted_dialog.dart';
 
 class RequestsManagementScreen extends StatefulWidget {
   const RequestsManagementScreen({Key? key}) : super(key: key);
 
   @override
-  State<RequestsManagementScreen> createState() => _RequestsManagementScreenState();
+  State<RequestsManagementScreen> createState() =>
+      _RequestsManagementScreenState();
 }
 
 class _RequestsManagementScreenState extends State<RequestsManagementScreen>
@@ -22,6 +24,24 @@ class _RequestsManagementScreenState extends State<RequestsManagementScreen>
   void dispose() {
     _tabController.dispose();
     super.dispose();
+  }
+
+  Widget _buildTab(IconData icon, String label) {
+    return Tab(
+      height: 70,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 22),
+          const SizedBox(height: 6),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: const TextStyle(height: 1.2),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -51,7 +71,11 @@ class _RequestsManagementScreenState extends State<RequestsManagementScreen>
                             color: Colors.white.withOpacity(0.2),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: const Icon(Icons.assignment, color: Colors.white, size: 28),
+                          child: const Icon(
+                            Icons.assignment,
+                            color: Colors.white,
+                            size: 28,
+                          ),
                         ),
                         const SizedBox(width: 16),
                         const Expanded(
@@ -82,21 +106,31 @@ class _RequestsManagementScreenState extends State<RequestsManagementScreen>
                   TabBar(
                     controller: _tabController,
                     isScrollable: true,
+                    tabAlignment: TabAlignment.start,
                     indicatorColor: Colors.white,
-                    indicatorWeight: 3,
-                    indicatorPadding: const EdgeInsets.symmetric(horizontal: 8),
+                    indicatorWeight: 4,
+                    indicatorSize: TabBarIndicatorSize.label,
+                    indicatorPadding: const EdgeInsets.symmetric(horizontal: 4),
                     labelColor: Colors.white,
                     unselectedLabelColor: Colors.white60,
-                    labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                    unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal, fontSize: 13),
-                    labelPadding: const EdgeInsets.symmetric(horizontal: 12),
-                    tabs: const [
-                      Tab(text: 'Farmer\nUnlisted'),
-                      Tab(text: 'Trader\nUnlisted'),
-                      Tab(text: 'Farmer\nCrops'),
-                      Tab(text: 'Trader\nCrops'),
-                      Tab(text: 'Sapling\nOrders'),
-                      Tab(text: 'Test\nRequests'),
+                    labelStyle: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      letterSpacing: 0.5,
+                    ),
+                    unselectedLabelStyle: const TextStyle(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 12,
+                    ),
+                    labelPadding: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: EdgeInsets.zero,
+                    tabs: [
+                      _buildTab(Icons.grass, 'Farmer\nUnlisted'),
+                      _buildTab(Icons.store, 'Trader\nUnlisted'),
+                      _buildTab(Icons.agriculture, 'Farmer\nCrops'),
+                      _buildTab(Icons.shopping_bag, 'Trader\nCrops'),
+                      _buildTab(Icons.local_florist, 'Sapling\nOrders'),
+                      _buildTab(Icons.science, 'Test\nRequests'),
                     ],
                   ),
                 ],
@@ -136,16 +170,22 @@ class FarmerUnlistedCropsTab extends StatelessWidget {
       stream: ref.limitToLast(50).onValue,
       builder: (context, AsyncSnapshot<DatabaseEvent> snapshot) {
         if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator(color: Color(0xFF104f22)));
+          return const Center(
+            child: CircularProgressIndicator(color: Color(0xFF104f22)),
+          );
         }
 
         if (snapshot.data!.snapshot.value == null) {
-          return _buildEmptyState('No farmer unlisted crop requests', Icons.grass);
+          return _buildEmptyState(
+            'No farmer unlisted crop requests',
+            Icons.grass,
+          );
         }
 
-        var requestsData = snapshot.data!.snapshot.value as Map<dynamic, dynamic>;
+        var requestsData =
+            snapshot.data!.snapshot.value as Map<dynamic, dynamic>;
         var requestsList = <MapEntry>[];
-        
+
         requestsData.forEach((userId, userRequests) {
           if (userRequests is Map) {
             userRequests.forEach((requestId, request) {
@@ -155,7 +195,10 @@ class FarmerUnlistedCropsTab extends StatelessWidget {
         });
 
         if (requestsList.isEmpty) {
-          return _buildEmptyState('No farmer unlisted crop requests', Icons.grass);
+          return _buildEmptyState(
+            'No farmer unlisted crop requests',
+            Icons.grass,
+          );
         }
 
         requestsList.sort((a, b) {
@@ -174,151 +217,231 @@ class FarmerUnlistedCropsTab extends StatelessWidget {
               margin: const EdgeInsets.only(bottom: 16),
               elevation: 2,
               shadowColor: Colors.black12,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Colors.white,
-                      Colors.green.shade50.withOpacity(0.3),
-                    ],
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: InkWell(
+                onTap: () => showFarmerRequestDetails(context, request),
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Colors.white,
+                        Colors.green.shade50.withOpacity(0.3),
+                      ],
+                    ),
                   ),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFF104f22), Color(0xFF1a7a33)],
-                              ),
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(0xFF104f22).withOpacity(0.3),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: const Icon(Icons.grass, color: Colors.white, size: 28),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  request['cropName'] ?? 'N/A',
-                                  style: const TextStyle(
-                                    fontSize: 19,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF2E2E2E),
-                                    letterSpacing: 0.3,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Row(
-                                  children: [
-                                    Icon(Icons.access_time, size: 14, color: Colors.grey[500]),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      _formatDate(request['createdAt']),
-                                      style: TextStyle(fontSize: 13, color: Colors.grey[600]),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [Colors.orange.shade400, Colors.orange.shade600],
-                              ),
-                              borderRadius: BorderRadius.circular(20),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.orange.withOpacity(0.3),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: const Text(
-                              'PENDING',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.grey.shade200),
-                        ),
-                        child: Column(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
                           children: [
-                            _buildInfoRow(Icons.shopping_basket, 'Quantity', '${request['quantity']} ${request['unit']}'),
-                            const Divider(height: 20),
-                            _buildInfoRow(Icons.currency_rupee, 'Price', '₹${request['expectedPrice']}/${request['unit']}'),
-                            const Divider(height: 20),
-                            _buildInfoRow(Icons.person, 'Farmer', '${request['userName']} (${request['userPhone']})'),
+                            Container(
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [Color(0xFF104f22), Color(0xFF1a7a33)],
+                                ),
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(
+                                      0xFF104f22,
+                                    ).withOpacity(0.3),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: const Icon(
+                                Icons.grass,
+                                color: Colors.white,
+                                size: 28,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    request['cropName'] ?? 'N/A',
+                                    style: const TextStyle(
+                                      fontSize: 19,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF2E2E2E),
+                                      letterSpacing: 0.3,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.access_time,
+                                        size: 14,
+                                        color: Colors.grey[500],
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        _formatDate(request['createdAt']),
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: _getStatusGradient(request['status']),
+                                ),
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: _getStatusColor(request['status']).withOpacity(0.3),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Text(
+                                (request['status']?.toString().toUpperCase() ?? 'PENDING'),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ),
                           ],
                         ),
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: () => _updateStatus(context, requestsList[index].key, 'confirmed'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 14),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                elevation: 0,
+                        const SizedBox(height: 20),
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.grey.shade200),
+                          ),
+                          child: Column(
+                            children: [
+                              _buildInfoRow(
+                                Icons.person,
+                                'Farmer',
+                                '${request['userName']} (${request['userPhone']})',
                               ),
-                              icon: const Icon(Icons.check_circle, size: 18),
-                              label: const Text('Confirm', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: () => showFarmerRequestDetails(context, request),
+                            icon: const Icon(Icons.visibility, size: 18),
+                            label: const Text(
+                              'View Complete Details',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF104f22),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 0,
                             ),
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: () => _updateStatus(context, requestsList[index].key, 'delivered'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.blue,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 14),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                elevation: 0,
+                        ),
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.grey.shade300, width: 1.5),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: request['status'] ?? 'pending',
+                              isExpanded: true,
+                              icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF104f22)),
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF2E2E2E),
                               ),
-                              icon: const Icon(Icons.local_shipping, size: 18),
-                              label: const Text('Delivered', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                              items: const [
+                                DropdownMenuItem(
+                                  value: 'pending',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.pending, size: 18, color: Colors.orange),
+                                      SizedBox(width: 8),
+                                      Text('Pending'),
+                                    ],
+                                  ),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'confirmed',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.check_circle, size: 18, color: Colors.green),
+                                      SizedBox(width: 8),
+                                      Text('Confirmed'),
+                                    ],
+                                  ),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'delivered',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.local_shipping, size: 18, color: Colors.blue),
+                                      SizedBox(width: 8),
+                                      Text('Delivered'),
+                                    ],
+                                  ),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'rejected',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.cancel, size: 18, color: Colors.red),
+                                      SizedBox(width: 8),
+                                      Text('Rejected'),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                              onChanged: (value) {
+                                if (value != null) {
+                                  _updateStatus(context, requestsList[index].key, value);
+                                }
+                              },
                             ),
                           ),
-                        ],
-                      ),
-                    ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -383,19 +506,46 @@ class FarmerUnlistedCropsTab extends StatelessWidget {
     );
   }
 
-  Future<void> _updateStatus(BuildContext context, String path, String status) async {
+  Future<void> _updateStatus(
+    BuildContext context,
+    String path,
+    String status,
+  ) async {
     final parts = path.split('/');
     await FirebaseDatabase.instance
         .ref('requestednewcrop')
         .child(parts[0])
         .child(parts[1])
-        .update({
-      'status': status,
-      'updatedAt': ServerValue.timestamp,
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Status updated to $status')),
-    );
+        .update({'status': status, 'updatedAt': ServerValue.timestamp});
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Status updated to $status')));
+  }
+
+  Color _getStatusColor(String? status) {
+    switch (status) {
+      case 'confirmed':
+        return Colors.green;
+      case 'delivered':
+        return Colors.blue;
+      case 'rejected':
+        return Colors.red;
+      default:
+        return Colors.orange;
+    }
+  }
+
+  List<Color> _getStatusGradient(String? status) {
+    switch (status) {
+      case 'confirmed':
+        return [Colors.green.shade400, Colors.green.shade600];
+      case 'delivered':
+        return [Colors.blue.shade400, Colors.blue.shade600];
+      case 'rejected':
+        return [Colors.red.shade400, Colors.red.shade600];
+      default:
+        return [Colors.orange.shade400, Colors.orange.shade600];
+    }
   }
 
   String _formatDate(dynamic timestamp) {
@@ -420,16 +570,19 @@ class TraderUnlistedCropsTab extends StatelessWidget {
       stream: ref.limitToLast(50).onValue,
       builder: (context, AsyncSnapshot<DatabaseEvent> snapshot) {
         if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator(color: Color(0xFF104f22)));
+          return const Center(
+            child: CircularProgressIndicator(color: Color(0xFF104f22)),
+          );
         }
 
         if (snapshot.data!.snapshot.value == null) {
           return _buildEmptyState('No unlisted crop requests', Icons.grass);
         }
 
-        var requestsData = snapshot.data!.snapshot.value as Map<dynamic, dynamic>;
+        var requestsData =
+            snapshot.data!.snapshot.value as Map<dynamic, dynamic>;
         var requestsList = <MapEntry>[];
-        
+
         requestsData.forEach((userId, userRequests) {
           if (userRequests is Map) {
             userRequests.forEach((requestId, request) {
@@ -459,7 +612,9 @@ class TraderUnlistedCropsTab extends StatelessWidget {
               margin: const EdgeInsets.only(bottom: 16),
               elevation: 2,
               shadowColor: Colors.black12,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
               child: Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(20),
@@ -488,13 +643,19 @@ class TraderUnlistedCropsTab extends StatelessWidget {
                               borderRadius: BorderRadius.circular(16),
                               boxShadow: [
                                 BoxShadow(
-                                  color: const Color(0xFF104f22).withOpacity(0.3),
+                                  color: const Color(
+                                    0xFF104f22,
+                                  ).withOpacity(0.3),
                                   blurRadius: 8,
                                   offset: const Offset(0, 4),
                                 ),
                               ],
                             ),
-                            child: const Icon(Icons.grass, color: Colors.white, size: 28),
+                            child: const Icon(
+                              Icons.grass,
+                              color: Colors.white,
+                              size: 28,
+                            ),
                           ),
                           const SizedBox(width: 16),
                           Expanded(
@@ -513,11 +674,18 @@ class TraderUnlistedCropsTab extends StatelessWidget {
                                 const SizedBox(height: 4),
                                 Row(
                                   children: [
-                                    Icon(Icons.access_time, size: 14, color: Colors.grey[500]),
+                                    Icon(
+                                      Icons.access_time,
+                                      size: 14,
+                                      color: Colors.grey[500],
+                                    ),
                                     const SizedBox(width: 4),
                                     Text(
                                       _formatDate(request['createdAt']),
-                                      style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: Colors.grey[600],
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -525,10 +693,16 @@ class TraderUnlistedCropsTab extends StatelessWidget {
                             ),
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 8,
+                            ),
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
-                                colors: [Colors.orange.shade400, Colors.orange.shade600],
+                                colors: [
+                                  Colors.orange.shade400,
+                                  Colors.orange.shade600,
+                                ],
                               ),
                               borderRadius: BorderRadius.circular(20),
                               boxShadow: [
@@ -561,20 +735,42 @@ class TraderUnlistedCropsTab extends StatelessWidget {
                         ),
                         child: Column(
                           children: [
-                            _buildInfoRow(Icons.shopping_basket, 'Quantity', '${request['quantity']} ${request['unit']}'),
+                            _buildInfoRow(
+                              Icons.shopping_basket,
+                              'Quantity',
+                              '${request['quantity']} ${request['unit']}',
+                            ),
                             const Divider(height: 20),
-                            _buildInfoRow(Icons.currency_rupee, 'Price', '₹${request['pricePerUnit']}/${request['unit']}'),
-                            if (request['qualityGrades'] != null) const Divider(height: 20),
+                            _buildInfoRow(
+                              Icons.currency_rupee,
+                              'Price',
+                              '₹${request['pricePerUnit']}/${request['unit']}',
+                            ),
                             if (request['qualityGrades'] != null)
-                              _buildInfoRow(Icons.star, 'Quality', (request['qualityGrades'] as List).join(', ')),
+                              const Divider(height: 20),
+                            if (request['qualityGrades'] != null)
+                              _buildInfoRow(
+                                Icons.star,
+                                'Quality',
+                                (request['qualityGrades'] as List).join(', '),
+                              ),
                             const Divider(height: 20),
-                            _buildInfoRow(Icons.store, 'Mandi', request['mandiName'] ?? 'N/A'),
+                            _buildInfoRow(
+                              Icons.store,
+                              'Mandi',
+                              request['mandiName'] ?? 'N/A',
+                            ),
                             const Divider(height: 20),
-                            _buildInfoRow(Icons.location_on, 'Location', request['selectedLocation'] ?? 'N/A'),
+                            _buildInfoRow(
+                              Icons.location_on,
+                              'Location',
+                              request['selectedLocation'] ?? 'N/A',
+                            ),
                           ],
                         ),
                       ),
-                      if (request['message'] != null && request['message'].toString().isNotEmpty) ...[
+                      if (request['message'] != null &&
+                          request['message'].toString().isNotEmpty) ...[
                         const SizedBox(height: 16),
                         Container(
                           padding: const EdgeInsets.all(16),
@@ -592,7 +788,11 @@ class TraderUnlistedCropsTab extends StatelessWidget {
                                   color: Colors.blue.shade100,
                                   borderRadius: BorderRadius.circular(8),
                                 ),
-                                child: Icon(Icons.message, size: 18, color: Colors.blue.shade700),
+                                child: Icon(
+                                  Icons.message,
+                                  size: 18,
+                                  color: Colors.blue.shade700,
+                                ),
                               ),
                               const SizedBox(width: 12),
                               Expanded(
@@ -610,7 +810,10 @@ class TraderUnlistedCropsTab extends StatelessWidget {
                                     const SizedBox(height: 4),
                                     Text(
                                       request['message'],
-                                      style: TextStyle(fontSize: 14, color: Colors.grey[800]),
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.grey[800],
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -706,7 +909,9 @@ class SaplingOrdersTab extends StatelessWidget {
       stream: ref.limitToLast(50).onValue,
       builder: (context, AsyncSnapshot<DatabaseEvent> snapshot) {
         if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator(color: Color(0xFF104f22)));
+          return const Center(
+            child: CircularProgressIndicator(color: Color(0xFF104f22)),
+          );
         }
 
         if (snapshot.data!.snapshot.value == null) {
@@ -715,7 +920,7 @@ class SaplingOrdersTab extends StatelessWidget {
 
         var ordersData = snapshot.data!.snapshot.value as Map<dynamic, dynamic>;
         var ordersList = <Map<String, dynamic>>[];
-        
+
         ordersData.forEach((userId, userOrders) {
           if (userOrders is Map) {
             userOrders.forEach((orderId, order) {
@@ -753,7 +958,9 @@ class SaplingOrdersTab extends StatelessWidget {
               margin: const EdgeInsets.only(bottom: 16),
               elevation: 2,
               shadowColor: Colors.black12,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
               child: Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(20),
@@ -777,7 +984,10 @@ class SaplingOrdersTab extends StatelessWidget {
                             padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
-                                colors: [Colors.purple.shade600, Colors.purple.shade800],
+                                colors: [
+                                  Colors.purple.shade600,
+                                  Colors.purple.shade800,
+                                ],
                               ),
                               borderRadius: BorderRadius.circular(16),
                               boxShadow: [
@@ -788,7 +998,11 @@ class SaplingOrdersTab extends StatelessWidget {
                                 ),
                               ],
                             ),
-                            child: const Icon(Icons.local_florist, color: Colors.white, size: 28),
+                            child: const Icon(
+                              Icons.local_florist,
+                              color: Colors.white,
+                              size: 28,
+                            ),
                           ),
                           const SizedBox(width: 16),
                           Expanded(
@@ -807,11 +1021,18 @@ class SaplingOrdersTab extends StatelessWidget {
                                 const SizedBox(height: 4),
                                 Row(
                                   children: [
-                                    Icon(Icons.access_time, size: 14, color: Colors.grey[500]),
+                                    Icon(
+                                      Icons.access_time,
+                                      size: 14,
+                                      color: Colors.grey[500],
+                                    ),
                                     const SizedBox(width: 4),
                                     Text(
                                       _formatDate(order['createdAt']),
-                                      style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: Colors.grey[600],
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -819,26 +1040,41 @@ class SaplingOrdersTab extends StatelessWidget {
                             ),
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 8,
+                            ),
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
-                                colors: _getStatusColor(order['status']) == Colors.green
-                                    ? [Colors.green.shade400, Colors.green.shade600]
-                                    : _getStatusColor(order['status']) == Colors.red
-                                        ? [Colors.red.shade400, Colors.red.shade600]
-                                        : [Colors.orange.shade400, Colors.orange.shade600],
+                                colors:
+                                    _getStatusColor(order['status']) ==
+                                        Colors.green
+                                    ? [
+                                        Colors.green.shade400,
+                                        Colors.green.shade600,
+                                      ]
+                                    : _getStatusColor(order['status']) ==
+                                          Colors.red
+                                    ? [Colors.red.shade400, Colors.red.shade600]
+                                    : [
+                                        Colors.orange.shade400,
+                                        Colors.orange.shade600,
+                                      ],
                               ),
                               borderRadius: BorderRadius.circular(20),
                               boxShadow: [
                                 BoxShadow(
-                                  color: _getStatusColor(order['status']).withOpacity(0.3),
+                                  color: _getStatusColor(
+                                    order['status'],
+                                  ).withOpacity(0.3),
                                   blurRadius: 8,
                                   offset: const Offset(0, 2),
                                 ),
                               ],
                             ),
                             child: Text(
-                              order['status']?.toString().toUpperCase() ?? 'PENDING',
+                              order['status']?.toString().toUpperCase() ??
+                                  'PENDING',
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 11,
@@ -859,11 +1095,23 @@ class SaplingOrdersTab extends StatelessWidget {
                         ),
                         child: Column(
                           children: [
-                            _buildInfoRow(Icons.shopping_cart, 'Quantity', '${order['quantity']} plants'),
+                            _buildInfoRow(
+                              Icons.shopping_cart,
+                              'Quantity',
+                              '${order['quantity']} plants',
+                            ),
                             const Divider(height: 20),
-                            _buildInfoRow(Icons.person, 'Customer', '${order['userName']} (${order['userPhone']})'),
+                            _buildInfoRow(
+                              Icons.person,
+                              'Customer',
+                              '${order['userName']} (${order['userPhone']})',
+                            ),
                             const Divider(height: 20),
-                            _buildInfoRow(Icons.category, 'Type', order['saplingType'] ?? 'N/A'),
+                            _buildInfoRow(
+                              Icons.category,
+                              'Type',
+                              order['saplingType'] ?? 'N/A',
+                            ),
                           ],
                         ),
                       ),
@@ -872,31 +1120,61 @@ class SaplingOrdersTab extends StatelessWidget {
                         children: [
                           Expanded(
                             child: ElevatedButton.icon(
-                              onPressed: () => _updateOrderStatus(context, userId, orderId, 'confirmed'),
+                              onPressed: () => _updateOrderStatus(
+                                context,
+                                userId,
+                                orderId,
+                                'confirmed',
+                              ),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.green,
                                 foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 14),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
                                 elevation: 0,
                               ),
                               icon: const Icon(Icons.check_circle, size: 18),
-                              label: const Text('Confirm', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                              label: const Text(
+                                'Confirm',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                ),
+                              ),
                             ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: ElevatedButton.icon(
-                              onPressed: () => _updateOrderStatus(context, userId, orderId, 'rejected'),
+                              onPressed: () => _updateOrderStatus(
+                                context,
+                                userId,
+                                orderId,
+                                'rejected',
+                              ),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.red,
                                 foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 14),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
                                 elevation: 0,
                               ),
                               icon: const Icon(Icons.cancel, size: 18),
-                              label: const Text('Reject', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                              label: const Text(
+                                'Reject',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                ),
+                              ),
                             ),
                           ),
                         ],
@@ -997,13 +1275,10 @@ class SaplingOrdersTab extends StatelessWidget {
         .ref('saplingorders')
         .child(userId)
         .child(orderId)
-        .update({
-      'status': status,
-      'updatedAt': ServerValue.timestamp,
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Order $status')),
-    );
+        .update({'status': status, 'updatedAt': ServerValue.timestamp});
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Order $status')));
   }
 }
 
@@ -1018,16 +1293,19 @@ class TestRequestsTab extends StatelessWidget {
       stream: ref.limitToLast(50).onValue,
       builder: (context, AsyncSnapshot<DatabaseEvent> snapshot) {
         if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator(color: Color(0xFF104f22)));
+          return const Center(
+            child: CircularProgressIndicator(color: Color(0xFF104f22)),
+          );
         }
 
         if (snapshot.data!.snapshot.value == null) {
           return _buildEmptyState('No test requests', Icons.science);
         }
 
-        var requestsData = snapshot.data!.snapshot.value as Map<dynamic, dynamic>;
+        var requestsData =
+            snapshot.data!.snapshot.value as Map<dynamic, dynamic>;
         var requestsList = <Map<String, dynamic>>[];
-        
+
         requestsData.forEach((userId, userRequests) {
           if (userRequests is Map) {
             userRequests.forEach((requestId, request) {
@@ -1065,7 +1343,9 @@ class TestRequestsTab extends StatelessWidget {
               margin: const EdgeInsets.only(bottom: 16),
               elevation: 2,
               shadowColor: Colors.black12,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
               child: Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(20),
@@ -1089,7 +1369,10 @@ class TestRequestsTab extends StatelessWidget {
                             padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
-                                colors: [Colors.blue.shade600, Colors.blue.shade800],
+                                colors: [
+                                  Colors.blue.shade600,
+                                  Colors.blue.shade800,
+                                ],
                               ),
                               borderRadius: BorderRadius.circular(16),
                               boxShadow: [
@@ -1100,7 +1383,11 @@ class TestRequestsTab extends StatelessWidget {
                                 ),
                               ],
                             ),
-                            child: const Icon(Icons.science, color: Colors.white, size: 28),
+                            child: const Icon(
+                              Icons.science,
+                              color: Colors.white,
+                              size: 28,
+                            ),
                           ),
                           const SizedBox(width: 16),
                           Expanded(
@@ -1119,11 +1406,18 @@ class TestRequestsTab extends StatelessWidget {
                                 const SizedBox(height: 4),
                                 Row(
                                   children: [
-                                    Icon(Icons.access_time, size: 14, color: Colors.grey[500]),
+                                    Icon(
+                                      Icons.access_time,
+                                      size: 14,
+                                      color: Colors.grey[500],
+                                    ),
                                     const SizedBox(width: 4),
                                     Text(
                                       _formatDate(request['createdAt']),
-                                      style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: Colors.grey[600],
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -1131,26 +1425,41 @@ class TestRequestsTab extends StatelessWidget {
                             ),
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 8,
+                            ),
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
-                                colors: _getStatusColor(request['status']) == Colors.green
-                                    ? [Colors.green.shade400, Colors.green.shade600]
-                                    : _getStatusColor(request['status']) == Colors.red
-                                        ? [Colors.red.shade400, Colors.red.shade600]
-                                        : [Colors.orange.shade400, Colors.orange.shade600],
+                                colors:
+                                    _getStatusColor(request['status']) ==
+                                        Colors.green
+                                    ? [
+                                        Colors.green.shade400,
+                                        Colors.green.shade600,
+                                      ]
+                                    : _getStatusColor(request['status']) ==
+                                          Colors.red
+                                    ? [Colors.red.shade400, Colors.red.shade600]
+                                    : [
+                                        Colors.orange.shade400,
+                                        Colors.orange.shade600,
+                                      ],
                               ),
                               borderRadius: BorderRadius.circular(20),
                               boxShadow: [
                                 BoxShadow(
-                                  color: _getStatusColor(request['status']).withOpacity(0.3),
+                                  color: _getStatusColor(
+                                    request['status'],
+                                  ).withOpacity(0.3),
                                   blurRadius: 8,
                                   offset: const Offset(0, 2),
                                 ),
                               ],
                             ),
                             child: Text(
-                              request['status']?.toString().toUpperCase() ?? 'PENDING',
+                              request['status']?.toString().toUpperCase() ??
+                                  'PENDING',
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 11,
@@ -1168,18 +1477,26 @@ class TestRequestsTab extends StatelessWidget {
                             child: Container(
                               padding: const EdgeInsets.all(14),
                               decoration: BoxDecoration(
-                                color: request['soilTest'] == true ? Colors.green.shade50 : Colors.grey.shade100,
+                                color: request['soilTest'] == true
+                                    ? Colors.green.shade50
+                                    : Colors.grey.shade100,
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                  color: request['soilTest'] == true ? Colors.green.shade200 : Colors.grey.shade300,
+                                  color: request['soilTest'] == true
+                                      ? Colors.green.shade200
+                                      : Colors.grey.shade300,
                                 ),
                               ),
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Icon(
-                                    request['soilTest'] == true ? Icons.check_circle : Icons.cancel,
-                                    color: request['soilTest'] == true ? Colors.green.shade700 : Colors.grey.shade600,
+                                    request['soilTest'] == true
+                                        ? Icons.check_circle
+                                        : Icons.cancel,
+                                    color: request['soilTest'] == true
+                                        ? Colors.green.shade700
+                                        : Colors.grey.shade600,
                                     size: 20,
                                   ),
                                   const SizedBox(width: 8),
@@ -1188,7 +1505,9 @@ class TestRequestsTab extends StatelessWidget {
                                     style: TextStyle(
                                       fontWeight: FontWeight.w600,
                                       fontSize: 13,
-                                      color: request['soilTest'] == true ? Colors.green.shade700 : Colors.grey.shade600,
+                                      color: request['soilTest'] == true
+                                          ? Colors.green.shade700
+                                          : Colors.grey.shade600,
                                     ),
                                   ),
                                 ],
@@ -1200,18 +1519,26 @@ class TestRequestsTab extends StatelessWidget {
                             child: Container(
                               padding: const EdgeInsets.all(14),
                               decoration: BoxDecoration(
-                                color: request['waterTest'] == true ? Colors.blue.shade50 : Colors.grey.shade100,
+                                color: request['waterTest'] == true
+                                    ? Colors.blue.shade50
+                                    : Colors.grey.shade100,
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                  color: request['waterTest'] == true ? Colors.blue.shade200 : Colors.grey.shade300,
+                                  color: request['waterTest'] == true
+                                      ? Colors.blue.shade200
+                                      : Colors.grey.shade300,
                                 ),
                               ),
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Icon(
-                                    request['waterTest'] == true ? Icons.check_circle : Icons.cancel,
-                                    color: request['waterTest'] == true ? Colors.blue.shade700 : Colors.grey.shade600,
+                                    request['waterTest'] == true
+                                        ? Icons.check_circle
+                                        : Icons.cancel,
+                                    color: request['waterTest'] == true
+                                        ? Colors.blue.shade700
+                                        : Colors.grey.shade600,
                                     size: 20,
                                   ),
                                   const SizedBox(width: 8),
@@ -1220,7 +1547,9 @@ class TestRequestsTab extends StatelessWidget {
                                     style: TextStyle(
                                       fontWeight: FontWeight.w600,
                                       fontSize: 13,
-                                      color: request['waterTest'] == true ? Colors.blue.shade700 : Colors.grey.shade600,
+                                      color: request['waterTest'] == true
+                                          ? Colors.blue.shade700
+                                          : Colors.grey.shade600,
                                     ),
                                   ),
                                 ],
@@ -1239,13 +1568,22 @@ class TestRequestsTab extends StatelessWidget {
                         ),
                         child: Column(
                           children: [
-                            _buildInfoRow(Icons.person, 'Customer', '${request['userName']} (${request['userPhone']})'),
+                            _buildInfoRow(
+                              Icons.person,
+                              'Customer',
+                              '${request['userName']} (${request['userPhone']})',
+                            ),
                             const Divider(height: 20),
-                            _buildInfoRow(Icons.location_on, 'Address', request['address'] ?? 'N/A'),
+                            _buildInfoRow(
+                              Icons.location_on,
+                              'Address',
+                              request['address'] ?? 'N/A',
+                            ),
                           ],
                         ),
                       ),
-                      if (request['notes'] != null && request['notes'].toString().isNotEmpty) ...[
+                      if (request['notes'] != null &&
+                          request['notes'].toString().isNotEmpty) ...[
                         const SizedBox(height: 16),
                         Container(
                           padding: const EdgeInsets.all(16),
@@ -1263,7 +1601,11 @@ class TestRequestsTab extends StatelessWidget {
                                   color: Colors.blue.shade100,
                                   borderRadius: BorderRadius.circular(8),
                                 ),
-                                child: Icon(Icons.note, size: 18, color: Colors.blue.shade700),
+                                child: Icon(
+                                  Icons.note,
+                                  size: 18,
+                                  color: Colors.blue.shade700,
+                                ),
                               ),
                               const SizedBox(width: 12),
                               Expanded(
@@ -1281,7 +1623,10 @@ class TestRequestsTab extends StatelessWidget {
                                     const SizedBox(height: 4),
                                     Text(
                                       request['notes'],
-                                      style: TextStyle(fontSize: 14, color: Colors.grey[800]),
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.grey[800],
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -1295,31 +1640,61 @@ class TestRequestsTab extends StatelessWidget {
                         children: [
                           Expanded(
                             child: ElevatedButton.icon(
-                              onPressed: () => _updateRequestStatus(context, userId, requestId, 'confirmed'),
+                              onPressed: () => _updateRequestStatus(
+                                context,
+                                userId,
+                                requestId,
+                                'confirmed',
+                              ),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.green,
                                 foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 14),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
                                 elevation: 0,
                               ),
                               icon: const Icon(Icons.check_circle, size: 18),
-                              label: const Text('Confirm', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                              label: const Text(
+                                'Confirm',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                ),
+                              ),
                             ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: ElevatedButton.icon(
-                              onPressed: () => _updateRequestStatus(context, userId, requestId, 'rejected'),
+                              onPressed: () => _updateRequestStatus(
+                                context,
+                                userId,
+                                requestId,
+                                'rejected',
+                              ),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.red,
                                 foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 14),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
                                 elevation: 0,
                               ),
                               icon: const Icon(Icons.cancel, size: 18),
-                              label: const Text('Reject', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                              label: const Text(
+                                'Reject',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                ),
+                              ),
                             ),
                           ),
                         ],
@@ -1420,13 +1795,10 @@ class TestRequestsTab extends StatelessWidget {
         .ref('testrequests')
         .child(userId)
         .child(requestId)
-        .update({
-      'status': status,
-      'updatedAt': ServerValue.timestamp,
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Request $status')),
-    );
+        .update({'status': status, 'updatedAt': ServerValue.timestamp});
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Request $status')));
   }
 }
 
@@ -1441,7 +1813,9 @@ class FarmerCropsTab extends StatelessWidget {
       stream: ref.limitToLast(50).onValue,
       builder: (context, AsyncSnapshot<DatabaseEvent> snapshot) {
         if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator(color: Color(0xFF104f22)));
+          return const Center(
+            child: CircularProgressIndicator(color: Color(0xFF104f22)),
+          );
         }
 
         if (snapshot.data!.snapshot.value == null) {
@@ -1450,7 +1824,7 @@ class FarmerCropsTab extends StatelessWidget {
 
         var cropsData = snapshot.data!.snapshot.value as Map<dynamic, dynamic>;
         var cropsList = <MapEntry>[];
-        
+
         cropsData.forEach((userId, userCrops) {
           if (userCrops is Map) {
             userCrops.forEach((cropId, crop) {
@@ -1479,7 +1853,9 @@ class FarmerCropsTab extends StatelessWidget {
               margin: const EdgeInsets.only(bottom: 16),
               elevation: 2,
               shadowColor: Colors.black12,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
               child: Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(20),
@@ -1503,7 +1879,10 @@ class FarmerCropsTab extends StatelessWidget {
                             padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
-                                colors: [Colors.teal.shade600, Colors.teal.shade800],
+                                colors: [
+                                  Colors.teal.shade600,
+                                  Colors.teal.shade800,
+                                ],
                               ),
                               borderRadius: BorderRadius.circular(16),
                               boxShadow: [
@@ -1514,7 +1893,11 @@ class FarmerCropsTab extends StatelessWidget {
                                 ),
                               ],
                             ),
-                            child: const Icon(Icons.agriculture, color: Colors.white, size: 28),
+                            child: const Icon(
+                              Icons.agriculture,
+                              color: Colors.white,
+                              size: 28,
+                            ),
                           ),
                           const SizedBox(width: 16),
                           Expanded(
@@ -1533,11 +1916,18 @@ class FarmerCropsTab extends StatelessWidget {
                                 const SizedBox(height: 4),
                                 Row(
                                   children: [
-                                    Icon(Icons.access_time, size: 14, color: Colors.grey[500]),
+                                    Icon(
+                                      Icons.access_time,
+                                      size: 14,
+                                      color: Colors.grey[500],
+                                    ),
                                     const SizedBox(width: 4),
                                     Text(
                                       _formatDate(crop['createdAt']),
-                                      style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: Colors.grey[600],
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -1545,10 +1935,16 @@ class FarmerCropsTab extends StatelessWidget {
                             ),
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 8,
+                            ),
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
-                                colors: [Colors.orange.shade400, Colors.orange.shade600],
+                                colors: [
+                                  Colors.orange.shade400,
+                                  Colors.orange.shade600,
+                                ],
                               ),
                               borderRadius: BorderRadius.circular(20),
                               boxShadow: [
@@ -1593,11 +1989,23 @@ class FarmerCropsTab extends StatelessWidget {
                         ),
                         child: Column(
                           children: [
-                            _buildInfoRow(Icons.shopping_basket, 'Quantity', '${crop['quantity']} ${crop['unit']}'),
+                            _buildInfoRow(
+                              Icons.shopping_basket,
+                              'Quantity',
+                              '${crop['quantity']} ${crop['unit']}',
+                            ),
                             const Divider(height: 20),
-                            _buildInfoRow(Icons.currency_rupee, 'Price', '₹${crop['pricePerUnit']}/${crop['unit']}'),
+                            _buildInfoRow(
+                              Icons.currency_rupee,
+                              'Price',
+                              '₹${crop['pricePerUnit']}/${crop['unit']}',
+                            ),
                             const Divider(height: 20),
-                            _buildInfoRow(Icons.person, 'Farmer', '${crop['userName']} (${crop['userPhone']})'),
+                            _buildInfoRow(
+                              Icons.person,
+                              'Farmer',
+                              '${crop['userName']} (${crop['userPhone']})',
+                            ),
                           ],
                         ),
                       ),
@@ -1606,31 +2014,59 @@ class FarmerCropsTab extends StatelessWidget {
                         children: [
                           Expanded(
                             child: ElevatedButton.icon(
-                              onPressed: () => _updateStatus(context, cropsList[index].key, 'confirmed'),
+                              onPressed: () => _updateStatus(
+                                context,
+                                cropsList[index].key,
+                                'confirmed',
+                              ),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.green,
                                 foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 14),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
                                 elevation: 0,
                               ),
                               icon: const Icon(Icons.check_circle, size: 18),
-                              label: const Text('Confirm', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                              label: const Text(
+                                'Confirm',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                ),
+                              ),
                             ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: ElevatedButton.icon(
-                              onPressed: () => _updateStatus(context, cropsList[index].key, 'delivered'),
+                              onPressed: () => _updateStatus(
+                                context,
+                                cropsList[index].key,
+                                'delivered',
+                              ),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.blue,
                                 foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 14),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
                                 elevation: 0,
                               ),
                               icon: const Icon(Icons.local_shipping, size: 18),
-                              label: const Text('Delivered', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                              label: const Text(
+                                'Delivered',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                ),
+                              ),
                             ),
                           ),
                         ],
@@ -1700,19 +2136,20 @@ class FarmerCropsTab extends StatelessWidget {
     );
   }
 
-  Future<void> _updateStatus(BuildContext context, String path, String status) async {
+  Future<void> _updateStatus(
+    BuildContext context,
+    String path,
+    String status,
+  ) async {
     final parts = path.split('/');
     await FirebaseDatabase.instance
         .ref('addedcropsbykissan')
         .child(parts[0])
         .child(parts[1])
-        .update({
-      'status': status,
-      'updatedAt': ServerValue.timestamp,
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Status updated to $status')),
-    );
+        .update({'status': status, 'updatedAt': ServerValue.timestamp});
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Status updated to $status')));
   }
 
   String _formatDate(dynamic timestamp) {
@@ -1737,7 +2174,9 @@ class TraderCropsTab extends StatelessWidget {
       stream: ref.limitToLast(50).onValue,
       builder: (context, AsyncSnapshot<DatabaseEvent> snapshot) {
         if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator(color: Color(0xFF104f22)));
+          return const Center(
+            child: CircularProgressIndicator(color: Color(0xFF104f22)),
+          );
         }
 
         if (snapshot.data!.snapshot.value == null) {
@@ -1746,7 +2185,7 @@ class TraderCropsTab extends StatelessWidget {
 
         var ordersData = snapshot.data!.snapshot.value as Map<dynamic, dynamic>;
         var ordersList = <MapEntry>[];
-        
+
         ordersData.forEach((userId, userOrders) {
           if (userOrders is Map) {
             userOrders.forEach((orderId, order) {
@@ -1777,7 +2216,9 @@ class TraderCropsTab extends StatelessWidget {
               margin: const EdgeInsets.only(bottom: 16),
               elevation: 2,
               shadowColor: Colors.black12,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
               child: Container(
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(20),
@@ -1801,7 +2242,10 @@ class TraderCropsTab extends StatelessWidget {
                             padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
-                                colors: [Colors.orange.shade600, Colors.orange.shade800],
+                                colors: [
+                                  Colors.orange.shade600,
+                                  Colors.orange.shade800,
+                                ],
                               ),
                               borderRadius: BorderRadius.circular(16),
                               boxShadow: [
@@ -1812,7 +2256,11 @@ class TraderCropsTab extends StatelessWidget {
                                 ),
                               ],
                             ),
-                            child: const Icon(Icons.shopping_bag, color: Colors.white, size: 28),
+                            child: const Icon(
+                              Icons.shopping_bag,
+                              color: Colors.white,
+                              size: 28,
+                            ),
                           ),
                           const SizedBox(width: 16),
                           Expanded(
@@ -1831,11 +2279,18 @@ class TraderCropsTab extends StatelessWidget {
                                 const SizedBox(height: 4),
                                 Row(
                                   children: [
-                                    Icon(Icons.access_time, size: 14, color: Colors.grey[500]),
+                                    Icon(
+                                      Icons.access_time,
+                                      size: 14,
+                                      color: Colors.grey[500],
+                                    ),
                                     const SizedBox(width: 4),
                                     Text(
                                       _formatDate(order['createdAt']),
-                                      style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: Colors.grey[600],
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -1843,26 +2298,41 @@ class TraderCropsTab extends StatelessWidget {
                             ),
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 8,
+                            ),
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
-                                colors: _getStatusColor(order['status']) == Colors.green
-                                    ? [Colors.green.shade400, Colors.green.shade600]
-                                    : _getStatusColor(order['status']) == Colors.red
-                                        ? [Colors.red.shade400, Colors.red.shade600]
-                                        : [Colors.orange.shade400, Colors.orange.shade600],
+                                colors:
+                                    _getStatusColor(order['status']) ==
+                                        Colors.green
+                                    ? [
+                                        Colors.green.shade400,
+                                        Colors.green.shade600,
+                                      ]
+                                    : _getStatusColor(order['status']) ==
+                                          Colors.red
+                                    ? [Colors.red.shade400, Colors.red.shade600]
+                                    : [
+                                        Colors.orange.shade400,
+                                        Colors.orange.shade600,
+                                      ],
                               ),
                               borderRadius: BorderRadius.circular(20),
                               boxShadow: [
                                 BoxShadow(
-                                  color: _getStatusColor(order['status']).withOpacity(0.3),
+                                  color: _getStatusColor(
+                                    order['status'],
+                                  ).withOpacity(0.3),
                                   blurRadius: 8,
                                   offset: const Offset(0, 2),
                                 ),
                               ],
                             ),
                             child: Text(
-                              order['status']?.toString().toUpperCase() ?? 'PENDING',
+                              order['status']?.toString().toUpperCase() ??
+                                  'PENDING',
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 11,
@@ -1882,11 +2352,17 @@ class TraderCropsTab extends StatelessWidget {
                               decoration: BoxDecoration(
                                 color: Colors.green.shade50,
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.green.shade200),
+                                border: Border.all(
+                                  color: Colors.green.shade200,
+                                ),
                               ),
                               child: Column(
                                 children: [
-                                  Icon(Icons.shopping_cart, color: Colors.green.shade700, size: 22),
+                                  Icon(
+                                    Icons.shopping_cart,
+                                    color: Colors.green.shade700,
+                                    size: 22,
+                                  ),
                                   const SizedBox(height: 6),
                                   Text(
                                     '${order['quantity']} ${order['unit']}',
@@ -1914,11 +2390,17 @@ class TraderCropsTab extends StatelessWidget {
                               decoration: BoxDecoration(
                                 color: Colors.orange.shade50,
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.orange.shade200),
+                                border: Border.all(
+                                  color: Colors.orange.shade200,
+                                ),
                               ),
                               child: Column(
                                 children: [
-                                  Icon(Icons.currency_rupee, color: Colors.orange.shade700, size: 22),
+                                  Icon(
+                                    Icons.currency_rupee,
+                                    color: Colors.orange.shade700,
+                                    size: 22,
+                                  ),
                                   const SizedBox(height: 6),
                                   Text(
                                     '₹${order['pricePerUnit']}',
@@ -1946,18 +2428,29 @@ class TraderCropsTab extends StatelessWidget {
                         Wrap(
                           spacing: 8,
                           runSpacing: 8,
-                          children: (order['qualityGrades'] as List).map((grade) {
+                          children: (order['qualityGrades'] as List).map((
+                            grade,
+                          ) {
                             return Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.amber.shade50,
                                 borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: Colors.amber.shade200),
+                                border: Border.all(
+                                  color: Colors.amber.shade200,
+                                ),
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(Icons.star, size: 16, color: Colors.amber.shade700),
+                                  Icon(
+                                    Icons.star,
+                                    size: 16,
+                                    color: Colors.amber.shade700,
+                                  ),
                                   const SizedBox(width: 6),
                                   Text(
                                     grade.toString(),
@@ -1984,18 +2477,34 @@ class TraderCropsTab extends StatelessWidget {
                         child: Column(
                           children: [
                             if (order['location'] != null) ...[
-                              _buildInfoRow(Icons.store, 'Mandi', order['location']['mandiName'] ?? 'N/A'),
+                              _buildInfoRow(
+                                Icons.store,
+                                'Mandi',
+                                order['location']['mandiName'] ?? 'N/A',
+                              ),
                               const Divider(height: 20),
-                              _buildInfoRow(Icons.location_on, 'Location', '${order['location']['village']}, ${order['location']['state']}'),
+                              _buildInfoRow(
+                                Icons.location_on,
+                                'Location',
+                                '${order['location']['village']}, ${order['location']['state']}',
+                              ),
                             ],
                             if (order['requiredDeliveryDate'] != null) ...[
-                              if (order['location'] != null) const Divider(height: 20),
-                              _buildInfoRow(Icons.local_shipping, 'Delivery', _formatDate(order['requiredDeliveryDate'])),
+                              if (order['location'] != null)
+                                const Divider(height: 20),
+                              _buildInfoRow(
+                                Icons.local_shipping,
+                                'Delivery',
+                                _formatDate(order['requiredDeliveryDate']),
+                              ),
                             ],
                           ],
                         ),
                       ),
-                      if (order['specialInstructions'] != null && order['specialInstructions'].toString().isNotEmpty) ...[
+                      if (order['specialInstructions'] != null &&
+                          order['specialInstructions']
+                              .toString()
+                              .isNotEmpty) ...[
                         const SizedBox(height: 16),
                         Container(
                           padding: const EdgeInsets.all(16),
@@ -2013,7 +2522,11 @@ class TraderCropsTab extends StatelessWidget {
                                   color: Colors.blue.shade100,
                                   borderRadius: BorderRadius.circular(8),
                                 ),
-                                child: Icon(Icons.info_outline, size: 18, color: Colors.blue.shade700),
+                                child: Icon(
+                                  Icons.info_outline,
+                                  size: 18,
+                                  color: Colors.blue.shade700,
+                                ),
                               ),
                               const SizedBox(width: 12),
                               Expanded(
@@ -2031,7 +2544,10 @@ class TraderCropsTab extends StatelessWidget {
                                     const SizedBox(height: 4),
                                     Text(
                                       order['specialInstructions'],
-                                      style: TextStyle(fontSize: 14, color: Colors.grey[800]),
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.grey[800],
+                                      ),
                                     ),
                                   ],
                                 ),
