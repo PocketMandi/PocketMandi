@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'farmer_unlisted_dialog.dart';
+import 'trader_unlisted_dialog.dart';
+import 'package:poket_mandi/services/notification_service.dart';
 
 class RequestsManagementScreen extends StatefulWidget {
   const RequestsManagementScreen({Key? key}) : super(key: key);
@@ -246,7 +248,10 @@ class FarmerUnlistedCropsTab extends StatelessWidget {
                               padding: const EdgeInsets.all(14),
                               decoration: BoxDecoration(
                                 gradient: const LinearGradient(
-                                  colors: [Color(0xFF104f22), Color(0xFF1a7a33)],
+                                  colors: [
+                                    Color(0xFF104f22),
+                                    Color(0xFF1a7a33),
+                                  ],
                                 ),
                                 borderRadius: BorderRadius.circular(16),
                                 boxShadow: [
@@ -312,14 +317,17 @@ class FarmerUnlistedCropsTab extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(20),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: _getStatusColor(request['status']).withOpacity(0.3),
+                                    color: _getStatusColor(
+                                      request['status'],
+                                    ).withOpacity(0.3),
                                     blurRadius: 8,
                                     offset: const Offset(0, 2),
                                   ),
                                 ],
                               ),
                               child: Text(
-                                (request['status']?.toString().toUpperCase() ?? 'PENDING'),
+                                (request['status']?.toString().toUpperCase() ??
+                                    'PENDING'),
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 11,
@@ -352,7 +360,8 @@ class FarmerUnlistedCropsTab extends StatelessWidget {
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton.icon(
-                            onPressed: () => showFarmerRequestDetails(context, request),
+                            onPressed: () =>
+                                showFarmerRequestDetails(context, request),
                             icon: const Icon(Icons.visibility, size: 18),
                             label: const Text(
                               'View Complete Details',
@@ -374,17 +383,26 @@ class FarmerUnlistedCropsTab extends StatelessWidget {
                         ),
                         const SizedBox(height: 12),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.grey.shade300, width: 1.5),
+                            border: Border.all(
+                              color: Colors.grey.shade300,
+                              width: 1.5,
+                            ),
                           ),
                           child: DropdownButtonHideUnderline(
                             child: DropdownButton<String>(
                               value: request['status'] ?? 'pending',
                               isExpanded: true,
-                              icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF104f22)),
+                              icon: const Icon(
+                                Icons.arrow_drop_down,
+                                color: Color(0xFF104f22),
+                              ),
                               style: const TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w600,
@@ -395,7 +413,11 @@ class FarmerUnlistedCropsTab extends StatelessWidget {
                                   value: 'pending',
                                   child: Row(
                                     children: [
-                                      Icon(Icons.pending, size: 18, color: Colors.orange),
+                                      Icon(
+                                        Icons.pending,
+                                        size: 18,
+                                        color: Colors.orange,
+                                      ),
                                       SizedBox(width: 8),
                                       Text('Pending'),
                                     ],
@@ -405,7 +427,11 @@ class FarmerUnlistedCropsTab extends StatelessWidget {
                                   value: 'confirmed',
                                   child: Row(
                                     children: [
-                                      Icon(Icons.check_circle, size: 18, color: Colors.green),
+                                      Icon(
+                                        Icons.check_circle,
+                                        size: 18,
+                                        color: Colors.green,
+                                      ),
                                       SizedBox(width: 8),
                                       Text('Confirmed'),
                                     ],
@@ -415,7 +441,11 @@ class FarmerUnlistedCropsTab extends StatelessWidget {
                                   value: 'delivered',
                                   child: Row(
                                     children: [
-                                      Icon(Icons.local_shipping, size: 18, color: Colors.blue),
+                                      Icon(
+                                        Icons.local_shipping,
+                                        size: 18,
+                                        color: Colors.blue,
+                                      ),
                                       SizedBox(width: 8),
                                       Text('Delivered'),
                                     ],
@@ -425,7 +455,11 @@ class FarmerUnlistedCropsTab extends StatelessWidget {
                                   value: 'rejected',
                                   child: Row(
                                     children: [
-                                      Icon(Icons.cancel, size: 18, color: Colors.red),
+                                      Icon(
+                                        Icons.cancel,
+                                        size: 18,
+                                        color: Colors.red,
+                                      ),
                                       SizedBox(width: 8),
                                       Text('Rejected'),
                                     ],
@@ -434,7 +468,11 @@ class FarmerUnlistedCropsTab extends StatelessWidget {
                               ],
                               onChanged: (value) {
                                 if (value != null) {
-                                  _updateStatus(context, requestsList[index].key, value);
+                                  _updateStatus(
+                                    context,
+                                    requestsList[index].key,
+                                    value,
+                                  );
                                 }
                               },
                             ),
@@ -512,11 +550,56 @@ class FarmerUnlistedCropsTab extends StatelessWidget {
     String status,
   ) async {
     final parts = path.split('/');
+    final userId = parts[0];
+    final requestId = parts[1];
+
     await FirebaseDatabase.instance
         .ref('requestednewcrop')
-        .child(parts[0])
-        .child(parts[1])
+        .child(userId)
+        .child(requestId)
         .update({'status': status, 'updatedAt': ServerValue.timestamp});
+
+    // Send notification to farmer
+    final snapshot = await FirebaseDatabase.instance
+        .ref('requestednewcrop/$userId/$requestId')
+        .once();
+
+    if (snapshot.snapshot.value != null) {
+      final request = snapshot.snapshot.value as Map;
+      final cropName = request['cropName'] ?? 'Crop';
+
+      String notificationTitle = '';
+      String notificationBody = '';
+
+      switch (status) {
+        case 'confirmed':
+          notificationTitle = 'Request Confirmed ✅';
+          notificationBody =
+              'Your request for $cropName has been confirmed by admin.';
+          break;
+        case 'delivered':
+          notificationTitle = 'Request Delivered 🚚';
+          notificationBody = 'Your request for $cropName has been delivered.';
+          break;
+        case 'rejected':
+          notificationTitle = 'Request Rejected ❌';
+          notificationBody = 'Your request for $cropName has been rejected.';
+          break;
+        default:
+          notificationTitle = 'Request Status Updated';
+          notificationBody =
+              'Your request for $cropName status has been updated to $status.';
+      }
+
+      await NotificationService.sendNotificationToUser(
+        userId: userId,
+        title: notificationTitle,
+        body: notificationBody,
+        type: 'crop_request_status',
+        data: {'requestId': requestId, 'cropName': cropName, 'status': status},
+      );
+    }
+
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text('Status updated to $status')));
@@ -615,214 +698,167 @@ class TraderUnlistedCropsTab extends StatelessWidget {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Colors.white,
-                      Colors.green.shade50.withOpacity(0.3),
-                    ],
+              child: InkWell(
+                onTap: () => showTraderRequestDetails(context, request),
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Colors.white,
+                        Colors.green.shade50.withOpacity(0.3),
+                      ],
+                    ),
                   ),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFF104f22), Color(0xFF1a7a33)],
-                              ),
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(
-                                    0xFF104f22,
-                                  ).withOpacity(0.3),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: const Icon(
-                              Icons.grass,
-                              color: Colors.white,
-                              size: 28,
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  request['cropName'] ?? 'N/A',
-                                  style: const TextStyle(
-                                    fontSize: 19,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF2E2E2E),
-                                    letterSpacing: 0.3,
-                                  ),
-                                ),
-                                const SizedBox(height: 4),
-                                Row(
-                                  children: [
-                                    Icon(
-                                      Icons.access_time,
-                                      size: 14,
-                                      color: Colors.grey[500],
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      _formatDate(request['createdAt']),
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        color: Colors.grey[600],
-                                      ),
-                                    ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                gradient: const LinearGradient(
+                                  colors: [
+                                    Color(0xFF104f22),
+                                    Color(0xFF1a7a33),
                                   ],
                                 ),
-                              ],
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  Colors.orange.shade400,
-                                  Colors.orange.shade600,
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(
+                                      0xFF104f22,
+                                    ).withOpacity(0.3),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 4),
+                                  ),
                                 ],
                               ),
-                              borderRadius: BorderRadius.circular(20),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.orange.withOpacity(0.3),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: const Text(
-                              'PENDING',
-                              style: TextStyle(
+                              child: const Icon(
+                                Icons.grass,
                                 color: Colors.white,
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 0.5,
+                                size: 28,
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.grey.shade200),
-                        ),
-                        child: Column(
-                          children: [
-                            _buildInfoRow(
-                              Icons.shopping_basket,
-                              'Quantity',
-                              '${request['quantity']} ${request['unit']}',
-                            ),
-                            const Divider(height: 20),
-                            _buildInfoRow(
-                              Icons.currency_rupee,
-                              'Price',
-                              '₹${request['pricePerUnit']}/${request['unit']}',
-                            ),
-                            if (request['qualityGrades'] != null)
-                              const Divider(height: 20),
-                            if (request['qualityGrades'] != null)
-                              _buildInfoRow(
-                                Icons.star,
-                                'Quality',
-                                (request['qualityGrades'] as List).join(', '),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    request['cropName'] ?? 'N/A',
+                                    style: const TextStyle(
+                                      fontSize: 19,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF2E2E2E),
+                                      letterSpacing: 0.3,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.access_time,
+                                        size: 14,
+                                        color: Colors.grey[500],
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        _formatDate(request['createdAt']),
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
                               ),
-                            const Divider(height: 20),
-                            _buildInfoRow(
-                              Icons.store,
-                              'Mandi',
-                              request['mandiName'] ?? 'N/A',
                             ),
-                            const Divider(height: 20),
-                            _buildInfoRow(
-                              Icons.location_on,
-                              'Location',
-                              request['selectedLocation'] ?? 'N/A',
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    Colors.orange.shade400,
+                                    Colors.orange.shade600,
+                                  ],
+                                ),
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.orange.withOpacity(0.3),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: const Text(
+                                'PENDING',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
                             ),
                           ],
                         ),
-                      ),
-                      if (request['message'] != null &&
-                          request['message'].toString().isNotEmpty) ...[
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 20),
                         Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: Colors.blue.shade50,
+                            color: Colors.white,
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: Colors.blue.shade100),
+                            border: Border.all(color: Colors.grey.shade200),
                           ),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                          child: Column(
                             children: [
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: Colors.blue.shade100,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Icon(
-                                  Icons.message,
-                                  size: 18,
-                                  color: Colors.blue.shade700,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Message',
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.blue.shade700,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      request['message'],
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: Colors.grey[800],
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                              _buildInfoRow(
+                                Icons.person,
+                                'Trader',
+                                '${request['userName']} (${request['userPhone']})',
                               ),
                             ],
                           ),
                         ),
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            onPressed: () =>
+                                showTraderRequestDetails(context, request),
+                            icon: const Icon(Icons.visibility, size: 18),
+                            label: const Text(
+                              'View Complete Details',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF104f22),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 0,
+                            ),
+                          ),
+                        ),
                       ],
-                    ],
+                    ),
                   ),
                 ),
               ),
