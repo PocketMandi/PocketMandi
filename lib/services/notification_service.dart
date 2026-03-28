@@ -9,6 +9,7 @@ class NotificationService {
   static final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
   static final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
   static BuildContext? _context;
+  static final Set<String> _shownNotifications = {}; // Track shown notifications
   
   static void setContext(BuildContext context) {
     _context = context;
@@ -87,10 +88,11 @@ class NotificationService {
     // Handle background messages
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       print('Message clicked!');
+      _handleFCMNotificationTap(message);
     });
 
-    // Listen to Firebase notifications node for real-time updates
-    _listenToNotifications();
+    // DON'T listen to Firebase database for notifications
+    // The Cloud Function will send FCM notifications directly
   }
 
   static Future<void> _saveFCMToken(String token) async {
@@ -250,32 +252,25 @@ class NotificationService {
     if (payload == null || _context == null) return;
 
     try {
-      // Parse payload to get notification type
-      final parts = payload.split('|');
-      if (parts.isEmpty) return;
-
-      final type = parts[0];
       int tabIndex = 0;
 
-      switch (type) {
+      switch (payload) {
         case 'crop_request':
-          tabIndex = 0; // Farmer Unlisted
+          tabIndex = 0;
           break;
         case 'crop_order':
-          tabIndex = 2; // Farmer Crops
+          tabIndex = 2;
           break;
         case 'sapling_order':
-          tabIndex = 4; // Sapling Orders
+          tabIndex = 4;
           break;
         case 'test_request':
-          tabIndex = 5; // Test Requests
+          tabIndex = 5;
           break;
         case 'new_user':
-          // Navigate to users management
           return;
       }
 
-      // Navigate to requests management with specific tab
       Navigator.of(_context!).push(
         MaterialPageRoute(
           builder: (_) => RequestsManagementScreenWithTab(initialTab: tabIndex),
@@ -286,79 +281,41 @@ class NotificationService {
     }
   }
 
-  // Listen to Firebase notifications in real-time
-  static Future<void> _listenToNotifications() async {
+  // Handle FCM notification tap
+  static void _handleFCMNotificationTap(RemoteMessage message) {
+    if (_context == null) return;
+
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final userId = prefs.getString('user_id');
-      
-      if (userId != null) {
-        print('Listening to notifications for user: $userId');
-        
-        FirebaseDatabase.instance
-            .ref('notifications/$userId')
-            .onChildAdded
-            .listen((event) {
-          if (event.snapshot.value != null) {
-            final notification = Map<String, dynamic>.from(event.snapshot.value as Map);
-            final title = notification['title'] ?? 'Notification';
-            final body = notification['body'] ?? '';
-            
-            print('New notification received: $title - $body');
-            
-            // Show local notification
-            _showDirectNotification(title, body);
-          }
-        });
+      final type = message.data['type'];
+      if (type == null) return;
+
+      int tabIndex = 0;
+
+      switch (type) {
+        case 'crop_request':
+          tabIndex = 0;
+          break;
+        case 'crop_order':
+          tabIndex = 2;
+          break;
+        case 'sapling_order':
+          tabIndex = 4;
+          break;
+        case 'test_request':
+          tabIndex = 5;
+          break;
+        case 'new_user':
+          return;
       }
+
+      Navigator.of(_context!).push(
+        MaterialPageRoute(
+          builder: (_) => RequestsManagementScreenWithTab(initialTab: tabIndex),
+        ),
+      );
     } catch (e) {
-      print('Error listening to notifications: $e');
+      print('Error handling FCM notification tap: $e');
     }
-  }
-
-  // Show notification directly
-  static Future<void> _showDirectNotification(String title, String body) async {
-    // Get notification type from body to create payload
-    String notificationType = 'notification';
-    if (body.contains('crop request') || body.contains('requested')) {
-      notificationType = 'crop_request';
-    } else if (body.contains('ordered') && body.contains('sapling')) {
-      notificationType = 'sapling_order';
-    } else if (body.contains('ordered')) {
-      notificationType = 'crop_order';
-    } else if (body.contains('test')) {
-      notificationType = 'test_request';
-    } else if (body.contains('registered')) {
-      notificationType = 'new_user';
-    }
-
-    const androidDetails = AndroidNotificationDetails(
-      'high_importance_channel',
-      'High Importance Notifications',
-      channelDescription: 'This channel is used for important notifications.',
-      importance: Importance.high,
-      priority: Priority.high,
-      icon: '@mipmap/ic_launcher',
-    );
-    
-    const iosDetails = DarwinNotificationDetails(
-      presentAlert: true,
-      presentBadge: true,
-      presentSound: true,
-    );
-    
-    const notificationDetails = NotificationDetails(
-      android: androidDetails,
-      iOS: iosDetails,
-    );
-
-    await _localNotifications.show(
-      id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
-      title: title,
-      body: body,
-      notificationDetails: notificationDetails,
-      payload: notificationType,
-    );
   }
 
   // Check if user has notifications enabled
