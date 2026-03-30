@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:poket_mandi/main.dart';
+import 'package:poket_mandi/screens/auth/landing_screen.dart';
 import 'package:poket_mandi/screens/vyapari/crop_detail_screen.dart';
 import 'package:poket_mandi/screens/vyapari/crop_not_listed_screen.dart';
 import 'package:poket_mandi/screens/kisan/edit_profile_screen.dart';
@@ -10,7 +10,9 @@ import 'package:poket_mandi/screens/common/policies_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 class VyapariDashboardScreen extends StatefulWidget {
-  const VyapariDashboardScreen({super.key});
+  final int? initialTab;
+  
+  const VyapariDashboardScreen({super.key, this.initialTab});
 
   @override
   State<VyapariDashboardScreen> createState() => _VyapariDashboardScreenState();
@@ -23,11 +25,12 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
   List<Map<String, dynamic>> crops = [];
   bool isLoading = true;
   bool isGuest = false;
-  int _selectedIndex = 0;
+  late int _selectedIndex;
 
   @override
   void initState() {
     super.initState();
+    _selectedIndex = widget.initialTab ?? 0;
     _initializeUserData();
     _loadCrops();
   }
@@ -142,11 +145,13 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
     if (confirm == true) {
       final prefs = await SharedPreferences.getInstance();
       await prefs.clear();
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (_) => const AuthCheck()),
-        (route) => false,
-      );
+      if (mounted) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const LandingScreen()),
+          (route) => false,
+        );
+      }
     }
   }
 
@@ -352,7 +357,7 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
                         Navigator.pop(context);
                         Navigator.pushAndRemoveUntil(
                           context,
-                          MaterialPageRoute(builder: (_) => const AuthCheck()),
+                          MaterialPageRoute(builder: (_) => const LandingScreen()),
                           (route) => false,
                         );
                       },
@@ -388,6 +393,7 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
       _showGuestRestrictionDialog();
       return;
     }
+    
     setState(() {
       _selectedIndex = index;
     });
@@ -2476,9 +2482,128 @@ class _VyapariDashboardScreenWithTabState extends State<VyapariDashboardScreenWi
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(backgroundColor: const Color(0xFFF4F6F5), body: _selectedIndex == 2 ? const MyOrdersVyapariHistoryWidget() : _selectedIndex == 1 ? const MyOrdersVyapariWidget() : Container());
+    return Scaffold(
+      backgroundColor: const Color(0xFFF4F6F5),
+      body: _selectedIndex == 2
+          ? const MyOrdersVyapariHistoryWidget()
+          : _selectedIndex == 1
+              ? const MyOrdersVyapariWidget()
+              : Container(),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, -5),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildNavItem(Icons.home, "Home", 0),
+                _buildNavItem(Icons.shopping_bag, "Orders", 1),
+                _buildCropNotListedNavItem(),
+                _buildNavItem(Icons.history, "History", 2),
+                _buildNavItem(Icons.person, "Profile", 3),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem(IconData icon, String label, int index) {
+    final isSelected = _selectedIndex == index;
+    return Expanded(
+      child: InkWell(
+        onTap: () {
+          setState(() {
+            _selectedIndex = index;
+          });
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? const Color(0xFF104f22).withOpacity(0.1)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                color: isSelected ? const Color(0xFF104f22) : Colors.grey,
+                size: 24,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                  color: isSelected ? const Color(0xFF104f22) : Colors.grey,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCropNotListedNavItem() {
+    return Expanded(
+      child: InkWell(
+        onTap: () {},
+        borderRadius: BorderRadius.circular(25),
+        child: Container(
+          height: 50,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF669123), Color(0xFF104f22)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(25),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF669123).withOpacity(0.3),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: const Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.add_circle, color: Colors.white, size: 24),
+              SizedBox(height: 2),
+              Text(
+                "Request",
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
+
 
 
 

@@ -377,8 +377,7 @@ class NotificationService {
           // Navigate to Vyapari Dashboard with History tab selected (index 2)
           Navigator.of(_context!).pushReplacement(
             MaterialPageRoute(
-              builder: (_) =>
-                  const VyapariDashboardScreenWithTab(initialTab: 2),
+              builder: (_) => const VyapariDashboardScreen(initialTab: 2),
             ),
           );
         } else {
@@ -470,8 +469,7 @@ class NotificationService {
           // Navigate to Vyapari Dashboard with History tab selected (index 2)
           Navigator.of(_context!).pushReplacement(
             MaterialPageRoute(
-              builder: (_) =>
-                  const VyapariDashboardScreenWithTab(initialTab: 2),
+              builder: (_) => const VyapariDashboardScreen(initialTab: 2),
             ),
           );
         } else {

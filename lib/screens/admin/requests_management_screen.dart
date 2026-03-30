@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'farmer_unlisted_dialog.dart';
 import 'trader_unlisted_dialog.dart';
+import 'farmer_crops_dialog.dart';
 import 'package:poket_mandi/services/notification_service.dart';
 
 class RequestsManagementScreen extends StatefulWidget {
@@ -1393,68 +1394,88 @@ class SaplingOrdersTab extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: () => _updateOrderStatus(
-                                context,
-                                userId,
-                                orderId,
-                                'confirmed',
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 14,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                elevation: 0,
-                              ),
-                              icon: const Icon(Icons.check_circle, size: 18),
-                              label: const Text(
-                                'Confirm',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15,
-                                ),
-                              ),
-                            ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.grey.shade300,
+                            width: 1.5,
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: () => _updateOrderStatus(
-                                context,
-                                userId,
-                                orderId,
-                                'rejected',
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.red,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 14,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                elevation: 0,
-                              ),
-                              icon: const Icon(Icons.cancel, size: 18),
-                              label: const Text(
-                                'Reject',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15,
-                                ),
-                              ),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: order['status'] ?? 'pending',
+                            isExpanded: true,
+                            icon: const Icon(
+                              Icons.arrow_drop_down,
+                              color: Color(0xFF104f22),
                             ),
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF2E2E2E),
+                            ),
+                            items: const [
+                              DropdownMenuItem(
+                                value: 'pending',
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.pending,
+                                      size: 18,
+                                      color: Colors.orange,
+                                    ),
+                                    SizedBox(width: 8),
+                                    Text('Pending'),
+                                  ],
+                                ),
+                              ),
+                              DropdownMenuItem(
+                                value: 'confirmed',
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.check_circle,
+                                      size: 18,
+                                      color: Colors.green,
+                                    ),
+                                    SizedBox(width: 8),
+                                    Text('Confirmed'),
+                                  ],
+                                ),
+                              ),
+                              DropdownMenuItem(
+                                value: 'rejected',
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.cancel,
+                                      size: 18,
+                                      color: Colors.red,
+                                    ),
+                                    SizedBox(width: 8),
+                                    Text('Rejected'),
+                                  ],
+                                ),
+                              ),
+                            ],
+                            onChanged: (value) {
+                              if (value != null) {
+                                _updateOrderStatus(
+                                  context,
+                                  userId,
+                                  orderId,
+                                  value,
+                                );
+                              }
+                            },
                           ),
-                        ],
+                        ),
                       ),
                     ],
                   ),
@@ -1548,14 +1569,61 @@ class SaplingOrdersTab extends StatelessWidget {
     String orderId,
     String status,
   ) async {
-    await FirebaseDatabase.instance
-        .ref('saplingorders')
-        .child(userId)
-        .child(orderId)
-        .update({'status': status, 'updatedAt': ServerValue.timestamp});
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('Order $status')));
+    try {
+      await FirebaseDatabase.instance
+          .ref('saplingorders')
+          .child(userId)
+          .child(orderId)
+          .update({'status': status, 'updatedAt': ServerValue.timestamp});
+
+      final snapshot = await FirebaseDatabase.instance
+          .ref('saplingorders/$userId/$orderId')
+          .once();
+
+      if (snapshot.snapshot.value != null) {
+        final order = snapshot.snapshot.value as Map;
+        final cropName = order['cropName'] ?? 'Sapling';
+
+        String notificationTitle = '';
+        String notificationBody = '';
+
+        switch (status) {
+          case 'confirmed':
+            notificationTitle = 'Sapling Order Confirmed ✅';
+            notificationBody =
+                'Your sapling order for $cropName has been confirmed by admin.';
+            break;
+          case 'rejected':
+            notificationTitle = 'Sapling Order Rejected ❌';
+            notificationBody = 'Your sapling order for $cropName has been rejected.';
+            break;
+          default:
+            notificationTitle = 'Sapling Order Status Updated';
+            notificationBody =
+                'Your sapling order for $cropName status has been updated to $status.';
+        }
+
+        await NotificationService.sendNotificationToUser(
+          userId: userId,
+          title: notificationTitle,
+          body: notificationBody,
+          type: 'sapling_order_status',
+          data: {'orderId': orderId, 'cropName': cropName, 'status': status},
+        );
+      }
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Order $status')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
   }
 }
 
@@ -1913,68 +1981,88 @@ class TestRequestsTab extends StatelessWidget {
                         ),
                       ],
                       const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: () => _updateRequestStatus(
-                                context,
-                                userId,
-                                requestId,
-                                'confirmed',
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 14,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                elevation: 0,
-                              ),
-                              icon: const Icon(Icons.check_circle, size: 18),
-                              label: const Text(
-                                'Confirm',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15,
-                                ),
-                              ),
-                            ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.grey.shade300,
+                            width: 1.5,
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: () => _updateRequestStatus(
-                                context,
-                                userId,
-                                requestId,
-                                'rejected',
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.red,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 14,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                elevation: 0,
-                              ),
-                              icon: const Icon(Icons.cancel, size: 18),
-                              label: const Text(
-                                'Reject',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15,
-                                ),
-                              ),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: request['status'] ?? 'pending',
+                            isExpanded: true,
+                            icon: const Icon(
+                              Icons.arrow_drop_down,
+                              color: Color(0xFF104f22),
                             ),
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF2E2E2E),
+                            ),
+                            items: const [
+                              DropdownMenuItem(
+                                value: 'pending',
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.pending,
+                                      size: 18,
+                                      color: Colors.orange,
+                                    ),
+                                    SizedBox(width: 8),
+                                    Text('Pending'),
+                                  ],
+                                ),
+                              ),
+                              DropdownMenuItem(
+                                value: 'confirmed',
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.check_circle,
+                                      size: 18,
+                                      color: Colors.green,
+                                    ),
+                                    SizedBox(width: 8),
+                                    Text('Confirmed'),
+                                  ],
+                                ),
+                              ),
+                              DropdownMenuItem(
+                                value: 'rejected',
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.cancel,
+                                      size: 18,
+                                      color: Colors.red,
+                                    ),
+                                    SizedBox(width: 8),
+                                    Text('Rejected'),
+                                  ],
+                                ),
+                              ),
+                            ],
+                            onChanged: (value) {
+                              if (value != null) {
+                                _updateRequestStatus(
+                                  context,
+                                  userId,
+                                  requestId,
+                                  value,
+                                );
+                              }
+                            },
                           ),
-                        ],
+                        ),
                       ),
                     ],
                   ),
@@ -2068,14 +2156,72 @@ class TestRequestsTab extends StatelessWidget {
     String requestId,
     String status,
   ) async {
-    await FirebaseDatabase.instance
-        .ref('testrequests')
-        .child(userId)
-        .child(requestId)
-        .update({'status': status, 'updatedAt': ServerValue.timestamp});
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('Request $status')));
+    try {
+      await FirebaseDatabase.instance
+          .ref('testrequests')
+          .child(userId)
+          .child(requestId)
+          .update({'status': status, 'updatedAt': ServerValue.timestamp});
+
+      final snapshot = await FirebaseDatabase.instance
+          .ref('testrequests/$userId/$requestId')
+          .once();
+
+      if (snapshot.snapshot.value != null) {
+        final request = snapshot.snapshot.value as Map;
+        final soilTest = request['soilTest'] == true;
+        final waterTest = request['waterTest'] == true;
+        String testType = '';
+        if (soilTest && waterTest) {
+          testType = 'Soil & Water Test';
+        } else if (soilTest) {
+          testType = 'Soil Test';
+        } else if (waterTest) {
+          testType = 'Water Test';
+        } else {
+          testType = 'Test';
+        }
+
+        String notificationTitle = '';
+        String notificationBody = '';
+
+        switch (status) {
+          case 'confirmed':
+            notificationTitle = 'Test Request Confirmed ✅';
+            notificationBody =
+                'Your $testType request has been confirmed by admin.';
+            break;
+          case 'rejected':
+            notificationTitle = 'Test Request Rejected ❌';
+            notificationBody = 'Your $testType request has been rejected.';
+            break;
+          default:
+            notificationTitle = 'Test Request Status Updated';
+            notificationBody =
+                'Your $testType request status has been updated to $status.';
+        }
+
+        await NotificationService.sendNotificationToUser(
+          userId: userId,
+          title: notificationTitle,
+          body: notificationBody,
+          type: 'test_request_status',
+          data: {'requestId': requestId, 'testType': testType, 'status': status},
+        );
+      }
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Request $status')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
   }
 }
 
@@ -2218,23 +2364,23 @@ class FarmerCropsTab extends StatelessWidget {
                             ),
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
-                                colors: [
-                                  Colors.orange.shade400,
-                                  Colors.orange.shade600,
-                                ],
+                                colors: _getStatusGradient(crop['status']),
                               ),
                               borderRadius: BorderRadius.circular(20),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.orange.withOpacity(0.3),
+                                  color: _getStatusColor(
+                                    crop['status'],
+                                  ).withOpacity(0.3),
                                   blurRadius: 8,
                                   offset: const Offset(0, 2),
                                 ),
                               ],
                             ),
-                            child: const Text(
-                              'PENDING',
-                              style: TextStyle(
+                            child: Text(
+                              (crop['status']?.toString().toUpperCase() ??
+                                  'PENDING'),
+                              style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
@@ -2287,66 +2433,125 @@ class FarmerCropsTab extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: () => _updateStatus(
-                                context,
-                                cropsList[index].key,
-                                'confirmed',
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 14,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                elevation: 0,
-                              ),
-                              icon: const Icon(Icons.check_circle, size: 18),
-                              label: const Text(
-                                'Confirm',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15,
-                                ),
-                              ),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: () => showFarmerCropDetails(context, crop),
+                          icon: const Icon(Icons.visibility, size: 18),
+                          label: const Text(
+                            'View Complete Details',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
                             ),
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: ElevatedButton.icon(
-                              onPressed: () => _updateStatus(
-                                context,
-                                cropsList[index].key,
-                                'delivered',
-                              ),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.blue,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 14,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                elevation: 0,
-                              ),
-                              icon: const Icon(Icons.local_shipping, size: 18),
-                              label: const Text(
-                                'Delivered',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 15,
-                                ),
-                              ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF104f22),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
                             ),
+                            elevation: 0,
                           ),
-                        ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.grey.shade300,
+                            width: 1.5,
+                          ),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: crop['status'] ?? 'pending',
+                            isExpanded: true,
+                            icon: const Icon(
+                              Icons.arrow_drop_down,
+                              color: Color(0xFF104f22),
+                            ),
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF2E2E2E),
+                            ),
+                            items: const [
+                              DropdownMenuItem(
+                                value: 'pending',
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.pending,
+                                      size: 18,
+                                      color: Colors.orange,
+                                    ),
+                                    SizedBox(width: 8),
+                                    Text('Pending'),
+                                  ],
+                                ),
+                              ),
+                              DropdownMenuItem(
+                                value: 'confirmed',
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.check_circle,
+                                      size: 18,
+                                      color: Colors.green,
+                                    ),
+                                    SizedBox(width: 8),
+                                    Text('Confirmed'),
+                                  ],
+                                ),
+                              ),
+                              DropdownMenuItem(
+                                value: 'delivered',
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.local_shipping,
+                                      size: 18,
+                                      color: Colors.blue,
+                                    ),
+                                    SizedBox(width: 8),
+                                    Text('Delivered'),
+                                  ],
+                                ),
+                              ),
+                              DropdownMenuItem(
+                                value: 'rejected',
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.cancel,
+                                      size: 18,
+                                      color: Colors.red,
+                                    ),
+                                    SizedBox(width: 8),
+                                    Text('Rejected'),
+                                  ],
+                                ),
+                              ),
+                            ],
+                            onChanged: (value) {
+                              if (value != null) {
+                                _updateStatus(
+                                  context,
+                                  cropsList[index].key,
+                                  value,
+                                );
+                              }
+                            },
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -2419,14 +2624,107 @@ class FarmerCropsTab extends StatelessWidget {
     String status,
   ) async {
     final parts = path.split('/');
+    final userId = parts[0];
+    final cropId = parts[1];
+
+    print('DEBUG: Updating farmer crop status for userId: $userId');
+
     await FirebaseDatabase.instance
         .ref('addedcropsbykissan')
-        .child(parts[0])
-        .child(parts[1])
+        .child(userId)
+        .child(cropId)
         .update({'status': status, 'updatedAt': ServerValue.timestamp});
+
+    // Send notification to farmer
+    final snapshot = await FirebaseDatabase.instance
+        .ref('addedcropsbykissan/$userId/$cropId')
+        .once();
+
+    if (snapshot.snapshot.value != null) {
+      final crop = snapshot.snapshot.value as Map;
+      final cropType = crop['cropType'] ?? 'Crop';
+
+      // Verify this is a farmer/kisan user
+      final userSnapshot = await FirebaseDatabase.instance
+          .ref('users/$userId')
+          .once();
+      
+      if (userSnapshot.snapshot.value != null) {
+        final userData = userSnapshot.snapshot.value as Map;
+        final userRole = userData['role'];
+        print('DEBUG: Target user role: $userRole');
+        
+        if (userRole != 'kisan' && userRole != 'farmer') {
+          print('ERROR: Attempting to send notification to non-farmer user!');
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Error: Invalid user role')),
+          );
+          return;
+        }
+      }
+
+      String notificationTitle = '';
+      String notificationBody = '';
+
+      switch (status) {
+        case 'confirmed':
+          notificationTitle = 'Crop Listing Confirmed ✅';
+          notificationBody =
+              'Your $cropType listing has been confirmed by admin.';
+          break;
+        case 'delivered':
+          notificationTitle = 'Crop Delivered 🚚';
+          notificationBody = 'Your $cropType has been marked as delivered.';
+          break;
+        case 'rejected':
+          notificationTitle = 'Crop Listing Rejected ❌';
+          notificationBody = 'Your $cropType listing has been rejected.';
+          break;
+        default:
+          notificationTitle = 'Crop Status Updated';
+          notificationBody =
+              'Your $cropType listing status has been updated to $status.';
+      }
+
+      print('DEBUG: Sending notification to farmer userId: $userId');
+      await NotificationService.sendNotificationToUser(
+        userId: userId,
+        title: notificationTitle,
+        body: notificationBody,
+        type: 'crop_request_status',
+        data: {'cropId': cropId, 'cropType': cropType, 'status': status},
+      );
+    }
+
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text('Status updated to $status')));
+  }
+
+  Color _getStatusColor(String? status) {
+    switch (status) {
+      case 'confirmed':
+        return Colors.green;
+      case 'delivered':
+        return Colors.blue;
+      case 'rejected':
+        return Colors.red;
+      default:
+        return Colors.orange;
+    }
+  }
+
+  List<Color> _getStatusGradient(String? status) {
+    switch (status) {
+      case 'confirmed':
+        return [Colors.green.shade400, Colors.green.shade600];
+      case 'delivered':
+        return [Colors.blue.shade400, Colors.blue.shade600];
+      case 'rejected':
+        return [Colors.red.shade400, Colors.red.shade600];
+      default:
+        return [Colors.orange.shade400, Colors.orange.shade600];
+    }
   }
 
   String _formatDate(dynamic timestamp) {
@@ -2833,6 +3131,103 @@ class TraderCropsTab extends StatelessWidget {
                           ),
                         ),
                       ],
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.grey.shade300,
+                            width: 1.5,
+                          ),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: order['status'] ?? 'pending',
+                            isExpanded: true,
+                            icon: const Icon(
+                              Icons.arrow_drop_down,
+                              color: Color(0xFF104f22),
+                            ),
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF2E2E2E),
+                            ),
+                            items: const [
+                              DropdownMenuItem(
+                                value: 'pending',
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.pending,
+                                      size: 18,
+                                      color: Colors.orange,
+                                    ),
+                                    SizedBox(width: 8),
+                                    Text('Pending'),
+                                  ],
+                                ),
+                              ),
+                              DropdownMenuItem(
+                                value: 'confirmed',
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.check_circle,
+                                      size: 18,
+                                      color: Colors.green,
+                                    ),
+                                    SizedBox(width: 8),
+                                    Text('Confirmed'),
+                                  ],
+                                ),
+                              ),
+                              DropdownMenuItem(
+                                value: 'delivered',
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.local_shipping,
+                                      size: 18,
+                                      color: Colors.blue,
+                                    ),
+                                    SizedBox(width: 8),
+                                    Text('Delivered'),
+                                  ],
+                                ),
+                              ),
+                              DropdownMenuItem(
+                                value: 'rejected',
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.cancel,
+                                      size: 18,
+                                      color: Colors.red,
+                                    ),
+                                    SizedBox(width: 8),
+                                    Text('Rejected'),
+                                  ],
+                                ),
+                              ),
+                            ],
+                            onChanged: (value) {
+                              if (value != null) {
+                                _updateTraderCropStatus(
+                                  context,
+                                  ordersList[index].key,
+                                  value,
+                                );
+                              }
+                            },
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -2917,6 +3312,76 @@ class TraderCropsTab extends StatelessWidget {
       return '${date.day}/${date.month}/${date.year}';
     } catch (e) {
       return 'N/A';
+    }
+  }
+
+  Future<void> _updateTraderCropStatus(
+    BuildContext context,
+    String path,
+    String status,
+  ) async {
+    final parts = path.split('/');
+    final userId = parts[0];
+    final orderId = parts[1];
+
+    try {
+      await FirebaseDatabase.instance
+          .ref('addedcropsbyvyapari')
+          .child(userId)
+          .child(orderId)
+          .update({'status': status, 'updatedAt': ServerValue.timestamp});
+
+      final snapshot = await FirebaseDatabase.instance
+          .ref('addedcropsbyvyapari/$userId/$orderId')
+          .once();
+
+      if (snapshot.snapshot.value != null) {
+        final order = snapshot.snapshot.value as Map;
+        final cropType = order['cropType'] ?? 'Crop';
+
+        String notificationTitle = '';
+        String notificationBody = '';
+
+        switch (status) {
+          case 'confirmed':
+            notificationTitle = 'Order Confirmed ✅';
+            notificationBody =
+                'Your $cropType order has been confirmed by admin.';
+            break;
+          case 'delivered':
+            notificationTitle = 'Order Delivered 🚚';
+            notificationBody = 'Your $cropType order has been delivered.';
+            break;
+          case 'rejected':
+            notificationTitle = 'Order Rejected ❌';
+            notificationBody = 'Your $cropType order has been rejected.';
+            break;
+          default:
+            notificationTitle = 'Order Status Updated';
+            notificationBody =
+                'Your $cropType order status has been updated to $status.';
+        }
+
+        await NotificationService.sendNotificationToUser(
+          userId: userId,
+          title: notificationTitle,
+          body: notificationBody,
+          type: 'crop_order_status',
+          data: {'orderId': orderId, 'cropType': cropType, 'status': status},
+        );
+      }
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Status updated to $status')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
     }
   }
 }

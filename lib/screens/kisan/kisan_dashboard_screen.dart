@@ -6,7 +6,7 @@ import 'package:poket_mandi/screens/common/about_screen.dart';
 import 'package:poket_mandi/screens/common/policies_screen.dart';
 import 'package:poket_mandi/screens/common/notifications_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:poket_mandi/main.dart';
+import 'package:poket_mandi/screens/auth/landing_screen.dart';
 import 'package:poket_mandi/screens/kisan/add_new_crop_screen.dart';
 import 'package:poket_mandi/screens/kisan/selected_crop_screen.dart';
 import 'package:poket_mandi/screens/kisan/services_screen.dart';
@@ -145,11 +145,13 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
     if (confirm == true) {
       final prefs = await SharedPreferences.getInstance();
       await prefs.clear();
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (_) => const AuthCheck()),
-        (route) => false,
-      );
+      if (mounted) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const LandingScreen()),
+          (route) => false,
+        );
+      }
     }
   }
 
@@ -230,7 +232,7 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
                         Navigator.pop(context);
                         Navigator.pushAndRemoveUntil(
                           context,
-                          MaterialPageRoute(builder: (_) => const AuthCheck()),
+                          MaterialPageRoute(builder: (_) => const LandingScreen()),
                           (route) => false,
                         );
                       },
