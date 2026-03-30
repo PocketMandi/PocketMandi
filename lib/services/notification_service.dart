@@ -395,7 +395,7 @@ class NotificationService {
       );
 
       // For other notification types, navigate to MyOrdersScreen
-      if (payload == 'sapling_order' || payload == 'test_request') {
+      if (payload == 'sapling_order_status' || payload == 'test_request_status' || payload == 'crop_order_status') {
         print('DEBUG: Navigating to MyOrdersScreen for $payload');
         Navigator.of(
           _context!,
@@ -483,7 +483,7 @@ class NotificationService {
       }
 
       // For other notification types, navigate to MyOrdersScreen
-      if (type == 'sapling_order' || type == 'test_request') {
+      if (type == 'sapling_order_status' || type == 'test_request_status' || type == 'crop_order_status') {
         print('DEBUG: FCM - Navigating to MyOrdersScreen for $type');
         Navigator.of(
           _context!,

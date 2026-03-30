@@ -2691,7 +2691,7 @@ class FarmerCropsTab extends StatelessWidget {
         userId: userId,
         title: notificationTitle,
         body: notificationBody,
-        type: 'crop_request_status',
+        type: 'crop_order_status',
         data: {'cropId': cropId, 'cropType': cropType, 'status': status},
       );
     }
