@@ -27,8 +27,11 @@ class _NotificationsListScreenState extends State<NotificationsListScreen> {
 
       if (userId == null) return;
 
+      // Limit notifications to last 100 for better performance
       final snapshot = await FirebaseDatabase.instance
           .ref('notifications/$userId')
+          .orderByChild('createdAt')
+          .limitToLast(100)
           .once();
 
       if (snapshot.snapshot.value != null) {
@@ -41,6 +44,7 @@ class _NotificationsListScreenState extends State<NotificationsListScreen> {
           loadedNotifications.add(notification);
         });
 
+        // Sort by timestamp descending (newest first)
         loadedNotifications.sort((a, b) {
           final aTime = a['createdAt'] ?? 0;
           final bTime = b['createdAt'] ?? 0;

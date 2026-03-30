@@ -68,7 +68,7 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
 
               // Statistics Cards
               StreamBuilder(
-                stream: _usersRef.onValue,
+                stream: _usersRef.orderByChild('role').onValue, // Add indexing
                 builder: (context, AsyncSnapshot<DatabaseEvent> statsSnapshot) {
                   int totalUsers = 0;
                   int farmers = 0;
@@ -77,10 +77,20 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
 
                   if (statsSnapshot.hasData && statsSnapshot.data!.snapshot.value != null) {
                     var usersData = statsSnapshot.data!.snapshot.value as Map<dynamic, dynamic>;
-                    totalUsers = usersData.length;
-                    farmers = usersData.values.where((u) => u['role'] == 'farmer').length;
-                    traders = usersData.values.where((u) => u['role'] == 'trader').length;
-                    pendingKyc = usersData.values.where((u) => u['kycStatus'] == 'pending').length;
+                    
+                    // Optimize counting with single iteration
+                    usersData.forEach((key, userData) {
+                      if (userData is Map) {
+                        totalUsers++;
+                        final role = userData['role'];
+                        final kycStatus = userData['kycStatus'];
+                        
+                        if (role == 'farmer') farmers++;
+                        else if (role == 'trader') traders++;
+                        
+                        if (kycStatus == 'pending') pendingKyc++;
+                      }
+                    });
                   }
 
                   return Container(
@@ -213,7 +223,7 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
                 child: Container(
                   color: Colors.white,
                   child: StreamBuilder(
-                    stream: _usersRef.onValue,
+                    stream: _usersRef.orderByChild('role').onValue, // Add indexing
                     builder: (context, AsyncSnapshot<DatabaseEvent> snapshot) {
                       if (!snapshot.hasData) {
                         return const Center(
@@ -226,17 +236,28 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
                       }
 
                       var usersData = snapshot.data!.snapshot.value as Map<dynamic, dynamic>;
-                      var usersList = usersData.entries.where((entry) {
+                      
+                      // Optimize filtering with early returns
+                      var usersList = <MapEntry>[];
+                      
+                      for (var entry in usersData.entries) {
                         var user = entry.value as Map<dynamic, dynamic>;
-                        if (_filterRole != 'all' && user['role'] != _filterRole) return false;
-                        if (_filterKyc != 'all' && user['kycStatus'] != _filterKyc) return false;
+                        
+                        // Apply filters efficiently
+                        if (_filterRole != 'all' && user['role'] != _filterRole) continue;
+                        if (_filterKyc != 'all' && user['kycStatus'] != _filterKyc) continue;
+                        
                         if (_searchQuery.isNotEmpty) {
                           var name = (user['name'] ?? '').toString().toLowerCase();
                           var phone = (user['phone'] ?? '').toString().toLowerCase();
-                          if (!name.contains(_searchQuery) && !phone.contains(_searchQuery)) return false;
+                          if (!name.contains(_searchQuery) && !phone.contains(_searchQuery)) continue;
                         }
-                        return true;
-                      }).toList();
+                        
+                        usersList.add(entry);
+                        
+                        // Limit results for better performance
+                        if (usersList.length >= 100) break;
+                      }
 
                       if (usersList.isEmpty) {
                         return _buildEmptyState();

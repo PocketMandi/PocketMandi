@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:poket_mandi/services/notification_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:async';
 
 class BroadcastNotificationScreen extends StatefulWidget {
   const BroadcastNotificationScreen({Key? key}) : super(key: key);
@@ -12,31 +13,39 @@ class BroadcastNotificationScreen extends StatefulWidget {
 class _BroadcastNotificationScreenState extends State<BroadcastNotificationScreen> {
   final titleController = TextEditingController();
   final bodyController = TextEditingController();
+  final searchController = TextEditingController();
   bool isSending = false;
   String selectedAudience = 'all_users';
   List<Map<String, dynamic>> allUsers = [];
+  List<Map<String, dynamic>> filteredUsers = [];
   List<String> selectedUserIds = [];
   bool isLoadingUsers = false;
+  Timer? _searchTimer;
 
   @override
   void initState() {
     super.initState();
-    _loadUsers();
+    // Don't load users initially, only when needed
   }
 
   @override
   void dispose() {
     titleController.dispose();
     bodyController.dispose();
+    searchController.dispose();
+    _searchTimer?.cancel();
     super.dispose();
   }
 
   Future<void> _loadUsers() async {
+    if (allUsers.isNotEmpty) return; // Don't reload if already loaded
+    
     setState(() => isLoadingUsers = true);
     try {
-      final users = await NotificationService.getAllUsers();
+      final users = await NotificationService.getAllUsers(limit: 200); // Limit initial load
       setState(() {
         allUsers = users;
+        filteredUsers = users;
         isLoadingUsers = false;
       });
     } catch (e) {
@@ -47,6 +56,27 @@ class _BroadcastNotificationScreenState extends State<BroadcastNotificationScree
         );
       }
     }
+  }
+
+  void _searchUsers(String query) {
+    _searchTimer?.cancel();
+    _searchTimer = Timer(const Duration(milliseconds: 300), () async {
+      if (query.isEmpty) {
+        setState(() => filteredUsers = allUsers);
+        return;
+      }
+      
+      setState(() => isLoadingUsers = true);
+      try {
+        final searchResults = await NotificationService.searchUsers(query);
+        setState(() {
+          filteredUsers = searchResults;
+          isLoadingUsers = false;
+        });
+      } catch (e) {
+        setState(() => isLoadingUsers = false);
+      }
+    });
   }
 
   Future<void> _sendBroadcastNotification() async {
@@ -210,6 +240,25 @@ class _BroadcastNotificationScreenState extends State<BroadcastNotificationScree
           ),
         ),
         const SizedBox(height: 12),
+        // Search field
+        TextField(
+          controller: searchController,
+          decoration: InputDecoration(
+            hintText: 'Search users by name or phone',
+            filled: true,
+            fillColor: const Color(0xFFF3F3F3),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            prefixIcon: const Icon(
+              Icons.search,
+              color: Color(0xFF104f22),
+            ),
+          ),
+          onChanged: _searchUsers,
+        ),
+        const SizedBox(height: 12),
         Container(
           height: 200,
           decoration: BoxDecoration(
@@ -218,12 +267,31 @@ class _BroadcastNotificationScreenState extends State<BroadcastNotificationScree
           ),
           child: isLoadingUsers
               ? const Center(child: CircularProgressIndicator())
-              : allUsers.isEmpty
-                  ? const Center(child: Text('No users found'))
+              : filteredUsers.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.search_off, size: 48, color: Colors.grey),
+                          const SizedBox(height: 8),
+                          Text(
+                            searchController.text.isEmpty 
+                                ? 'Start typing to search users'
+                                : 'No users found',
+                            style: const TextStyle(color: Colors.grey),
+                          ),
+                          if (allUsers.isEmpty)
+                            TextButton(
+                              onPressed: _loadUsers,
+                              child: const Text('Load Users'),
+                            ),
+                        ],
+                      ),
+                    )
                   : ListView.builder(
-                      itemCount: allUsers.length,
+                      itemCount: filteredUsers.length,
                       itemBuilder: (context, index) {
-                        final user = allUsers[index];
+                        final user = filteredUsers[index];
                         final isSelected = selectedUserIds.contains(user['id']);
                         return CheckboxListTile(
                           title: Text('${user['name']} (${user['role']})'),
@@ -246,13 +314,24 @@ class _BroadcastNotificationScreenState extends State<BroadcastNotificationScree
         if (selectedUserIds.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 8),
-            child: Text(
-              '${selectedUserIds.length} user(s) selected',
-              style: const TextStyle(
-                fontSize: 12,
-                color: Color(0xFF104f22),
-                fontWeight: FontWeight.w500,
-              ),
+            child: Row(
+              children: [
+                Text(
+                  '${selectedUserIds.length} user(s) selected',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF104f22),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const Spacer(),
+                TextButton(
+                  onPressed: () {
+                    setState(() => selectedUserIds.clear());
+                  },
+                  child: const Text('Clear All'),
+                ),
+              ],
             ),
           ),
       ],

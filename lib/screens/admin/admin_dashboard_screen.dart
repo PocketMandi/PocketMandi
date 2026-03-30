@@ -235,6 +235,7 @@ class AdminHomeScreen extends StatelessWidget {
                         StreamBuilder(
                           stream: FirebaseDatabase.instance
                               .ref('users')
+                              .orderByChild('role') // Add indexing for better performance
                               .onValue,
                           builder:
                               (context, AsyncSnapshot<DatabaseEvent> snapshot) {
@@ -248,16 +249,20 @@ class AdminHomeScreen extends StatelessWidget {
                                   var usersData =
                                       snapshot.data!.snapshot.value
                                           as Map<dynamic, dynamic>;
-                                  totalUsers = usersData.length;
-                                  farmers = usersData.values
-                                      .where((u) => u['role'] == 'farmer')
-                                      .length;
-                                  traders = usersData.values
-                                      .where((u) => u['role'] == 'trader')
-                                      .length;
-                                  pendingKyc = usersData.values
-                                      .where((u) => u['kycStatus'] == 'pending')
-                                      .length;
+                                  
+                                  // Optimize counting with single iteration
+                                  usersData.forEach((key, userData) {
+                                    if (userData is Map) {
+                                      totalUsers++;
+                                      final role = userData['role'];
+                                      final kycStatus = userData['kycStatus'];
+                                      
+                                      if (role == 'farmer') farmers++;
+                                      else if (role == 'trader') traders++;
+                                      
+                                      if (kycStatus == 'pending') pendingKyc++;
+                                    }
+                                  });
                                 }
 
                                 return Column(

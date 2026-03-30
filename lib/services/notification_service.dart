@@ -341,7 +341,7 @@ class NotificationService {
     }
   }
 
-  // Send notification to all farmers
+  // Send notification to all farmers (optimized)
   static Future<void> sendNotificationToFarmers({
     required String title,
     required String body,
@@ -349,22 +349,40 @@ class NotificationService {
     Map<String, dynamic>? data,
   }) async {
     try {
-      final snapshot = await FirebaseDatabase.instance.ref('users').once();
+      final snapshot = await FirebaseDatabase.instance
+          .ref('users')
+          .orderByChild('role')
+          .equalTo('farmer')
+          .once();
+      
       if (snapshot.snapshot.value != null) {
         final users = Map<String, dynamic>.from(snapshot.snapshot.value as Map);
+        
+        // Use batch operations for better performance
+        final batch = <Future>[];
+        
         for (var entry in users.entries) {
           final userId = entry.key;
-          final userData = Map<String, dynamic>.from(entry.value as Map);
-          final role = userData['role']?.toString() ?? '';
-          if (role == 'farmer') {
-            await sendNotificationToUser(
-              userId: userId,
-              title: title,
-              body: body,
-              type: type,
-              data: data,
-            );
+          batch.add(_sendNotificationBatch(
+            userId: userId,
+            title: title,
+            body: body,
+            type: type,
+            data: data,
+          ));
+          
+          // Process in batches of 50 to avoid overwhelming the database
+          if (batch.length >= 50) {
+            await Future.wait(batch);
+            batch.clear();
+            // Small delay to prevent rate limiting
+            await Future.delayed(const Duration(milliseconds: 100));
           }
+        }
+        
+        // Process remaining batch
+        if (batch.isNotEmpty) {
+          await Future.wait(batch);
         }
       }
     } catch (e) {
@@ -372,7 +390,7 @@ class NotificationService {
     }
   }
 
-  // Send notification to all traders
+  // Send notification to all traders (optimized)
   static Future<void> sendNotificationToTraders({
     required String title,
     required String body,
@@ -380,22 +398,36 @@ class NotificationService {
     Map<String, dynamic>? data,
   }) async {
     try {
-      final snapshot = await FirebaseDatabase.instance.ref('users').once();
+      final snapshot = await FirebaseDatabase.instance
+          .ref('users')
+          .orderByChild('role')
+          .equalTo('trader')
+          .once();
+      
       if (snapshot.snapshot.value != null) {
         final users = Map<String, dynamic>.from(snapshot.snapshot.value as Map);
+        
+        final batch = <Future>[];
+        
         for (var entry in users.entries) {
           final userId = entry.key;
-          final userData = Map<String, dynamic>.from(entry.value as Map);
-          final role = userData['role']?.toString() ?? '';
-          if (role == 'trader') {
-            await sendNotificationToUser(
-              userId: userId,
-              title: title,
-              body: body,
-              type: type,
-              data: data,
-            );
+          batch.add(_sendNotificationBatch(
+            userId: userId,
+            title: title,
+            body: body,
+            type: type,
+            data: data,
+          ));
+          
+          if (batch.length >= 50) {
+            await Future.wait(batch);
+            batch.clear();
+            await Future.delayed(const Duration(milliseconds: 100));
           }
+        }
+        
+        if (batch.isNotEmpty) {
+          await Future.wait(batch);
         }
       }
     } catch (e) {
@@ -403,7 +435,7 @@ class NotificationService {
     }
   }
 
-  // Send notification to all users (farmers and traders)
+  // Send notification to all users (optimized)
   static Future<void> sendNotificationToAllUsers({
     required String title,
     required String body,
@@ -414,19 +446,33 @@ class NotificationService {
       final snapshot = await FirebaseDatabase.instance.ref('users').once();
       if (snapshot.snapshot.value != null) {
         final users = Map<String, dynamic>.from(snapshot.snapshot.value as Map);
+        
+        final batch = <Future>[];
+        
         for (var entry in users.entries) {
           final userId = entry.key;
           final userData = Map<String, dynamic>.from(entry.value as Map);
           final role = userData['role']?.toString() ?? '';
+          
           if (role == 'farmer' || role == 'trader') {
-            await sendNotificationToUser(
+            batch.add(_sendNotificationBatch(
               userId: userId,
               title: title,
               body: body,
               type: type,
               data: data,
-            );
+            ));
+            
+            if (batch.length >= 50) {
+              await Future.wait(batch);
+              batch.clear();
+              await Future.delayed(const Duration(milliseconds: 100));
+            }
           }
+        }
+        
+        if (batch.isNotEmpty) {
+          await Future.wait(batch);
         }
       }
     } catch (e) {
@@ -434,17 +480,47 @@ class NotificationService {
     }
   }
 
-  // Get all users for selection
-  static Future<List<Map<String, dynamic>>> getAllUsers() async {
+  // Optimized batch notification sender
+  static Future<void> _sendNotificationBatch({
+    required String userId,
+    required String title,
+    required String body,
+    String? type,
+    Map<String, dynamic>? data,
+  }) async {
     try {
-      final snapshot = await FirebaseDatabase.instance.ref('users').once();
+      // Only save to database, don't show local notification for batch operations
+      await FirebaseDatabase.instance.ref('notifications/$userId').push().set({
+        'title': title,
+        'body': body,
+        'type': type ?? 'notification',
+        'data': data,
+        'read': false,
+        'createdAt': ServerValue.timestamp,
+      });
+    } catch (e) {
+      print('Error in batch notification for user $userId: $e');
+    }
+  }
+
+  // Get all users for selection (optimized with pagination)
+  static Future<List<Map<String, dynamic>>> getAllUsers({int limit = 100}) async {
+    try {
+      final snapshot = await FirebaseDatabase.instance
+          .ref('users')
+          .orderByChild('role')
+          .limitToFirst(limit)
+          .once();
+      
       if (snapshot.snapshot.value != null) {
         final users = Map<String, dynamic>.from(snapshot.snapshot.value as Map);
         List<Map<String, dynamic>> userList = [];
+        
         for (var entry in users.entries) {
           final userId = entry.key;
           final userData = Map<String, dynamic>.from(entry.value as Map);
           final role = userData['role']?.toString() ?? '';
+          
           if (role == 'farmer' || role == 'trader') {
             userList.add({
               'id': userId,
@@ -454,11 +530,53 @@ class NotificationService {
             });
           }
         }
+        
+        // Sort by name for better UX
+        userList.sort((a, b) => (a['name'] as String).compareTo(b['name'] as String));
         return userList;
       }
       return [];
     } catch (e) {
       print('Error getting all users: $e');
+      return [];
+    }
+  }
+
+  // Get users with search functionality
+  static Future<List<Map<String, dynamic>>> searchUsers(String query, {int limit = 50}) async {
+    try {
+      if (query.isEmpty) return [];
+      
+      final snapshot = await FirebaseDatabase.instance.ref('users').once();
+      if (snapshot.snapshot.value != null) {
+        final users = Map<String, dynamic>.from(snapshot.snapshot.value as Map);
+        List<Map<String, dynamic>> userList = [];
+        
+        for (var entry in users.entries) {
+          final userId = entry.key;
+          final userData = Map<String, dynamic>.from(entry.value as Map);
+          final role = userData['role']?.toString() ?? '';
+          final name = userData['name']?.toString().toLowerCase() ?? '';
+          final phone = userData['phone']?.toString() ?? '';
+          
+          if ((role == 'farmer' || role == 'trader') && 
+              (name.contains(query.toLowerCase()) || phone.contains(query))) {
+            userList.add({
+              'id': userId,
+              'name': userData['name'] ?? 'Unknown',
+              'role': role,
+              'phone': phone,
+            });
+            
+            if (userList.length >= limit) break;
+          }
+        }
+        
+        return userList;
+      }
+      return [];
+    } catch (e) {
+      print('Error searching users: $e');
       return [];
     }
   }

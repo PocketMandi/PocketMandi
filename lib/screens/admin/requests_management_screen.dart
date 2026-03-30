@@ -330,10 +330,14 @@ class FarmerUnlistedCropsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ref = FirebaseDatabase.instance.ref('requestednewcrop');
+    // Optimized query with ordering and limit
+    final ref = FirebaseDatabase.instance
+        .ref('requestednewcrop')
+        .orderByChild('createdAt')
+        .limitToLast(100); // Limit to last 100 requests
 
     return StreamBuilder(
-      stream: ref.limitToLast(50).onValue,
+      stream: ref.onValue,
       builder: (context, AsyncSnapshot<DatabaseEvent> snapshot) {
         if (!snapshot.hasData) {
           return const Center(
@@ -833,10 +837,14 @@ class TraderUnlistedCropsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ref = FirebaseDatabase.instance.ref('requestednewcropbyvyapari');
+    // Optimized query with ordering and limit
+    final ref = FirebaseDatabase.instance
+        .ref('requestednewcropbyvyapari')
+        .orderByChild('createdAt')
+        .limitToLast(100);
 
     return StreamBuilder(
-      stream: ref.limitToLast(50).onValue,
+      stream: ref.onValue,
       builder: (context, AsyncSnapshot<DatabaseEvent> snapshot) {
         if (!snapshot.hasData) {
           return const Center(
@@ -1344,10 +1352,14 @@ class SaplingOrdersTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ref = FirebaseDatabase.instance.ref('saplingorders');
+    // Optimized query with ordering and limit
+    final ref = FirebaseDatabase.instance
+        .ref('saplingorders')
+        .orderByChild('createdAt')
+        .limitToLast(100);
 
     return StreamBuilder(
-      stream: ref.limitToLast(50).onValue,
+      stream: ref.onValue,
       builder: (context, AsyncSnapshot<DatabaseEvent> snapshot) {
         if (!snapshot.hasData) {
           return const Center(
@@ -1795,10 +1807,14 @@ class TestRequestsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ref = FirebaseDatabase.instance.ref('testrequests');
+    // Optimized query with ordering and limit
+    final ref = FirebaseDatabase.instance
+        .ref('testrequests')
+        .orderByChild('createdAt')
+        .limitToLast(100);
 
     return StreamBuilder(
-      stream: ref.limitToLast(50).onValue,
+      stream: ref.onValue,
       builder: (context, AsyncSnapshot<DatabaseEvent> snapshot) {
         if (!snapshot.hasData) {
           return const Center(
@@ -2393,10 +2409,14 @@ class FarmerCropsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ref = FirebaseDatabase.instance.ref('addedcropsbykissan');
+    // Optimized query with ordering and limit
+    final ref = FirebaseDatabase.instance
+        .ref('addedcropsbykissan')
+        .orderByChild('createdAt')
+        .limitToLast(100);
 
     return StreamBuilder(
-      stream: ref.limitToLast(50).onValue,
+      stream: ref.onValue,
       builder: (context, AsyncSnapshot<DatabaseEvent> snapshot) {
         if (!snapshot.hasData) {
           return const Center(
@@ -2906,10 +2926,14 @@ class TraderCropsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ref = FirebaseDatabase.instance.ref('addedcropsbyvyapari');
+    // Optimized query with ordering and limit
+    final ref = FirebaseDatabase.instance
+        .ref('addedcropsbyvyapari')
+        .orderByChild('createdAt')
+        .limitToLast(100);
 
     return StreamBuilder(
-      stream: ref.limitToLast(50).onValue,
+      stream: ref.onValue,
       builder: (context, AsyncSnapshot<DatabaseEvent> snapshot) {
         if (!snapshot.hasData) {
           return const Center(

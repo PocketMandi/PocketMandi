@@ -13,7 +13,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 
 class VyapariDashboardScreen extends StatefulWidget {
   final int? initialTab;
-  
+
   const VyapariDashboardScreen({super.key, this.initialTab});
 
   @override
@@ -24,6 +24,8 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
   String traderName = "Vyapari";
   String traderPhone = "";
   String traderImage = "https://i.pravatar.cc/300";
+  // simple in-memory cache to reduce repeated DB reads during a session
+  static List<Map<String, dynamic>>? _cropsCache;
   List<Map<String, dynamic>> crops = [];
   bool isLoading = true;
   bool isGuest = false;
@@ -77,7 +79,21 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
 
   Future<void> _loadCrops() async {
     try {
-      final snapshot = await FirebaseDatabase.instance.ref('allcrops').once();
+      // return cached data if available
+      if (_cropsCache != null) {
+        setState(() {
+          crops = List<Map<String, dynamic>>.from(_cropsCache!);
+          isLoading = false;
+        });
+        return;
+      }
+
+      // limit query to the latest 100 entries to avoid fetching the entire dataset
+      final ref = FirebaseDatabase.instance
+          .ref('allcrops')
+          .orderByKey()
+          .limitToLast(100);
+      final snapshot = await ref.once();
 
       if (snapshot.snapshot.value != null) {
         final data = snapshot.snapshot.value;
@@ -359,7 +375,9 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
                         Navigator.pop(context);
                         Navigator.pushAndRemoveUntil(
                           context,
-                          MaterialPageRoute(builder: (_) => const LandingScreen()),
+                          MaterialPageRoute(
+                            builder: (_) => const LandingScreen(),
+                          ),
                           (route) => false,
                         );
                       },
@@ -395,17 +413,19 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
       _showGuestRestrictionDialog();
       return;
     }
-    
+
     setState(() {
       _selectedIndex = index;
     });
   }
 
   List<Map<String, String>> get cropNames => crops
-      .map((crop) => {
-            "name": crop["name"]?.toString() ?? "Unknown",
-            "image": crop["image"]?.toString() ?? "assets/images/login_bg.jpg"
-          })
+      .map(
+        (crop) => {
+          "name": crop["name"]?.toString() ?? "Unknown",
+          "image": crop["image"]?.toString() ?? "assets/images/login_bg.jpg",
+        },
+      )
       .toList();
 
   @override
@@ -586,7 +606,8 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
-                                          builder: (_) => const UserNotificationsListScreen(),
+                                          builder: (_) =>
+                                              const UserNotificationsListScreen(),
                                         ),
                                       );
                                     },
@@ -728,37 +749,34 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
                               ),
                             )
                           : crops.isEmpty
-                              ? const Center(
-                                  child: Padding(
-                                    padding: EdgeInsets.all(20),
-                                    child: Text(
-                                      "No crops available.\nPlease check back later!",
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        color: Colors.grey,
-                                      ),
-                                    ),
+                          ? const Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(20),
+                                child: Text(
+                                  "No crops available.\nPlease check back later!",
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.grey,
                                   ),
-                                )
-                              : GridView.builder(
-                                  shrinkWrap: true,
-                                  physics: const NeverScrollableScrollPhysics(),
-                                  itemCount: crops.length,
-                                  gridDelegate:
-                                      const SliverGridDelegateWithFixedCrossAxisCount(
-                                        crossAxisCount: 2,
-                                        crossAxisSpacing: 12,
-                                        mainAxisSpacing: 12,
-                                        childAspectRatio: 1.1,
-                                      ),
-                                  itemBuilder: (context, index) {
-                                    return _buildCropCard(
-                                      crops[index],
-                                      index,
-                                    );
-                                  },
                                 ),
+                              ),
+                            )
+                          : GridView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: crops.length,
+                              gridDelegate:
+                                  const SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 2,
+                                    crossAxisSpacing: 12,
+                                    mainAxisSpacing: 12,
+                                    childAspectRatio: 1.1,
+                                  ),
+                              itemBuilder: (context, index) {
+                                return _buildCropCard(crops[index], index);
+                              },
+                            ),
                     ],
                   ),
                 ),
@@ -791,8 +809,9 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
 
   Widget _buildCropCard(Map<String, dynamic> cropData, int index) {
     final name = cropData["name"]?.toString() ?? "Unknown";
-    final imagePath = cropData["image"]?.toString() ?? "assets/images/login_bg.jpg";
-    
+    final imagePath =
+        cropData["image"]?.toString() ?? "assets/images/login_bg.jpg";
+
     return GestureDetector(
       onTap: isGuest
           ? _showGuestRestrictionDialog
@@ -1099,13 +1118,12 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
                 _buildProfileOption(
                   icon: Icons.policy_outlined,
                   title: "Policies & Guidelines",
-                  subtitle: "Privacy policy, community guidelines & data policy",
+                  subtitle:
+                      "Privacy policy, community guidelines & data policy",
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
-                        builder: (_) => const PoliciesScreen(),
-                      ),
+                      MaterialPageRoute(builder: (_) => const PoliciesScreen()),
                     );
                   },
                 ),
@@ -1117,9 +1135,7 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
-                        builder: (_) => const AboutScreen(),
-                      ),
+                      MaterialPageRoute(builder: (_) => const AboutScreen()),
                     );
                   },
                 ),
@@ -1406,11 +1422,7 @@ class _MyOrdersVyapariWidgetState extends State<MyOrdersVyapariWidget> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
             children: [
-              const Icon(
-                Icons.shopping_bag,
-                color: Colors.white,
-                size: 24,
-              ),
+              const Icon(Icons.shopping_bag, color: Colors.white, size: 24),
               const SizedBox(width: 12),
               const Expanded(
                 child: Column(
@@ -1427,10 +1439,7 @@ class _MyOrdersVyapariWidgetState extends State<MyOrdersVyapariWidget> {
                     ),
                     Text(
                       "Track your crop requests",
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 12,
-                      ),
+                      style: TextStyle(color: Colors.white70, fontSize: 12),
                     ),
                   ],
                 ),
@@ -1639,13 +1648,18 @@ class _MyOrdersVyapariWidgetState extends State<MyOrdersVyapariWidget> {
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                   fontSize: 14,
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
                 elevation: isSelected ? 4 : 1,
                 shadowColor: const Color(0xFF104f22).withOpacity(0.3),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
                   side: BorderSide(
-                    color: isSelected ? const Color(0xFF104f22) : Colors.grey.shade300,
+                    color: isSelected
+                        ? const Color(0xFF104f22)
+                        : Colors.grey.shade300,
                     width: isSelected ? 0 : 1,
                   ),
                 ),
@@ -1700,14 +1714,14 @@ class _MyOrdersVyapariWidgetState extends State<MyOrdersVyapariWidget> {
     final quantity = order['quantity']?.toString() ?? "0";
     final unit = order['unit'] ?? "Kg";
     final status = order['status'] ?? "unknown";
-    
+
     // Handle different data structures
-    final price = source == 'requested' 
+    final price = source == 'requested'
         ? (order['expectedPrice'] ?? 0).toDouble()
         : (order['pricePerUnit'] ?? 0).toDouble();
     final qty = (order['quantity'] ?? 0).toDouble();
     final amount = (price * qty);
-    
+
     final grades = source == 'added'
         ? ((order['qualityGrades'] as List?)?.join(", ") ?? "N/A")
         : "N/A";
@@ -1858,7 +1872,9 @@ class _MyOrdersVyapariWidgetState extends State<MyOrdersVyapariWidget> {
                     Expanded(
                       child: _buildInfoRow(
                         Icons.currency_rupee,
-                        source == 'requested' ? 'Expected Price' : 'Price per kg',
+                        source == 'requested'
+                            ? 'Expected Price'
+                            : 'Price per kg',
                         "₹${price.toStringAsFixed(2)}/$unit",
                       ),
                     ),
@@ -1874,11 +1890,7 @@ class _MyOrdersVyapariWidgetState extends State<MyOrdersVyapariWidget> {
                     children: [
                       if (mandiName != 'N/A')
                         Expanded(
-                          child: _buildInfoRow(
-                            Icons.store,
-                            "Mandi",
-                            mandiName,
-                          ),
+                          child: _buildInfoRow(Icons.store, "Mandi", mandiName),
                         ),
                       if (deliveryDate != null)
                         Expanded(
@@ -1890,7 +1902,8 @@ class _MyOrdersVyapariWidgetState extends State<MyOrdersVyapariWidget> {
                         ),
                     ],
                   ),
-                  if (order['specialInstructions'] != null && order['specialInstructions'].toString().isNotEmpty) ...[
+                  if (order['specialInstructions'] != null &&
+                      order['specialInstructions'].toString().isNotEmpty) ...[
                     const SizedBox(height: 16),
                     _buildInfoRow(
                       Icons.note,
@@ -1910,7 +1923,11 @@ class _MyOrdersVyapariWidgetState extends State<MyOrdersVyapariWidget> {
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.videocam, color: Colors.blue.shade700, size: 20),
+                        Icon(
+                          Icons.videocam,
+                          color: Colors.blue.shade700,
+                          size: 20,
+                        ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
@@ -1982,15 +1999,16 @@ class _MyOrdersVyapariWidgetState extends State<MyOrdersVyapariWidget> {
   }
 }
 
-
 class MyOrdersVyapariHistoryWidget extends StatefulWidget {
   const MyOrdersVyapariHistoryWidget({super.key});
 
   @override
-  State<MyOrdersVyapariHistoryWidget> createState() => _MyOrdersVyapariHistoryWidgetState();
+  State<MyOrdersVyapariHistoryWidget> createState() =>
+      _MyOrdersVyapariHistoryWidgetState();
 }
 
-class _MyOrdersVyapariHistoryWidgetState extends State<MyOrdersVyapariHistoryWidget> {
+class _MyOrdersVyapariHistoryWidgetState
+    extends State<MyOrdersVyapariHistoryWidget> {
   List<Map<String, dynamic>> requestedCrops = [];
   bool isLoading = true;
   String selectedFilter = "All";
@@ -2025,7 +2043,9 @@ class _MyOrdersVyapariHistoryWidgetState extends State<MyOrdersVyapariHistoryWid
           temp.add(request);
         });
 
-        temp.sort((a, b) => (b['createdAt'] ?? 0).compareTo(a['createdAt'] ?? 0));
+        temp.sort(
+          (a, b) => (b['createdAt'] ?? 0).compareTo(a['createdAt'] ?? 0),
+        );
 
         setState(() {
           requestedCrops = temp;
@@ -2108,10 +2128,7 @@ class _MyOrdersVyapariHistoryWidgetState extends State<MyOrdersVyapariHistoryWid
                     child: SingleChildScrollView(
                       physics: const AlwaysScrollableScrollPhysics(),
                       child: Column(
-                        children: [
-                          _buildFilterChips(),
-                          _buildRequestsList(),
-                        ],
+                        children: [_buildFilterChips(), _buildRequestsList()],
                       ),
                     ),
                   ),
@@ -2135,11 +2152,7 @@ class _MyOrdersVyapariHistoryWidgetState extends State<MyOrdersVyapariHistoryWid
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
             children: [
-              const Icon(
-                Icons.history,
-                color: Colors.white,
-                size: 24,
-              ),
+              const Icon(Icons.history, color: Colors.white, size: 24),
               const SizedBox(width: 12),
               const Expanded(
                 child: Column(
@@ -2156,10 +2169,7 @@ class _MyOrdersVyapariHistoryWidgetState extends State<MyOrdersVyapariHistoryWid
                     ),
                     Text(
                       "Your crop requests",
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 12,
-                      ),
+                      style: TextStyle(color: Colors.white70, fontSize: 12),
                     ),
                   ],
                 ),
@@ -2193,13 +2203,18 @@ class _MyOrdersVyapariHistoryWidgetState extends State<MyOrdersVyapariHistoryWid
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                   fontSize: 14,
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
                 elevation: isSelected ? 4 : 1,
                 shadowColor: const Color(0xFF104f22).withOpacity(0.3),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
                   side: BorderSide(
-                    color: isSelected ? const Color(0xFF104f22) : Colors.grey.shade300,
+                    color: isSelected
+                        ? const Color(0xFF104f22)
+                        : Colors.grey.shade300,
                     width: isSelected ? 0 : 1,
                   ),
                 ),
@@ -2213,7 +2228,7 @@ class _MyOrdersVyapariHistoryWidgetState extends State<MyOrdersVyapariHistoryWid
 
   Widget _buildRequestsList() {
     final filtered = filteredRequests;
-    
+
     if (filtered.isEmpty) {
       return Container(
         padding: const EdgeInsets.all(40),
@@ -2422,7 +2437,11 @@ class _MyOrdersVyapariHistoryWidgetState extends State<MyOrdersVyapariHistoryWid
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.videocam, color: Colors.blue.shade700, size: 20),
+                        Icon(
+                          Icons.videocam,
+                          color: Colors.blue.shade700,
+                          size: 20,
+                        ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
@@ -2494,17 +2513,18 @@ class _MyOrdersVyapariHistoryWidgetState extends State<MyOrdersVyapariHistoryWid
   }
 }
 
-
 class VyapariDashboardScreenWithTab extends StatefulWidget {
   final int initialTab;
-  
+
   const VyapariDashboardScreenWithTab({super.key, required this.initialTab});
 
   @override
-  State<VyapariDashboardScreenWithTab> createState() => _VyapariDashboardScreenWithTabState();
+  State<VyapariDashboardScreenWithTab> createState() =>
+      _VyapariDashboardScreenWithTabState();
 }
 
-class _VyapariDashboardScreenWithTabState extends State<VyapariDashboardScreenWithTab> {
+class _VyapariDashboardScreenWithTabState
+    extends State<VyapariDashboardScreenWithTab> {
   late int _selectedIndex;
 
   @override
@@ -2520,8 +2540,8 @@ class _VyapariDashboardScreenWithTabState extends State<VyapariDashboardScreenWi
       body: _selectedIndex == 2
           ? const MyOrdersVyapariHistoryWidget()
           : _selectedIndex == 1
-              ? const MyOrdersVyapariWidget()
-              : Container(),
+          ? const MyOrdersVyapariWidget()
+          : Container(),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -2636,7 +2656,3 @@ class _VyapariDashboardScreenWithTabState extends State<VyapariDashboardScreenWi
     );
   }
 }
-
-
-
-

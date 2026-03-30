@@ -24,6 +24,8 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
   String farmerName = "Kisan";
   String farmerPhone = "";
   String farmerImage = "https://i.pravatar.cc/300";
+  // simple in-memory cache to reduce repeated DB reads during a session
+  static List<Map<String, dynamic>>? _cropsCache;
   List<Map<String, dynamic>> crops = [];
   bool isLoading = true;
   bool isGuest = false;
@@ -76,7 +78,21 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
 
   Future<void> _loadCrops() async {
     try {
-      final snapshot = await FirebaseDatabase.instance.ref('allcrops').once();
+      // return cached data if available
+      if (_cropsCache != null) {
+        setState(() {
+          crops = List<Map<String, dynamic>>.from(_cropsCache!);
+          isLoading = false;
+        });
+        return;
+      }
+
+      // limit query to the latest 100 entries to avoid fetching the entire dataset
+      final ref = FirebaseDatabase.instance
+          .ref('allcrops')
+          .orderByKey()
+          .limitToLast(100);
+      final snapshot = await ref.once();
 
       if (snapshot.snapshot.value != null) {
         final data = snapshot.snapshot.value;
@@ -233,7 +249,9 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
                         Navigator.pop(context);
                         Navigator.pushAndRemoveUntil(
                           context,
-                          MaterialPageRoute(builder: (_) => const LandingScreen()),
+                          MaterialPageRoute(
+                            builder: (_) => const LandingScreen(),
+                          ),
                           (route) => false,
                         );
                       },
@@ -419,7 +437,8 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (_) => const UserNotificationsListScreen(),
+                                      builder: (_) =>
+                                          const UserNotificationsListScreen(),
                                     ),
                                   );
                                 },
@@ -984,7 +1003,6 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
   }
 }
 
-
 class KisanHistoryWidget extends StatefulWidget {
   const KisanHistoryWidget({super.key});
 
@@ -1027,7 +1045,9 @@ class _KisanHistoryWidgetState extends State<KisanHistoryWidget> {
           temp.add(request);
         });
 
-        temp.sort((a, b) => (b['createdAt'] ?? 0).compareTo(a['createdAt'] ?? 0));
+        temp.sort(
+          (a, b) => (b['createdAt'] ?? 0).compareTo(a['createdAt'] ?? 0),
+        );
 
         setState(() {
           requestedCrops = temp;
@@ -1110,10 +1130,7 @@ class _KisanHistoryWidgetState extends State<KisanHistoryWidget> {
                     child: SingleChildScrollView(
                       physics: const AlwaysScrollableScrollPhysics(),
                       child: Column(
-                        children: [
-                          _buildFilterChips(),
-                          _buildRequestsList(),
-                        ],
+                        children: [_buildFilterChips(), _buildRequestsList()],
                       ),
                     ),
                   ),
@@ -1137,11 +1154,7 @@ class _KisanHistoryWidgetState extends State<KisanHistoryWidget> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
             children: [
-              const Icon(
-                Icons.history,
-                color: Colors.white,
-                size: 24,
-              ),
+              const Icon(Icons.history, color: Colors.white, size: 24),
               const SizedBox(width: 12),
               const Expanded(
                 child: Column(
@@ -1158,10 +1171,7 @@ class _KisanHistoryWidgetState extends State<KisanHistoryWidget> {
                     ),
                     Text(
                       "Your crop requests",
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 12,
-                      ),
+                      style: TextStyle(color: Colors.white70, fontSize: 12),
                     ),
                   ],
                 ),
@@ -1195,13 +1205,18 @@ class _KisanHistoryWidgetState extends State<KisanHistoryWidget> {
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                   fontSize: 14,
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 10,
+                ),
                 elevation: isSelected ? 4 : 1,
                 shadowColor: const Color(0xFF104f22).withOpacity(0.3),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
                   side: BorderSide(
-                    color: isSelected ? const Color(0xFF104f22) : Colors.grey.shade300,
+                    color: isSelected
+                        ? const Color(0xFF104f22)
+                        : Colors.grey.shade300,
                     width: isSelected ? 0 : 1,
                   ),
                 ),
@@ -1215,7 +1230,7 @@ class _KisanHistoryWidgetState extends State<KisanHistoryWidget> {
 
   Widget _buildRequestsList() {
     final filtered = filteredRequests;
-    
+
     if (filtered.isEmpty) {
       return Container(
         padding: const EdgeInsets.all(40),
@@ -1431,7 +1446,11 @@ class _KisanHistoryWidgetState extends State<KisanHistoryWidget> {
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.videocam, color: Colors.blue.shade700, size: 20),
+                        Icon(
+                          Icons.videocam,
+                          color: Colors.blue.shade700,
+                          size: 20,
+                        ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
@@ -1503,17 +1522,18 @@ class _KisanHistoryWidgetState extends State<KisanHistoryWidget> {
   }
 }
 
-
 class KisanDashboardScreenWithTab extends StatefulWidget {
   final int initialTab;
-  
+
   const KisanDashboardScreenWithTab({super.key, required this.initialTab});
 
   @override
-  State<KisanDashboardScreenWithTab> createState() => _KisanDashboardScreenWithTabState();
+  State<KisanDashboardScreenWithTab> createState() =>
+      _KisanDashboardScreenWithTabState();
 }
 
-class _KisanDashboardScreenWithTabState extends State<KisanDashboardScreenWithTab> {
+class _KisanDashboardScreenWithTabState
+    extends State<KisanDashboardScreenWithTab> {
   String farmerName = "Kisan";
   String farmerPhone = "";
   String farmerImage = "https://i.pravatar.cc/300";
