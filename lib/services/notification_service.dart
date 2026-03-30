@@ -4,6 +4,9 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
 import 'package:poket_mandi/screens/common/notifications_list_screen.dart';
+import 'package:poket_mandi/screens/kisan/my_order_screen.dart';
+import 'package:poket_mandi/screens/kisan/kisan_dashboard_screen.dart';
+import 'package:poket_mandi/screens/vyapari/vyapari_dashboard_screen.dart';
 
 class NotificationService {
   static final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
@@ -45,7 +48,7 @@ class NotificationService {
       settings: initSettings,
       onDidReceiveNotificationResponse: (NotificationResponse response) {
         print('Notification tapped: ${response.payload}');
-        _handleNotificationTap(response.payload);
+        _handleNotificationTap(response.payload, response.id);
       },
     );
 
@@ -135,12 +138,15 @@ class NotificationService {
         iOS: iosDetails,
       );
 
+      // Extract type from message data
+      final type = message.data['type'] ?? 'notification';
+      
       await _localNotifications.show(
         id: notification.hashCode,
         title: notification.title ?? '',
         body: notification.body ?? '',
         notificationDetails: notificationDetails,
-        payload: message.data.toString(),
+        payload: type,
       );
     }
   }
@@ -197,7 +203,7 @@ class NotificationService {
           title: title,
           body: body,
           notificationDetails: notificationDetails,
-          payload: data?.toString(),
+          payload: type ?? 'notification',
         );
       }
       
@@ -248,10 +254,67 @@ class NotificationService {
   }
 
   // Handle notification tap
-  static void _handleNotificationTap(String? payload) {
-    if (payload == null || _context == null) return;
+  static void _handleNotificationTap(String? payload, int? notificationId) async {
+    print('DEBUG: _handleNotificationTap called');
+    print('DEBUG: payload = $payload');
+    print('DEBUG: payload type = ${payload.runtimeType}');
+    
+    if (payload == null || _context == null) {
+      print('DEBUG: payload is null or context is null');
+      return;
+    }
 
     try {
+      // Handle crop request status updates - navigate to History screen
+      if (payload == 'crop_request_status') {
+        print('DEBUG: Navigating to History screen for crop request status');
+        
+        // Get user role to determine which dashboard to navigate to
+        final prefs = await SharedPreferences.getInstance();
+        final userRole = prefs.getString('user_role');
+        
+        print('DEBUG: User role = $userRole');
+        
+        if (userRole == 'kisan' || userRole == 'farmer') {
+          // Navigate to Kisan Dashboard with History tab selected (index 2)
+          Navigator.of(_context!).pushReplacement(
+            MaterialPageRoute(
+              builder: (_) => const KisanDashboardScreenWithTab(initialTab: 2),
+            ),
+          );
+        } else if (userRole == 'vyapari' || userRole == 'trader') {
+          // Navigate to Vyapari Dashboard with History tab selected (index 2)
+          Navigator.of(_context!).pushReplacement(
+            MaterialPageRoute(
+              builder: (_) => const VyapariDashboardScreenWithTab(initialTab: 2),
+            ),
+          );
+        } else {
+          print('DEBUG: Unknown role, navigating to MyOrdersScreen');
+          // Fallback to MyOrdersScreen
+          Navigator.of(_context!).push(
+            MaterialPageRoute(
+              builder: (_) => const MyOrdersScreen(),
+            ),
+          );
+        }
+        return;
+      }
+
+      print('DEBUG: payload did not match crop_request_status, checking other cases');
+      
+      // For other notification types, navigate to MyOrdersScreen
+      if (payload == 'sapling_order' || payload == 'test_request') {
+        print('DEBUG: Navigating to MyOrdersScreen for $payload');
+        Navigator.of(_context!).push(
+          MaterialPageRoute(
+            builder: (_) => const MyOrdersScreen(),
+          ),
+        );
+        return;
+      }
+      
+      // Admin notifications
       int tabIndex = 0;
 
       switch (payload) {
@@ -271,6 +334,7 @@ class NotificationService {
           return;
       }
 
+      print('DEBUG: Navigating to RequestsManagementScreenWithTab with tabIndex: $tabIndex');
       Navigator.of(_context!).push(
         MaterialPageRoute(
           builder: (_) => RequestsManagementScreenWithTab(initialTab: tabIndex),
@@ -282,13 +346,63 @@ class NotificationService {
   }
 
   // Handle FCM notification tap
-  static void _handleFCMNotificationTap(RemoteMessage message) {
+  static void _handleFCMNotificationTap(RemoteMessage message) async {
     if (_context == null) return;
 
     try {
       final type = message.data['type'];
       if (type == null) return;
 
+      print('DEBUG: FCM notification type = $type');
+
+      // Handle crop request status updates - navigate to History screen
+      if (type == 'crop_request_status') {
+        print('DEBUG: FCM - Navigating to History screen for crop request status');
+        
+        // Get user role to determine which dashboard to navigate to
+        final prefs = await SharedPreferences.getInstance();
+        final userRole = prefs.getString('user_role');
+        
+        print('DEBUG: FCM - User role = $userRole');
+        
+        if (userRole == 'kisan' || userRole == 'farmer') {
+          // Navigate to Kisan Dashboard with History tab selected (index 2)
+          Navigator.of(_context!).pushReplacement(
+            MaterialPageRoute(
+              builder: (_) => const KisanDashboardScreenWithTab(initialTab: 2),
+            ),
+          );
+        } else if (userRole == 'vyapari' || userRole == 'trader') {
+          // Navigate to Vyapari Dashboard with History tab selected (index 2)
+          Navigator.of(_context!).pushReplacement(
+            MaterialPageRoute(
+              builder: (_) => const VyapariDashboardScreenWithTab(initialTab: 2),
+            ),
+          );
+        } else {
+          print('DEBUG: FCM - Unknown role, navigating to MyOrdersScreen');
+          // Fallback to MyOrdersScreen
+          Navigator.of(_context!).push(
+            MaterialPageRoute(
+              builder: (_) => const MyOrdersScreen(),
+            ),
+          );
+        }
+        return;
+      }
+
+      // For other notification types, navigate to MyOrdersScreen
+      if (type == 'sapling_order' || type == 'test_request') {
+        print('DEBUG: FCM - Navigating to MyOrdersScreen for $type');
+        Navigator.of(_context!).push(
+          MaterialPageRoute(
+            builder: (_) => const MyOrdersScreen(),
+          ),
+        );
+        return;
+      }
+
+      // Admin notifications
       int tabIndex = 0;
 
       switch (type) {
@@ -308,6 +422,7 @@ class NotificationService {
           return;
       }
 
+      print('DEBUG: FCM - Navigating to RequestsManagementScreenWithTab with tabIndex: $tabIndex');
       Navigator.of(_context!).push(
         MaterialPageRoute(
           builder: (_) => RequestsManagementScreenWithTab(initialTab: tabIndex),

@@ -694,28 +694,7 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
   }
 
   Widget _buildHistoryScreen() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.history, size: 80, color: Colors.grey[400]),
-          const SizedBox(height: 20),
-          Text(
-            "History",
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey[700],
-            ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            "Your transaction history will appear here",
-            style: TextStyle(fontSize: 16, color: Colors.grey[500]),
-          ),
-        ],
-      ),
-    );
+    return const KisanHistoryWidget();
   }
 
   Widget _buildProfileScreen() {
@@ -979,6 +958,734 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
             ),
             const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+
+class KisanHistoryWidget extends StatefulWidget {
+  const KisanHistoryWidget({super.key});
+
+  @override
+  State<KisanHistoryWidget> createState() => _KisanHistoryWidgetState();
+}
+
+class _KisanHistoryWidgetState extends State<KisanHistoryWidget> {
+  List<Map<String, dynamic>> requestedCrops = [];
+  bool isLoading = true;
+  String selectedFilter = "All";
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRequestedCrops();
+  }
+
+  Future<void> _loadRequestedCrops() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getString('user_id');
+
+      if (userId == null) {
+        setState(() => isLoading = false);
+        return;
+      }
+
+      final snapshot = await FirebaseDatabase.instance
+          .ref("requestednewcrop/$userId")
+          .get();
+
+      if (snapshot.value != null) {
+        final data = snapshot.value as Map;
+        List<Map<String, dynamic>> temp = [];
+
+        data.forEach((key, value) {
+          final request = Map<String, dynamic>.from(value);
+          request['id'] = key;
+          temp.add(request);
+        });
+
+        temp.sort((a, b) => (b['createdAt'] ?? 0).compareTo(a['createdAt'] ?? 0));
+
+        setState(() {
+          requestedCrops = temp;
+          isLoading = false;
+        });
+      } else {
+        setState(() {
+          requestedCrops = [];
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        requestedCrops = [];
+        isLoading = false;
+      });
+    }
+  }
+
+  void _applyFilter(String filter) {
+    setState(() {
+      selectedFilter = filter;
+    });
+  }
+
+  List<Map<String, dynamic>> get filteredRequests {
+    if (selectedFilter == "All") {
+      return requestedCrops;
+    }
+    return requestedCrops
+        .where((req) => req['status'] == selectedFilter.toLowerCase())
+        .toList();
+  }
+
+  Color _statusColor(String? status) {
+    switch (status) {
+      case "pending":
+        return Colors.orange;
+      case "confirmed":
+        return Colors.blue;
+      case "delivered":
+        return Colors.green;
+      case "rejected":
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  IconData _statusIcon(String? status) {
+    switch (status) {
+      case "pending":
+        return Icons.schedule;
+      case "confirmed":
+        return Icons.check_circle_outline;
+      case "delivered":
+        return Icons.done_all;
+      case "rejected":
+        return Icons.cancel;
+      default:
+        return Icons.help_outline;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: const Color(0xFFF5F5F5),
+      child: Column(
+        children: [
+          _buildCustomAppBar(),
+          Expanded(
+            child: isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(color: Color(0xFF104f22)),
+                  )
+                : RefreshIndicator(
+                    onRefresh: _loadRequestedCrops,
+                    color: const Color(0xFF104f22),
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: Column(
+                        children: [
+                          _buildFilterChips(),
+                          _buildRequestsList(),
+                        ],
+                      ),
+                    ),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCustomAppBar() {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFF104f22), Color(0xFF0d3f1c)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.history,
+                color: Colors.white,
+                size: 24,
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      "Request History",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      "Your crop requests",
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFilterChips() {
+    final filters = ["All", "Pending", "Confirmed", "Delivered", "Rejected"];
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: filters.map((filter) {
+            final isSelected = selectedFilter == filter;
+            return Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: FilterChip(
+                label: Text(filter),
+                selected: isSelected,
+                onSelected: (selected) => _applyFilter(filter),
+                selectedColor: const Color(0xFF104f22),
+                backgroundColor: Colors.white,
+                labelStyle: TextStyle(
+                  color: isSelected ? Colors.white : Colors.black87,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                  fontSize: 14,
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                elevation: isSelected ? 4 : 1,
+                shadowColor: const Color(0xFF104f22).withOpacity(0.3),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  side: BorderSide(
+                    color: isSelected ? const Color(0xFF104f22) : Colors.grey.shade300,
+                    width: isSelected ? 0 : 1,
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRequestsList() {
+    final filtered = filteredRequests;
+    
+    if (filtered.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(40),
+        child: Column(
+          children: [
+            Icon(Icons.inbox_outlined, size: 80, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            Text(
+              "No requests found",
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey[700],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              "Your crop requests will appear here",
+              style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.all(16),
+      itemCount: filtered.length,
+      itemBuilder: (context, index) {
+        return _buildRequestCard(filtered[index]);
+      },
+    );
+  }
+
+  Widget _buildRequestCard(Map<String, dynamic> request) {
+    final cropName = request['cropName'] ?? "Unknown";
+    final quantity = request['quantity']?.toString() ?? "0";
+    final unit = request['unit'] ?? "Kg";
+    final expectedPrice = (request['expectedPrice'] ?? 0).toDouble();
+    final qty = (request['quantity'] ?? 0).toDouble();
+    final amount = expectedPrice * qty;
+    final status = request['status'] ?? "pending";
+    final imageUrl = request['imageUrl'];
+    final videoUrl = request['videoUrl'];
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.12),
+            blurRadius: 15,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  _statusColor(status).withOpacity(0.15),
+                  _statusColor(status).withOpacity(0.05),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(20),
+                topRight: Radius.circular(20),
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: _statusColor(status).withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    _statusIcon(status),
+                    color: _statusColor(status),
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        status.toUpperCase(),
+                        style: TextStyle(
+                          color: _statusColor(status),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        "Request #${request['id']?.toString().substring(0, 8) ?? 'N/A'}",
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _statusColor(status),
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  child: Text(
+                    "₹${amount.toStringAsFixed(2)}",
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (imageUrl != null) ...[
+            ClipRRect(
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(0),
+                bottomRight: Radius.circular(0),
+              ),
+              child: CachedNetworkImage(
+                imageUrl: imageUrl,
+                height: 200,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                placeholder: (context, url) => Container(
+                  height: 200,
+                  color: Colors.grey[200],
+                  child: const Center(
+                    child: CircularProgressIndicator(color: Color(0xFF104f22)),
+                  ),
+                ),
+                errorWidget: (context, url, error) {
+                  return Container(
+                    height: 200,
+                    color: Colors.grey[200],
+                    child: const Icon(Icons.image_not_supported, size: 50),
+                  );
+                },
+              ),
+            ),
+          ],
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildInfoRow(Icons.agriculture, "Crop", cropName),
+                    ),
+                    Expanded(
+                      child: _buildInfoRow(
+                        Icons.scale,
+                        "Quantity",
+                        "$quantity $unit",
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildInfoRow(
+                        Icons.currency_rupee,
+                        "Expected Price",
+                        "₹$expectedPrice/$unit",
+                      ),
+                    ),
+                    Expanded(
+                      child: _buildInfoRow(
+                        Icons.calendar_today,
+                        "Requested On",
+                        _formatDate(request['createdAt'] ?? 0),
+                      ),
+                    ),
+                  ],
+                ),
+                if (videoUrl != null) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.blue.shade200),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.videocam, color: Colors.blue.shade700, size: 20),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            "Video attached",
+                            style: TextStyle(
+                              color: Colors.blue.shade700,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String label, String value) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: Colors.grey[100],
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, size: 16, color: Colors.grey[700]),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF2E2E2E),
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _formatDate(int timestamp) {
+    if (timestamp == 0) return 'N/A';
+    final date = DateTime.fromMillisecondsSinceEpoch(timestamp);
+    return "${date.day}/${date.month}/${date.year}";
+  }
+}
+
+
+class KisanDashboardScreenWithTab extends StatefulWidget {
+  final int initialTab;
+  
+  const KisanDashboardScreenWithTab({super.key, required this.initialTab});
+
+  @override
+  State<KisanDashboardScreenWithTab> createState() => _KisanDashboardScreenWithTabState();
+}
+
+class _KisanDashboardScreenWithTabState extends State<KisanDashboardScreenWithTab> {
+  String farmerName = "Kisan";
+  String farmerPhone = "";
+  String farmerImage = "https://i.pravatar.cc/300";
+  List<Map<String, dynamic>> crops = [];
+  bool isLoading = true;
+  bool isGuest = false;
+  late int _selectedIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedIndex = widget.initialTab;
+    _initializeUserData();
+    _loadCrops();
+  }
+
+  Future<void> _initializeUserData() async {
+    await _checkGuestMode();
+    await _loadFarmerData();
+  }
+
+  Future<void> _checkGuestMode() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      isGuest = prefs.getBool('is_guest') ?? false;
+      if (isGuest) {
+        farmerName = "Guest User";
+        farmerPhone = "Guest Mode";
+      }
+    });
+  }
+
+  Future<void> _loadFarmerData() async {
+    if (isGuest) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('user_id');
+
+    if (userId != null) {
+      final snapshot = await FirebaseDatabase.instance
+          .ref('users/\$userId')
+          .once();
+
+      if (snapshot.snapshot.value != null) {
+        final data = snapshot.snapshot.value as Map;
+        setState(() {
+          farmerName = data['name'] ?? 'Kisan';
+          farmerPhone = data['phone'] ?? '';
+          farmerImage = data['profileImage'] ?? 'https://i.pravatar.cc/300';
+        });
+      }
+    }
+  }
+
+  Future<void> _loadCrops() async {
+    try {
+      final snapshot = await FirebaseDatabase.instance.ref('allcrops').once();
+
+      if (snapshot.snapshot.value != null) {
+        final data = snapshot.snapshot.value;
+
+        setState(() {
+          if (data is Map) {
+            crops = data.values
+                .where((e) => e != null)
+                .map((e) => Map<String, dynamic>.from(e as Map))
+                .toList();
+          } else if (data is List) {
+            crops = data
+                .where((e) => e != null)
+                .map((e) => Map<String, dynamic>.from(e as Map))
+                .toList();
+          } else {
+            crops = [];
+          }
+          isLoading = false;
+        });
+      } else {
+        setState(() {
+          crops = [];
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        crops = [];
+        isLoading = false;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to load crops. Please try again.'),
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
+  void _onBottomNavTap(int index) {
+    if (isGuest && index != 0) {
+      return;
+    }
+
+    if (index == 4) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const ServicesScreen()),
+      );
+      return;
+    }
+
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF5F5F5),
+      body: _selectedIndex == 0
+          ? Container() // Home screen placeholder
+          : _selectedIndex == 1
+          ? const MyOrdersScreen()
+          : _selectedIndex == 2
+          ? const KisanHistoryWidget()
+          : Container(), // Profile screen placeholder
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, -5),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildNavItem(Icons.home, "Home", 0),
+                _buildNavItem(Icons.shopping_bag, "Orders", 1),
+                _buildNavItem(Icons.miscellaneous_services, "Services", 4),
+                _buildNavItem(Icons.history, "History", 2),
+                _buildNavItem(Icons.person, "Profile", 3),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem(IconData icon, String label, int index) {
+    final isSelected = _selectedIndex == index;
+    return Expanded(
+      child: InkWell(
+        onTap: () => _onBottomNavTap(index),
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? const Color(0xFF104f22).withOpacity(0.1)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                color: isSelected ? const Color(0xFF104f22) : Colors.grey,
+                size: 24,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                  color: isSelected ? const Color(0xFF104f22) : Colors.grey,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
