@@ -9,15 +9,18 @@ import 'package:poket_mandi/screens/kisan/kisan_dashboard_screen.dart';
 import 'package:poket_mandi/screens/vyapari/vyapari_dashboard_screen.dart';
 
 class NotificationService {
-  static final FirebaseMessaging _firebaseMessaging = FirebaseMessaging.instance;
-  static final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
+  static final FirebaseMessaging _firebaseMessaging =
+      FirebaseMessaging.instance;
+  static final FlutterLocalNotificationsPlugin _localNotifications =
+      FlutterLocalNotificationsPlugin();
   static BuildContext? _context;
-  static final Set<String> _shownNotifications = {}; // Track shown notifications
-  
+  static final Set<String> _shownNotifications =
+      {}; // Track shown notifications
+
   static void setContext(BuildContext context) {
     _context = context;
   }
-  
+
   static Future<void> initialize() async {
     // Request permission for iOS and Android 13+
     NotificationSettings settings = await _firebaseMessaging.requestPermission(
@@ -32,13 +35,15 @@ class NotificationService {
     }
 
     // Initialize local notifications
-    const AndroidInitializationSettings androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const DarwinInitializationSettings iosSettings = DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
-    );
-    
+    const AndroidInitializationSettings androidSettings =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+    const DarwinInitializationSettings iosSettings =
+        DarwinInitializationSettings(
+          requestAlertPermission: true,
+          requestBadgePermission: true,
+          requestSoundPermission: true,
+        );
+
     const InitializationSettings initSettings = InitializationSettings(
       android: androidSettings,
       iOS: iosSettings,
@@ -54,7 +59,9 @@ class NotificationService {
 
     // Request Android 13+ notification permission
     await _localNotifications
-        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >()
         ?.requestNotificationsPermission();
 
     // Create notification channel for Android
@@ -66,7 +73,9 @@ class NotificationService {
     );
 
     await _localNotifications
-        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >()
         ?.createNotificationChannel(channel);
 
     // Get FCM token and save to Firebase
@@ -102,13 +111,13 @@ class NotificationService {
     try {
       final prefs = await SharedPreferences.getInstance();
       final userId = prefs.getString('user_id');
-      
+
       if (userId != null) {
         print('DEBUG: Saving FCM token for user: $userId');
-        
+
         // CRITICAL: Remove this token from ALL other users first
         await _removeTokenFromOtherUsers(token, userId);
-        
+
         // Now save token to current user
         await FirebaseDatabase.instance
             .ref('users/$userId/fcmToken')
@@ -121,19 +130,22 @@ class NotificationService {
   }
 
   // Remove FCM token from all other users (prevent token duplication)
-  static Future<void> _removeTokenFromOtherUsers(String token, String currentUserId) async {
+  static Future<void> _removeTokenFromOtherUsers(
+    String token,
+    String currentUserId,
+  ) async {
     try {
       print('DEBUG: Checking for duplicate tokens...');
       final snapshot = await FirebaseDatabase.instance.ref('users').once();
-      
+
       if (snapshot.snapshot.value != null) {
         final users = Map<String, dynamic>.from(snapshot.snapshot.value as Map);
-        
+
         for (var entry in users.entries) {
           final otherUserId = entry.key;
           final userData = entry.value as Map;
           final otherToken = userData['fcmToken'];
-          
+
           // If another user has the same token, remove it
           if (otherToken == token && otherUserId != currentUserId) {
             print('DEBUG: Removing duplicate token from user: $otherUserId');
@@ -170,13 +182,13 @@ class NotificationService {
         priority: Priority.high,
         icon: '@mipmap/ic_launcher',
       );
-      
+
       const iosDetails = DarwinNotificationDetails(
         presentAlert: true,
         presentBadge: true,
         presentSound: true,
       );
-      
+
       const notificationDetails = NotificationDetails(
         android: androidDetails,
         iOS: iosDetails,
@@ -184,7 +196,7 @@ class NotificationService {
 
       // Extract type from message data
       final type = message.data['type'] ?? 'notification';
-      
+
       await _localNotifications.show(
         id: notification.hashCode,
         title: notification.title ?? '',
@@ -209,35 +221,32 @@ class NotificationService {
       print('DEBUG: Notification title = $title');
       print('DEBUG: Notification body = $body');
       print('DEBUG: Notification type = $type');
-      
+
       // Get current logged-in user FIRST before saving to database
       final prefs = await SharedPreferences.getInstance();
       final currentUserId = prefs.getString('user_id');
       final currentUserRole = prefs.getString('user_role');
-      
+
       print('DEBUG: Current logged-in userId = $currentUserId');
       print('DEBUG: Current logged-in userRole = $currentUserRole');
       print('DEBUG: Does userId match? ${currentUserId == userId}');
-      
+
       // Verify target user exists and get their role
       final userSnapshot = await FirebaseDatabase.instance
           .ref('users/$userId')
           .once();
-      
+
       if (userSnapshot.snapshot.value == null) {
         print('ERROR: Target user $userId does not exist!');
         return;
       }
-      
+
       final targetUserData = userSnapshot.snapshot.value as Map;
       final targetUserRole = targetUserData['role'];
       print('DEBUG: Target user role = $targetUserRole');
-      
+
       // Save notification to database for the TARGET user
-      await FirebaseDatabase.instance
-          .ref('notifications/$userId')
-          .push()
-          .set({
+      await FirebaseDatabase.instance.ref('notifications/$userId').push().set({
         'title': title,
         'body': body,
         'type': type ?? 'notification',
@@ -245,9 +254,9 @@ class NotificationService {
         'read': false,
         'createdAt': ServerValue.timestamp,
       });
-      
+
       print('DEBUG: Notification saved to database for userId: $userId');
-      
+
       // ONLY show local notification if:
       // 1. The target userId matches the current logged-in userId
       // 2. AND the roles match (extra safety check)
@@ -256,18 +265,19 @@ class NotificationService {
         const androidDetails = AndroidNotificationDetails(
           'high_importance_channel',
           'High Importance Notifications',
-          channelDescription: 'This channel is used for important notifications.',
+          channelDescription:
+              'This channel is used for important notifications.',
           importance: Importance.high,
           priority: Priority.high,
           icon: '@mipmap/ic_launcher',
         );
-        
+
         const iosDetails = DarwinNotificationDetails(
           presentAlert: true,
           presentBadge: true,
           presentSound: true,
         );
-        
+
         const notificationDetails = NotificationDetails(
           android: androidDetails,
           iOS: iosDetails,
@@ -282,9 +292,11 @@ class NotificationService {
         );
       } else {
         print('DEBUG: NOT showing local notification');
-        print('DEBUG: Reason: userId mismatch ($currentUserId != $userId) or role mismatch ($currentUserRole != $targetUserRole)');
+        print(
+          'DEBUG: Reason: userId mismatch ($currentUserId != $userId) or role mismatch ($currentUserRole != $targetUserRole)',
+        );
       }
-      
+
       print('Notification saved for user: $userId');
     } catch (e) {
       print('Error sending notification: $e');
@@ -300,19 +312,17 @@ class NotificationService {
   }) async {
     try {
       // Get all users
-      final snapshot = await FirebaseDatabase.instance
-          .ref('users')
-          .once();
-      
+      final snapshot = await FirebaseDatabase.instance.ref('users').once();
+
       if (snapshot.snapshot.value != null) {
         final users = Map<String, dynamic>.from(snapshot.snapshot.value as Map);
-        
+
         // Filter and send to all admins and superadmins
         for (var entry in users.entries) {
           final userId = entry.key;
           final userData = Map<String, dynamic>.from(entry.value as Map);
           final role = userData['role']?.toString() ?? '';
-          
+
           // Send to both admin and superadmin roles
           if (role == 'admin' || role == 'superadmin') {
             print('Sending notification to $role: $userId');
@@ -332,11 +342,14 @@ class NotificationService {
   }
 
   // Handle notification tap
-  static void _handleNotificationTap(String? payload, int? notificationId) async {
+  static void _handleNotificationTap(
+    String? payload,
+    int? notificationId,
+  ) async {
     print('DEBUG: _handleNotificationTap called');
     print('DEBUG: payload = $payload');
     print('DEBUG: payload type = ${payload.runtimeType}');
-    
+
     if (payload == null || _context == null) {
       print('DEBUG: payload is null or context is null');
       return;
@@ -346,52 +359,51 @@ class NotificationService {
       // Handle crop request status updates - navigate to History screen
       if (payload == 'crop_request_status') {
         print('DEBUG: Navigating to History screen for crop request status');
-        
+
         // Get user role to determine which dashboard to navigate to
         final prefs = await SharedPreferences.getInstance();
         final userRole = prefs.getString('user_role');
-        
+
         print('DEBUG: User role = $userRole');
-        
-        if (userRole == 'kisan' || userRole == 'farmer') {
+
+        if (userRole == 'farmer') {
           // Navigate to Kisan Dashboard with History tab selected (index 2)
           Navigator.of(_context!).pushReplacement(
             MaterialPageRoute(
               builder: (_) => const KisanDashboardScreenWithTab(initialTab: 2),
             ),
           );
-        } else if (userRole == 'vyapari' || userRole == 'trader') {
+        } else if (userRole == 'trader') {
           // Navigate to Vyapari Dashboard with History tab selected (index 2)
           Navigator.of(_context!).pushReplacement(
             MaterialPageRoute(
-              builder: (_) => const VyapariDashboardScreenWithTab(initialTab: 2),
+              builder: (_) =>
+                  const VyapariDashboardScreenWithTab(initialTab: 2),
             ),
           );
         } else {
           print('DEBUG: Unknown role, navigating to MyOrdersScreen');
           // Fallback to MyOrdersScreen
-          Navigator.of(_context!).push(
-            MaterialPageRoute(
-              builder: (_) => const MyOrdersScreen(),
-            ),
-          );
+          Navigator.of(
+            _context!,
+          ).push(MaterialPageRoute(builder: (_) => const MyOrdersScreen()));
         }
         return;
       }
 
-      print('DEBUG: payload did not match crop_request_status, checking other cases');
-      
+      print(
+        'DEBUG: payload did not match crop_request_status, checking other cases',
+      );
+
       // For other notification types, navigate to MyOrdersScreen
       if (payload == 'sapling_order' || payload == 'test_request') {
         print('DEBUG: Navigating to MyOrdersScreen for $payload');
-        Navigator.of(_context!).push(
-          MaterialPageRoute(
-            builder: (_) => const MyOrdersScreen(),
-          ),
-        );
+        Navigator.of(
+          _context!,
+        ).push(MaterialPageRoute(builder: (_) => const MyOrdersScreen()));
         return;
       }
-      
+
       // Admin notifications
       int tabIndex = 0;
 
@@ -412,7 +424,9 @@ class NotificationService {
           return;
       }
 
-      print('DEBUG: Navigating to RequestsManagementScreenWithTab with tabIndex: $tabIndex');
+      print(
+        'DEBUG: Navigating to RequestsManagementScreenWithTab with tabIndex: $tabIndex',
+      );
       Navigator.of(_context!).push(
         MaterialPageRoute(
           builder: (_) => RequestsManagementScreenWithTab(initialTab: tabIndex),
@@ -435,36 +449,37 @@ class NotificationService {
 
       // Handle crop request status updates - navigate to History screen
       if (type == 'crop_request_status') {
-        print('DEBUG: FCM - Navigating to History screen for crop request status');
-        
+        print(
+          'DEBUG: FCM - Navigating to History screen for crop request status',
+        );
+
         // Get user role to determine which dashboard to navigate to
         final prefs = await SharedPreferences.getInstance();
         final userRole = prefs.getString('user_role');
-        
+
         print('DEBUG: FCM - User role = $userRole');
-        
-        if (userRole == 'kisan' || userRole == 'farmer') {
+
+        if (userRole == 'farmer') {
           // Navigate to Kisan Dashboard with History tab selected (index 2)
           Navigator.of(_context!).pushReplacement(
             MaterialPageRoute(
               builder: (_) => const KisanDashboardScreenWithTab(initialTab: 2),
             ),
           );
-        } else if (userRole == 'vyapari' || userRole == 'trader') {
+        } else if (userRole == 'trader') {
           // Navigate to Vyapari Dashboard with History tab selected (index 2)
           Navigator.of(_context!).pushReplacement(
             MaterialPageRoute(
-              builder: (_) => const VyapariDashboardScreenWithTab(initialTab: 2),
+              builder: (_) =>
+                  const VyapariDashboardScreenWithTab(initialTab: 2),
             ),
           );
         } else {
           print('DEBUG: FCM - Unknown role, navigating to MyOrdersScreen');
           // Fallback to MyOrdersScreen
-          Navigator.of(_context!).push(
-            MaterialPageRoute(
-              builder: (_) => const MyOrdersScreen(),
-            ),
-          );
+          Navigator.of(
+            _context!,
+          ).push(MaterialPageRoute(builder: (_) => const MyOrdersScreen()));
         }
         return;
       }
@@ -472,11 +487,9 @@ class NotificationService {
       // For other notification types, navigate to MyOrdersScreen
       if (type == 'sapling_order' || type == 'test_request') {
         print('DEBUG: FCM - Navigating to MyOrdersScreen for $type');
-        Navigator.of(_context!).push(
-          MaterialPageRoute(
-            builder: (_) => const MyOrdersScreen(),
-          ),
-        );
+        Navigator.of(
+          _context!,
+        ).push(MaterialPageRoute(builder: (_) => const MyOrdersScreen()));
         return;
       }
 
@@ -500,7 +513,9 @@ class NotificationService {
           return;
       }
 
-      print('DEBUG: FCM - Navigating to RequestsManagementScreenWithTab with tabIndex: $tabIndex');
+      print(
+        'DEBUG: FCM - Navigating to RequestsManagementScreenWithTab with tabIndex: $tabIndex',
+      );
       Navigator.of(_context!).push(
         MaterialPageRoute(
           builder: (_) => RequestsManagementScreenWithTab(initialTab: tabIndex),
@@ -517,7 +532,7 @@ class NotificationService {
       final snapshot = await FirebaseDatabase.instance
           .ref('users/$userId/notificationSettings/enabled')
           .once();
-      
+
       if (snapshot.snapshot.value != null) {
         return snapshot.snapshot.value as bool;
       }
@@ -528,12 +543,15 @@ class NotificationService {
   }
 
   // Check if specific notification type is enabled
-  static Future<bool> isNotificationTypeEnabled(String userId, String type) async {
+  static Future<bool> isNotificationTypeEnabled(
+    String userId,
+    String type,
+  ) async {
     try {
       final snapshot = await FirebaseDatabase.instance
           .ref('users/$userId/notificationSettings/$type')
           .once();
-      
+
       if (snapshot.snapshot.value != null) {
         return snapshot.snapshot.value as bool;
       }

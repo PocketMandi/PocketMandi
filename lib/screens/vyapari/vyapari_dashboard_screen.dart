@@ -2476,6 +2476,9 @@ class _VyapariDashboardScreenWithTabState extends State<VyapariDashboardScreenWi
 
   @override
   Widget build(BuildContext context) {
-    return VyapariDashboardScreen();
+    return Scaffold(backgroundColor: const Color(0xFFF4F6F5), body: _selectedIndex == 2 ? const MyOrdersVyapariHistoryWidget() : _selectedIndex == 1 ? const MyOrdersVyapariWidget() : Container());
   }
 }
+
+
+

@@ -1534,7 +1534,7 @@ class _KisanDashboardScreenWithTabState extends State<KisanDashboardScreenWithTa
 
     if (userId != null) {
       final snapshot = await FirebaseDatabase.instance
-          .ref('users/\$userId')
+          .ref('users/$userId')
           .once();
 
       if (snapshot.snapshot.value != null) {
@@ -1596,6 +1596,13 @@ class _KisanDashboardScreenWithTabState extends State<KisanDashboardScreenWithTa
 
   void _onBottomNavTap(int index) {
     if (isGuest && index != 0) {
+      return;
+    }
+
+    if (index == 0) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const KisanDashboardScreen()),
+      );
       return;
     }
 

@@ -810,23 +810,23 @@ class TraderUnlistedCropsTab extends StatelessWidget {
                               ),
                               decoration: BoxDecoration(
                                 gradient: LinearGradient(
-                                  colors: [
-                                    Colors.orange.shade400,
-                                    Colors.orange.shade600,
-                                  ],
+                                  colors: _getStatusGradient(request['status']),
                                 ),
                                 borderRadius: BorderRadius.circular(20),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.orange.withOpacity(0.3),
+                                    color: _getStatusColor(
+                                      request['status'],
+                                    ).withOpacity(0.3),
                                     blurRadius: 8,
                                     offset: const Offset(0, 2),
                                   ),
                                 ],
                               ),
-                              child: const Text(
-                                'PENDING',
-                                style: TextStyle(
+                              child: Text(
+                                (request['status']?.toString().toUpperCase() ??
+                                    'PENDING'),
+                                style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
@@ -876,6 +876,103 @@ class TraderUnlistedCropsTab extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               elevation: 0,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Colors.grey.shade300,
+                              width: 1.5,
+                            ),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: request['status'] ?? 'pending',
+                              isExpanded: true,
+                              icon: const Icon(
+                                Icons.arrow_drop_down,
+                                color: Color(0xFF104f22),
+                              ),
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF2E2E2E),
+                              ),
+                              items: const [
+                                DropdownMenuItem(
+                                  value: 'pending',
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.pending,
+                                        size: 18,
+                                        color: Colors.orange,
+                                      ),
+                                      SizedBox(width: 8),
+                                      Text('Pending'),
+                                    ],
+                                  ),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'confirmed',
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.check_circle,
+                                        size: 18,
+                                        color: Colors.green,
+                                      ),
+                                      SizedBox(width: 8),
+                                      Text('Confirmed'),
+                                    ],
+                                  ),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'delivered',
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.local_shipping,
+                                        size: 18,
+                                        color: Colors.blue,
+                                      ),
+                                      SizedBox(width: 8),
+                                      Text('Delivered'),
+                                    ],
+                                  ),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'rejected',
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.cancel,
+                                        size: 18,
+                                        color: Colors.red,
+                                      ),
+                                      SizedBox(width: 8),
+                                      Text('Rejected'),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                              onChanged: (value) {
+                                if (value != null) {
+                                  _updateTraderStatus(
+                                    context,
+                                    requestsList[index].key,
+                                    value,
+                                  );
+                                }
+                              },
                             ),
                           ),
                         ),
@@ -945,6 +1042,102 @@ class TraderUnlistedCropsTab extends StatelessWidget {
     );
   }
 
+  Future<void> _updateTraderStatus(
+    BuildContext context,
+    String path,
+    String status,
+  ) async {
+    final parts = path.split('/');
+    final userId = parts[0];
+    final requestId = parts[1];
+
+    print('DEBUG: Updating status for trader userId: $userId');
+
+    try {
+      await FirebaseDatabase.instance
+          .ref('requestednewcropbyvyapari')
+          .child(userId)
+          .child(requestId)
+          .update({'status': status, 'updatedAt': ServerValue.timestamp});
+
+      // Send notification to trader
+      final snapshot = await FirebaseDatabase.instance
+          .ref('requestednewcropbyvyapari/$userId/$requestId')
+          .once();
+
+      if (snapshot.snapshot.value != null) {
+        final request = snapshot.snapshot.value as Map;
+        final cropName = request['cropName'] ?? 'Crop';
+
+        // Verify this is a trader/vyapari user
+        final userSnapshot = await FirebaseDatabase.instance
+            .ref('users/$userId')
+            .once();
+        
+        if (userSnapshot.snapshot.value != null) {
+          final userData = userSnapshot.snapshot.value as Map;
+          final userRole = userData['role'];
+          print('DEBUG: Target user role: $userRole');
+          
+          if (userRole != 'trader' && userRole != 'vyapari') {
+            print('ERROR: Attempting to send notification to non-trader user!');
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Error: Invalid user role')),
+              );
+            }
+            return;
+          }
+        }
+
+        String notificationTitle = '';
+        String notificationBody = '';
+
+        switch (status) {
+          case 'confirmed':
+            notificationTitle = 'Request Confirmed ✅';
+            notificationBody =
+                'Your request for $cropName has been confirmed by admin.';
+            break;
+          case 'delivered':
+            notificationTitle = 'Request Delivered 🚚';
+            notificationBody = 'Your request for $cropName has been delivered.';
+            break;
+          case 'rejected':
+            notificationTitle = 'Request Rejected ❌';
+            notificationBody = 'Your request for $cropName has been rejected.';
+            break;
+          default:
+            notificationTitle = 'Request Status Updated';
+            notificationBody =
+                'Your request for $cropName status has been updated to $status.';
+        }
+
+        print('DEBUG: Sending notification to trader userId: $userId');
+        await NotificationService.sendNotificationToUser(
+          userId: userId,
+          title: notificationTitle,
+          body: notificationBody,
+          type: 'crop_request_status',
+          data: {'requestId': requestId, 'cropName': cropName, 'status': status},
+        );
+      }
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Status updated to $status')));
+      }
+    } catch (e) {
+      print('ERROR: Failed to update status: $e');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
+  }
+
   String _formatDate(dynamic timestamp) {
     if (timestamp == null) return 'N/A';
     try {
@@ -952,6 +1145,32 @@ class TraderUnlistedCropsTab extends StatelessWidget {
       return '${date.day}/${date.month}/${date.year}';
     } catch (e) {
       return 'N/A';
+    }
+  }
+
+  Color _getStatusColor(String? status) {
+    switch (status) {
+      case 'confirmed':
+        return Colors.green;
+      case 'delivered':
+        return Colors.blue;
+      case 'rejected':
+        return Colors.red;
+      default:
+        return Colors.orange;
+    }
+  }
+
+  List<Color> _getStatusGradient(String? status) {
+    switch (status) {
+      case 'confirmed':
+        return [Colors.green.shade400, Colors.green.shade600];
+      case 'delivered':
+        return [Colors.blue.shade400, Colors.blue.shade600];
+      case 'rejected':
+        return [Colors.red.shade400, Colors.red.shade600];
+      default:
+        return [Colors.orange.shade400, Colors.orange.shade600];
     }
   }
 }
