@@ -381,11 +381,10 @@ class NotificationService {
             ),
           );
         } else {
-          print('DEBUG: Unknown role, navigating to MyOrdersScreen');
-          // Fallback to MyOrdersScreen
-          Navigator.of(
-            _context!,
-          ).push(MaterialPageRoute(builder: (_) => const MyOrdersScreen()));
+          print('DEBUG: Unknown role, navigating to appropriate orders screen');
+          Navigator.of(_context!).push(
+            MaterialPageRoute(builder: (_) => const KisanDashboardScreenWithTab(initialTab: 2)),
+          );
         }
         return;
       }
@@ -394,12 +393,26 @@ class NotificationService {
         'DEBUG: payload did not match crop_request_status, checking other cases',
       );
 
-      // For other notification types, navigate to MyOrdersScreen
+      // For other notification types, navigate to appropriate orders screen based on role
       if (payload == 'sapling_order_status' || payload == 'test_request_status' || payload == 'crop_order_status') {
-        print('DEBUG: Navigating to MyOrdersScreen for $payload');
-        Navigator.of(
-          _context!,
-        ).push(MaterialPageRoute(builder: (_) => const MyOrdersScreen()));
+        print('DEBUG: Navigating to Orders screen for $payload');
+        
+        final prefs = await SharedPreferences.getInstance();
+        final userRole = prefs.getString('user_role');
+        
+        if (userRole == 'farmer') {
+          Navigator.of(_context!).push(
+            MaterialPageRoute(builder: (_) => const KisanDashboardScreenWithTab(initialTab: 1)),
+          );
+        } else if (userRole == 'trader') {
+          Navigator.of(_context!).push(
+            MaterialPageRoute(builder: (_) => VyapariDashboardScreen(initialTab: 1)),
+          );
+        } else {
+          Navigator.of(_context!).push(
+            MaterialPageRoute(builder: (_) => const MyOrdersScreen()),
+          );
+        }
         return;
       }
 
@@ -473,21 +486,34 @@ class NotificationService {
             ),
           );
         } else {
-          print('DEBUG: FCM - Unknown role, navigating to MyOrdersScreen');
-          // Fallback to MyOrdersScreen
-          Navigator.of(
-            _context!,
-          ).push(MaterialPageRoute(builder: (_) => const MyOrdersScreen()));
+          print('DEBUG: FCM - Unknown role, navigating to appropriate orders screen');
+          Navigator.of(_context!).push(
+            MaterialPageRoute(builder: (_) => const KisanDashboardScreenWithTab(initialTab: 2)),
+          );
         }
         return;
       }
 
-      // For other notification types, navigate to MyOrdersScreen
+      // For other notification types, navigate to appropriate orders screen based on role
       if (type == 'sapling_order_status' || type == 'test_request_status' || type == 'crop_order_status') {
-        print('DEBUG: FCM - Navigating to MyOrdersScreen for $type');
-        Navigator.of(
-          _context!,
-        ).push(MaterialPageRoute(builder: (_) => const MyOrdersScreen()));
+        print('DEBUG: FCM - Navigating to Orders screen for $type');
+        
+        final prefs = await SharedPreferences.getInstance();
+        final userRole = prefs.getString('user_role');
+        
+        if (userRole == 'farmer') {
+          Navigator.of(_context!).push(
+            MaterialPageRoute(builder: (_) => const KisanDashboardScreenWithTab(initialTab: 1)),
+          );
+        } else if (userRole == 'trader') {
+          Navigator.of(_context!).push(
+            MaterialPageRoute(builder: (_) => VyapariDashboardScreen(initialTab: 1)),
+          );
+        } else {
+          Navigator.of(_context!).push(
+            MaterialPageRoute(builder: (_) => const MyOrdersScreen()),
+          );
+        }
         return;
       }
 
