@@ -117,6 +117,29 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         print('DEBUG: Saving FCM token for new user: ${newRef.key}');
         final fcmToken = await NotificationService.getFCMToken();
         if (fcmToken != null) {
+          // Remove this token from other users first
+          print('DEBUG: Checking for duplicate tokens in other users...');
+          final allUsersSnapshot = await FirebaseDatabase.instance.ref('users').once();
+          
+          if (allUsersSnapshot.snapshot.value != null) {
+            final allUsers = Map<String, dynamic>.from(allUsersSnapshot.snapshot.value as Map);
+            
+            for (var entry in allUsers.entries) {
+              final otherUserId = entry.key;
+              final otherUserData = entry.value as Map;
+              final otherToken = otherUserData['fcmToken'];
+              
+              // If another user has the same token, remove it
+              if (otherToken == fcmToken && otherUserId != newRef.key) {
+                print('DEBUG: Removing duplicate token from user: $otherUserId');
+                await FirebaseDatabase.instance
+                    .ref('users/$otherUserId/fcmToken')
+                    .remove();
+              }
+            }
+          }
+          
+          // Now save token to new user
           await FirebaseDatabase.instance
               .ref('users/${newRef.key}/fcmToken')
               .set(fcmToken);
@@ -168,6 +191,40 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
             'profileImage',
             userData['profileImage']?.toString() ?? '',
           );
+
+          // CRITICAL: Update FCM token for this user
+          print('DEBUG: Updating FCM token for logged-in user: $userId');
+          final fcmToken = await NotificationService.getFCMToken();
+          if (fcmToken != null) {
+            // Remove this token from other users first
+            print('DEBUG: Checking for duplicate tokens in other users...');
+            final allUsersSnapshot = await FirebaseDatabase.instance.ref('users').once();
+            
+            if (allUsersSnapshot.snapshot.value != null) {
+              final allUsers = Map<String, dynamic>.from(allUsersSnapshot.snapshot.value as Map);
+              
+              for (var entry in allUsers.entries) {
+                final otherUserId = entry.key;
+                final otherUserData = entry.value as Map;
+                final otherToken = otherUserData['fcmToken'];
+                
+                // If another user has the same token, remove it
+                if (otherToken == fcmToken && otherUserId != userId) {
+                  print('DEBUG: Removing duplicate token from user: $otherUserId');
+                  await FirebaseDatabase.instance
+                      .ref('users/$otherUserId/fcmToken')
+                      .remove();
+                }
+              }
+            }
+            
+            // Now save token to current user
+            await FirebaseDatabase.instance
+                .ref('users/$userId/fcmToken')
+                .set(fcmToken);
+            print('DEBUG: FCM token updated successfully for user: $userId');
+            print('DEBUG: New FCM token: ${fcmToken.substring(0, 20)}...');
+          }
 
           Navigator.pushAndRemoveUntil(
             context,

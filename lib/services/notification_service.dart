@@ -104,6 +104,12 @@ class NotificationService {
       final userId = prefs.getString('user_id');
       
       if (userId != null) {
+        print('DEBUG: Saving FCM token for user: $userId');
+        
+        // CRITICAL: Remove this token from ALL other users first
+        await _removeTokenFromOtherUsers(token, userId);
+        
+        // Now save token to current user
         await FirebaseDatabase.instance
             .ref('users/$userId/fcmToken')
             .set(token);
@@ -111,6 +117,34 @@ class NotificationService {
       }
     } catch (e) {
       print('Error saving FCM token: $e');
+    }
+  }
+
+  // Remove FCM token from all other users (prevent token duplication)
+  static Future<void> _removeTokenFromOtherUsers(String token, String currentUserId) async {
+    try {
+      print('DEBUG: Checking for duplicate tokens...');
+      final snapshot = await FirebaseDatabase.instance.ref('users').once();
+      
+      if (snapshot.snapshot.value != null) {
+        final users = Map<String, dynamic>.from(snapshot.snapshot.value as Map);
+        
+        for (var entry in users.entries) {
+          final otherUserId = entry.key;
+          final userData = entry.value as Map;
+          final otherToken = userData['fcmToken'];
+          
+          // If another user has the same token, remove it
+          if (otherToken == token && otherUserId != currentUserId) {
+            print('DEBUG: Removing duplicate token from user: $otherUserId');
+            await FirebaseDatabase.instance
+                .ref('users/$otherUserId/fcmToken')
+                .remove();
+          }
+        }
+      }
+    } catch (e) {
+      print('Error removing duplicate tokens: $e');
     }
   }
 
