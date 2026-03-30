@@ -7,6 +7,8 @@ import 'package:poket_mandi/screens/vyapari/crop_not_listed_screen.dart';
 import 'package:poket_mandi/screens/kisan/edit_profile_screen.dart';
 import 'package:poket_mandi/screens/common/about_screen.dart';
 import 'package:poket_mandi/screens/common/policies_screen.dart';
+import 'package:poket_mandi/screens/common/notifications_screen.dart';
+import 'package:poket_mandi/screens/common/user_notifications_list_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 class VyapariDashboardScreen extends StatefulWidget {
@@ -575,26 +577,48 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
                         ),
 
                         /// Profile Section
-                        Container(
-                          padding: const EdgeInsets.all(2),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            shape: BoxShape.circle,
-                          ),
-                          child: CircleAvatar(
-                            radius: 20,
-                            backgroundColor: Colors.white,
-                            backgroundImage: traderImage.startsWith('http')
-                                ? CachedNetworkImageProvider(traderImage)
-                                : null,
-                            child: !traderImage.startsWith('http')
-                                ? const Icon(
-                                    Icons.person,
-                                    size: 22,
-                                    color: Color(0xFF104f22),
-                                  )
-                                : null,
-                          ),
+                        Row(
+                          children: [
+                            IconButton(
+                              onPressed: isGuest
+                                  ? _showGuestRestrictionDialog
+                                  : () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => const UserNotificationsListScreen(),
+                                        ),
+                                      );
+                                    },
+                              icon: const Icon(
+                                Icons.notifications_outlined,
+                                color: Colors.white,
+                                size: 24,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.all(2),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                shape: BoxShape.circle,
+                              ),
+                              child: CircleAvatar(
+                                radius: 20,
+                                backgroundColor: Colors.white,
+                                backgroundImage: traderImage.startsWith('http')
+                                    ? CachedNetworkImageProvider(traderImage)
+                                    : null,
+                                child: !traderImage.startsWith('http')
+                                    ? const Icon(
+                                        Icons.person,
+                                        size: 22,
+                                        color: Color(0xFF104f22),
+                                      )
+                                    : null,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -1057,10 +1081,19 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
                 ),
                 const SizedBox(height: 12),
                 _buildProfileOption(
-                  icon: Icons.settings_outlined,
-                  title: "Settings",
-                  subtitle: "App preferences and configurations",
-                  onTap: () {},
+                  icon: Icons.notifications_outlined,
+                  title: "Notifications",
+                  subtitle: "Manage notification preferences",
+                  onTap: isGuest
+                      ? _showGuestRestrictionDialog
+                      : () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const NotificationsScreen(),
+                            ),
+                          );
+                        },
                 ),
                 const SizedBox(height: 12),
                 _buildProfileOption(
