@@ -1,11 +1,11 @@
 {
-    "name": "poket_mandi",
-    "short_name": "poket_mandi",
+    "name": "PoketMandi",
+    "short_name": "PoketMandi",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Your farming marketplace",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

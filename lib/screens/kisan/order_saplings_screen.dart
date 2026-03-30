@@ -102,6 +102,10 @@ class _OrderSaplingsScreenState extends State<OrderSaplingsScreen> {
                 const SizedBox(height: 12),
                 RadioListTile<String>(
                   title: const Text("Normal"),
+                  subtitle: const Text(
+                    "Min 10,000 plants order",
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
                   value: "Normal",
                   groupValue: selectedType,
                   activeColor: const Color(0xFF104f22),
@@ -114,7 +118,7 @@ class _OrderSaplingsScreenState extends State<OrderSaplingsScreen> {
                 RadioListTile<String>(
                   title: const Text("Grafted"),
                   subtitle: const Text(
-                    "Min 500 plant order",
+                    "Min 1,000 plants order",
                     style: TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                   value: "Grafted",
@@ -140,8 +144,10 @@ class _OrderSaplingsScreenState extends State<OrderSaplingsScreen> {
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(
                     hintText: selectedType == "Grafted"
-                        ? "Enter quantity (min 500)"
-                        : "Enter quantity",
+                        ? "Enter quantity (min 1,000)"
+                        : selectedType == "Normal"
+                            ? "Enter quantity (min 10,000)"
+                            : "Enter quantity",
                     filled: true,
                     fillColor: const Color(0xFFF3F3F3),
                     border: OutlineInputBorder(
@@ -188,10 +194,20 @@ class _OrderSaplingsScreenState extends State<OrderSaplingsScreen> {
                   return;
                 }
 
-                if (selectedType == "Grafted" && quantity < 500) {
+                if (selectedType == "Normal" && quantity < 10000) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('Minimum 500 plants required for grafted saplings'),
+                      content: Text('Minimum 10,000 plants required for normal saplings'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                  return;
+                }
+
+                if (selectedType == "Grafted" && quantity < 1000) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Minimum 1,000 plants required for grafted saplings'),
                       backgroundColor: Colors.red,
                     ),
                   );
