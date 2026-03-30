@@ -453,7 +453,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) => const TestNotificationScreen(),
+                                  builder: (_) => const BroadcastNotificationScreen(),
                                 ),
                               );
                             },
@@ -481,7 +481,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: const Icon(
-                                      Icons.send,
+                                      Icons.campaign,
                                       color: Colors.green,
                                       size: 24,
                                     ),
@@ -492,7 +492,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          'Test Notifications',
+                                          'Broadcast Notifications',
                                           style: TextStyle(
                                             fontSize: 16,
                                             fontWeight: FontWeight.bold,
@@ -501,7 +501,7 @@ class _AdminProfileScreenState extends State<AdminProfileScreen> {
                                         ),
                                         SizedBox(height: 4),
                                         Text(
-                                          'Send test notification',
+                                          'Send messages to farmers and traders',
                                           style: TextStyle(
                                             fontSize: 13,
                                             color: Colors.grey,

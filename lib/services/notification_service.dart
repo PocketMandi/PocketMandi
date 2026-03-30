@@ -341,6 +341,128 @@ class NotificationService {
     }
   }
 
+  // Send notification to all farmers
+  static Future<void> sendNotificationToFarmers({
+    required String title,
+    required String body,
+    String? type,
+    Map<String, dynamic>? data,
+  }) async {
+    try {
+      final snapshot = await FirebaseDatabase.instance.ref('users').once();
+      if (snapshot.snapshot.value != null) {
+        final users = Map<String, dynamic>.from(snapshot.snapshot.value as Map);
+        for (var entry in users.entries) {
+          final userId = entry.key;
+          final userData = Map<String, dynamic>.from(entry.value as Map);
+          final role = userData['role']?.toString() ?? '';
+          if (role == 'farmer') {
+            await sendNotificationToUser(
+              userId: userId,
+              title: title,
+              body: body,
+              type: type,
+              data: data,
+            );
+          }
+        }
+      }
+    } catch (e) {
+      print('Error sending notification to farmers: $e');
+    }
+  }
+
+  // Send notification to all traders
+  static Future<void> sendNotificationToTraders({
+    required String title,
+    required String body,
+    String? type,
+    Map<String, dynamic>? data,
+  }) async {
+    try {
+      final snapshot = await FirebaseDatabase.instance.ref('users').once();
+      if (snapshot.snapshot.value != null) {
+        final users = Map<String, dynamic>.from(snapshot.snapshot.value as Map);
+        for (var entry in users.entries) {
+          final userId = entry.key;
+          final userData = Map<String, dynamic>.from(entry.value as Map);
+          final role = userData['role']?.toString() ?? '';
+          if (role == 'trader') {
+            await sendNotificationToUser(
+              userId: userId,
+              title: title,
+              body: body,
+              type: type,
+              data: data,
+            );
+          }
+        }
+      }
+    } catch (e) {
+      print('Error sending notification to traders: $e');
+    }
+  }
+
+  // Send notification to all users (farmers and traders)
+  static Future<void> sendNotificationToAllUsers({
+    required String title,
+    required String body,
+    String? type,
+    Map<String, dynamic>? data,
+  }) async {
+    try {
+      final snapshot = await FirebaseDatabase.instance.ref('users').once();
+      if (snapshot.snapshot.value != null) {
+        final users = Map<String, dynamic>.from(snapshot.snapshot.value as Map);
+        for (var entry in users.entries) {
+          final userId = entry.key;
+          final userData = Map<String, dynamic>.from(entry.value as Map);
+          final role = userData['role']?.toString() ?? '';
+          if (role == 'farmer' || role == 'trader') {
+            await sendNotificationToUser(
+              userId: userId,
+              title: title,
+              body: body,
+              type: type,
+              data: data,
+            );
+          }
+        }
+      }
+    } catch (e) {
+      print('Error sending notification to all users: $e');
+    }
+  }
+
+  // Get all users for selection
+  static Future<List<Map<String, dynamic>>> getAllUsers() async {
+    try {
+      final snapshot = await FirebaseDatabase.instance.ref('users').once();
+      if (snapshot.snapshot.value != null) {
+        final users = Map<String, dynamic>.from(snapshot.snapshot.value as Map);
+        List<Map<String, dynamic>> userList = [];
+        for (var entry in users.entries) {
+          final userId = entry.key;
+          final userData = Map<String, dynamic>.from(entry.value as Map);
+          final role = userData['role']?.toString() ?? '';
+          if (role == 'farmer' || role == 'trader') {
+            userList.add({
+              'id': userId,
+              'name': userData['name'] ?? 'Unknown',
+              'role': role,
+              'phone': userData['phone'] ?? '',
+            });
+          }
+        }
+        return userList;
+      }
+      return [];
+    } catch (e) {
+      print('Error getting all users: $e');
+      return [];
+    }
+  }
+
   // Handle notification tap
   static void _handleNotificationTap(
     String? payload,
@@ -356,6 +478,15 @@ class NotificationService {
     }
 
     try {
+      // Handle broadcast notifications - navigate to notifications list
+      if (payload == 'broadcast') {
+        print('DEBUG: Navigating to notifications list for broadcast notification');
+        Navigator.of(_context!).push(
+          MaterialPageRoute(builder: (_) => const NotificationsListScreen()),
+        );
+        return;
+      }
+
       // Handle crop request status updates - navigate to History screen
       if (payload == 'crop_request_status') {
         print('DEBUG: Navigating to History screen for crop request status');
@@ -458,6 +589,15 @@ class NotificationService {
       if (type == null) return;
 
       print('DEBUG: FCM notification type = $type');
+
+      // Handle broadcast notifications - navigate to notifications list
+      if (type == 'broadcast') {
+        print('DEBUG: FCM - Navigating to notifications list for broadcast notification');
+        Navigator.of(_context!).push(
+          MaterialPageRoute(builder: (_) => const NotificationsListScreen()),
+        );
+        return;
+      }
 
       // Handle crop request status updates - navigate to History screen
       if (type == 'crop_request_status') {

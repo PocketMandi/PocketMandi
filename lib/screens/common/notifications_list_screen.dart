@@ -81,7 +81,12 @@ class _NotificationsListScreenState extends State<NotificationsListScreen> {
     // Mark as read
     _markAsRead(notification['id']);
 
-    // Navigate based on notification type
+    // Handle broadcast notifications - just mark as read, no navigation
+    if (type == 'broadcast') {
+      return; // Just mark as read and stay on notifications screen
+    }
+
+    // Navigate based on notification type (only for admin notifications)
     if (type != null) {
       int tabIndex = 0;
       
@@ -102,6 +107,8 @@ class _NotificationsListScreenState extends State<NotificationsListScreen> {
           // Navigate to users management
           Navigator.pop(context);
           return;
+        default:
+          return; // Don't navigate for unknown types
       }
 
       Navigator.push(

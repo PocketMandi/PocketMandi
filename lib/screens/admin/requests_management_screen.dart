@@ -5,6 +5,169 @@ import 'trader_unlisted_dialog.dart';
 import 'farmer_crops_dialog.dart';
 import 'package:poket_mandi/services/notification_service.dart';
 
+class RequestsManagementScreenWithTab extends StatefulWidget {
+  final int initialTab;
+  
+  const RequestsManagementScreenWithTab({Key? key, this.initialTab = 0}) : super(key: key);
+
+  @override
+  State<RequestsManagementScreenWithTab> createState() => _RequestsManagementScreenWithTabState();
+}
+
+class _RequestsManagementScreenWithTabState extends State<RequestsManagementScreenWithTab>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 6, vsync: this, initialIndex: widget.initialTab);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  Widget _buildTab(IconData icon, String label) {
+    return Tab(
+      height: 70,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 22),
+          const SizedBox(height: 6),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: const TextStyle(height: 1.2),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Column(
+        children: [
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF104f22), Color(0xFF1a7a33)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            child: SafeArea(
+              bottom: false,
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+                    child: Row(
+                      children: [
+                        IconButton(
+                          onPressed: () => Navigator.pop(context),
+                          icon: const Icon(Icons.arrow_back, color: Colors.white),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.assignment,
+                            color: Colors.white,
+                            size: 28,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Requests Management',
+                                style: TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              Text(
+                                'Manage all incoming requests',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.white70,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  TabBar(
+                    controller: _tabController,
+                    isScrollable: true,
+                    tabAlignment: TabAlignment.start,
+                    indicatorColor: Colors.white,
+                    indicatorWeight: 4,
+                    indicatorSize: TabBarIndicatorSize.label,
+                    indicatorPadding: const EdgeInsets.symmetric(horizontal: 4),
+                    labelColor: Colors.white,
+                    unselectedLabelColor: Colors.white60,
+                    labelStyle: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      letterSpacing: 0.5,
+                    ),
+                    unselectedLabelStyle: const TextStyle(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 12,
+                    ),
+                    labelPadding: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: EdgeInsets.zero,
+                    tabs: [
+                      _buildTab(Icons.grass, 'Farmer\nUnlisted'),
+                      _buildTab(Icons.store, 'Trader\nUnlisted'),
+                      _buildTab(Icons.agriculture, 'Farmer\nCrops'),
+                      _buildTab(Icons.shopping_bag, 'Trader\nCrops'),
+                      _buildTab(Icons.local_florist, 'Sapling\nOrders'),
+                      _buildTab(Icons.science, 'Test\nRequests'),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Expanded(
+            child: Container(
+              color: Colors.grey[100],
+              child: TabBarView(
+                controller: _tabController,
+                children: const [
+                  FarmerUnlistedCropsTab(),
+                  TraderUnlistedCropsTab(),
+                  FarmerCropsTab(),
+                  TraderCropsTab(),
+                  SaplingOrdersTab(),
+                  TestRequestsTab(),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class RequestsManagementScreen extends StatefulWidget {
   const RequestsManagementScreen({Key? key}) : super(key: key);
 
