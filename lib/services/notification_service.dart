@@ -114,6 +114,16 @@ class NotificationService {
     }
   }
 
+  // Get current FCM token
+  static Future<String?> getFCMToken() async {
+    try {
+      return await _firebaseMessaging.getToken();
+    } catch (e) {
+      print('Error getting FCM token: $e');
+      return null;
+    }
+  }
+
   static Future<void> _showLocalNotification(RemoteMessage message) async {
     RemoteNotification? notification = message.notification;
 
@@ -160,7 +170,36 @@ class NotificationService {
     Map<String, dynamic>? data,
   }) async {
     try {
-      // Save notification to database
+      print('DEBUG: sendNotificationToUser called');
+      print('DEBUG: Target userId = $userId');
+      print('DEBUG: Notification title = $title');
+      print('DEBUG: Notification body = $body');
+      print('DEBUG: Notification type = $type');
+      
+      // Get current logged-in user FIRST before saving to database
+      final prefs = await SharedPreferences.getInstance();
+      final currentUserId = prefs.getString('user_id');
+      final currentUserRole = prefs.getString('user_role');
+      
+      print('DEBUG: Current logged-in userId = $currentUserId');
+      print('DEBUG: Current logged-in userRole = $currentUserRole');
+      print('DEBUG: Does userId match? ${currentUserId == userId}');
+      
+      // Verify target user exists and get their role
+      final userSnapshot = await FirebaseDatabase.instance
+          .ref('users/$userId')
+          .once();
+      
+      if (userSnapshot.snapshot.value == null) {
+        print('ERROR: Target user $userId does not exist!');
+        return;
+      }
+      
+      final targetUserData = userSnapshot.snapshot.value as Map;
+      final targetUserRole = targetUserData['role'];
+      print('DEBUG: Target user role = $targetUserRole');
+      
+      // Save notification to database for the TARGET user
       await FirebaseDatabase.instance
           .ref('notifications/$userId')
           .push()
@@ -173,11 +212,13 @@ class NotificationService {
         'createdAt': ServerValue.timestamp,
       });
       
-      // Only show local notification if this is for the current logged-in user
-      final prefs = await SharedPreferences.getInstance();
-      final currentUserId = prefs.getString('user_id');
+      print('DEBUG: Notification saved to database for userId: $userId');
       
-      if (currentUserId == userId) {
+      // ONLY show local notification if:
+      // 1. The target userId matches the current logged-in userId
+      // 2. AND the roles match (extra safety check)
+      if (currentUserId == userId && currentUserRole == targetUserRole) {
+        print('DEBUG: Showing local notification - user IDs and roles match');
         const androidDetails = AndroidNotificationDetails(
           'high_importance_channel',
           'High Importance Notifications',
@@ -205,6 +246,9 @@ class NotificationService {
           notificationDetails: notificationDetails,
           payload: type ?? 'notification',
         );
+      } else {
+        print('DEBUG: NOT showing local notification');
+        print('DEBUG: Reason: userId mismatch ($currentUserId != $userId) or role mismatch ($currentUserRole != $targetUserRole)');
       }
       
       print('Notification saved for user: $userId');

@@ -553,6 +553,8 @@ class FarmerUnlistedCropsTab extends StatelessWidget {
     final userId = parts[0];
     final requestId = parts[1];
 
+    print('DEBUG: Updating status for farmer userId: $userId');
+
     await FirebaseDatabase.instance
         .ref('requestednewcrop')
         .child(userId)
@@ -567,6 +569,25 @@ class FarmerUnlistedCropsTab extends StatelessWidget {
     if (snapshot.snapshot.value != null) {
       final request = snapshot.snapshot.value as Map;
       final cropName = request['cropName'] ?? 'Crop';
+
+      // Verify this is a farmer/kisan user
+      final userSnapshot = await FirebaseDatabase.instance
+          .ref('users/$userId')
+          .once();
+      
+      if (userSnapshot.snapshot.value != null) {
+        final userData = userSnapshot.snapshot.value as Map;
+        final userRole = userData['role'];
+        print('DEBUG: Target user role: $userRole');
+        
+        if (userRole != 'kisan' && userRole != 'farmer') {
+          print('ERROR: Attempting to send notification to non-farmer user!');
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Error: Invalid user role')),
+          );
+          return;
+        }
+      }
 
       String notificationTitle = '';
       String notificationBody = '';
@@ -591,6 +612,7 @@ class FarmerUnlistedCropsTab extends StatelessWidget {
               'Your request for $cropName status has been updated to $status.';
       }
 
+      print('DEBUG: Sending notification to farmer userId: $userId');
       await NotificationService.sendNotificationToUser(
         userId: userId,
         title: notificationTitle,

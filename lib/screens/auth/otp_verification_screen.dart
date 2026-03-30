@@ -113,6 +113,16 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
           widget.userData!['profileImageUrl'] ?? '',
         );
 
+        // CRITICAL: Save FCM token for new user
+        print('DEBUG: Saving FCM token for new user: ${newRef.key}');
+        final fcmToken = await NotificationService.getFCMToken();
+        if (fcmToken != null) {
+          await FirebaseDatabase.instance
+              .ref('users/${newRef.key}/fcmToken')
+              .set(fcmToken);
+          print('DEBUG: FCM token saved for new user');
+        }
+
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(
