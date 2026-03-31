@@ -4,7 +4,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:poket_mandi/screens/kisan/selected_crop_screen.dart';
 
 class MyOrdersScreen extends StatefulWidget {
-  const MyOrdersScreen({super.key});
+  final VoidCallback? onBackPressed;
+
+  const MyOrdersScreen({super.key, this.onBackPressed});
 
   @override
   State<MyOrdersScreen> createState() => _MyOrdersScreenState();
@@ -229,31 +231,58 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
       child: SafeArea(
         child: Column(
           children: [
-            const Padding(
-              padding: EdgeInsets.fromLTRB(16, 16, 16, 0),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "My Orders",
-                      style: TextStyle(
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+              child: Row(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: IconButton(
+                      onPressed: () {
+                        if (widget.onBackPressed != null) {
+                          widget.onBackPressed!();
+                        } else {
+                          // Fallback navigation
+                          Navigator.of(context).pop();
+                        }
+                      },
+                      icon: const Icon(
+                        Icons.arrow_back_ios_new,
                         color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
+                        size: 20,
                       ),
                     ),
-                    SizedBox(height: 4),
-                    Text(
-                      "Manage your crop orders",
-                      style: TextStyle(color: Colors.white70, fontSize: 14),
+                  ),
+                  SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "My Orders",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        SizedBox(height: 4),
+                        Text(
+                          "Manage your crop orders",
+                          style: TextStyle(color: Colors.white70, fontSize: 14),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 16),
               height: 60,
@@ -1127,7 +1156,9 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
           temp.add(order);
         });
 
-        temp.sort((a, b) => (b['createdAt'] ?? 0).compareTo(a['createdAt'] ?? 0));
+        temp.sort(
+          (a, b) => (b['createdAt'] ?? 0).compareTo(a['createdAt'] ?? 0),
+        );
 
         setState(() {
           saplingOrders = temp;
@@ -1161,7 +1192,9 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
           temp.add(request);
         });
 
-        temp.sort((a, b) => (b['createdAt'] ?? 0).compareTo(a['createdAt'] ?? 0));
+        temp.sort(
+          (a, b) => (b['createdAt'] ?? 0).compareTo(a['createdAt'] ?? 0),
+        );
 
         setState(() {
           testRequests = temp;
@@ -1257,13 +1290,19 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
                           ),
                           Text(
                             'Type: ${order['saplingType'] ?? 'N/A'}',
-                            style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 12,
+                            ),
                           ),
                         ],
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: _statusColor(status),
                         borderRadius: BorderRadius.circular(12),
@@ -1285,10 +1324,18 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
                 child: Row(
                   children: [
                     Expanded(
-                      child: _buildInfoRow(Icons.numbers, 'Quantity', '${order['quantity'] ?? 0}'),
+                      child: _buildInfoRow(
+                        Icons.numbers,
+                        'Quantity',
+                        '${order['quantity'] ?? 0}',
+                      ),
                     ),
                     Expanded(
-                      child: _buildInfoRow(Icons.calendar_today, 'Date', _formatDate(order['createdAt'] ?? 0)),
+                      child: _buildInfoRow(
+                        Icons.calendar_today,
+                        'Date',
+                        _formatDate(order['createdAt'] ?? 0),
+                      ),
                     ),
                   ],
                 ),
@@ -1372,7 +1419,10 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
                           ),
                           Text(
                             _formatDate(request['createdAt'] ?? 0),
-                            style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 12,
+                            ),
                           ),
                         ],
                       ),
@@ -1380,7 +1430,11 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
                   ],
                 ),
                 const SizedBox(height: 12),
-                _buildInfoRow(Icons.location_on, 'Address', request['address'] ?? 'N/A'),
+                _buildInfoRow(
+                  Icons.location_on,
+                  'Address',
+                  request['address'] ?? 'N/A',
+                ),
                 const SizedBox(height: 8),
                 _buildInfoRow(Icons.notes, 'Notes', request['notes'] ?? 'N/A'),
               ],

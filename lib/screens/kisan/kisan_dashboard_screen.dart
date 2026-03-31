@@ -12,6 +12,8 @@ import 'package:poket_mandi/screens/kisan/add_new_crop_screen.dart';
 import 'package:poket_mandi/screens/kisan/selected_crop_screen.dart';
 import 'package:poket_mandi/screens/kisan/services_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:poket_mandi/services/optimized_farmer_trader_service.dart';
+import 'package:poket_mandi/utils/farmer_trader_performance_utils.dart';
 
 class KisanDashboardScreen extends StatefulWidget {
   const KisanDashboardScreen({super.key});
@@ -24,8 +26,13 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
   String farmerName = "Kisan";
   String farmerPhone = "";
   String farmerImage = "https://i.pravatar.cc/300";
-  // simple in-memory cache to reduce repeated DB reads during a session
+  // Enhanced caching with timestamp for better performance
   static List<Map<String, dynamic>>? _cropsCache;
+  static DateTime? _cropsCacheTime;
+  
+  // Optimized services
+  final _optimizedService = OptimizedFarmerTraderService();
+  final _performanceUtils = FarmerTraderPerformanceUtils();
   List<Map<String, dynamic>> crops = [];
   bool isLoading = true;
   bool isGuest = false;
@@ -78,8 +85,10 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
 
   Future<void> _loadCrops() async {
     try {
-      // return cached data if available
-      if (_cropsCache != null) {
+      // return cached data if available and not expired (5 minutes)
+      if (_cropsCache != null &&
+          _cropsCacheTime != null &&
+          DateTime.now().difference(_cropsCacheTime!).inMinutes < 5) {
         setState(() {
           crops = List<Map<String, dynamic>>.from(_cropsCache!);
           isLoading = false;
@@ -87,11 +96,11 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
         return;
       }
 
-      // limit query to the latest 100 entries to avoid fetching the entire dataset
+      // Optimized query with indexed ordering and increased limit for better UX
       final ref = FirebaseDatabase.instance
           .ref('allcrops')
-          .orderByKey()
-          .limitToLast(100);
+          .orderByChild('createdAt')
+          .limitToLast(200);
       final snapshot = await ref.once();
 
       if (snapshot.snapshot.value != null) {
@@ -111,6 +120,10 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
           } else {
             crops = [];
           }
+
+          // Cache the results with timestamp
+          _cropsCache = List<Map<String, dynamic>>.from(crops);
+          _cropsCacheTime = DateTime.now();
           isLoading = false;
         });
       } else {
@@ -729,11 +742,23 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
   }
 
   Widget _buildOrdersScreen() {
-    return const MyOrdersScreen();
+    return MyOrdersScreen(
+      onBackPressed: () {
+        setState(() {
+          _selectedIndex = 0; // Go back to home tab
+        });
+      },
+    );
   }
 
   Widget _buildHistoryScreen() {
-    return const KisanHistoryWidget();
+    return KisanHistoryWidget(
+      onBackPressed: () {
+        setState(() {
+          _selectedIndex = 0; // Go back to home tab
+        });
+      },
+    );
   }
 
   Widget _buildProfileScreen() {
@@ -1004,7 +1029,9 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
 }
 
 class KisanHistoryWidget extends StatefulWidget {
-  const KisanHistoryWidget({super.key});
+  final VoidCallback? onBackPressed;
+  
+  const KisanHistoryWidget({super.key, this.onBackPressed});
 
   @override
   State<KisanHistoryWidget> createState() => _KisanHistoryWidgetState();
@@ -1154,7 +1181,25 @@ class _KisanHistoryWidgetState extends State<KisanHistoryWidget> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
             children: [
-              const Icon(Icons.history, color: Colors.white, size: 24),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: IconButton(
+                  onPressed: () {
+                    if (widget.onBackPressed != null) {
+                      widget.onBackPressed!();
+                    } else {
+                      Navigator.of(context).pop();
+                    }
+                  },
+                  icon: const Icon(
+                    Icons.arrow_back_ios_new,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
               const SizedBox(width: 12),
               const Expanded(
                 child: Column(

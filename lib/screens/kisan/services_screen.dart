@@ -3,7 +3,9 @@ import 'package:poket_mandi/screens/kisan/order_saplings_screen.dart';
 import 'package:poket_mandi/screens/kisan/tests_screen.dart';
 
 class ServicesScreen extends StatefulWidget {
-  const ServicesScreen({super.key});
+  final VoidCallback? onBackPressed;
+  
+  const ServicesScreen({super.key, this.onBackPressed});
 
   @override
   State<ServicesScreen> createState() => _ServicesScreenState();
@@ -62,10 +64,29 @@ class _ServicesScreenState extends State<ServicesScreen>
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
               child: Row(
                 children: [
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.arrow_back, color: Colors.white),
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: IconButton(
+                      onPressed: () {
+                        if (widget.onBackPressed != null) {
+                          widget.onBackPressed!();
+                        } else {
+                          Navigator.of(context).pop();
+                        }
+                      },
+                      icon: const Icon(
+                        Icons.arrow_back_ios_new,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
                   ),
+                  SizedBox(width: 12),
                   const Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -92,40 +113,64 @@ class _ServicesScreenState extends State<ServicesScreen>
             const SizedBox(height: 20),
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 16),
+              height: 60,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(12),
+                color: Colors.white.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.2),
+                  width: 1,
+                ),
               ),
               child: TabBar(
                 controller: _tabController,
                 indicator: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
+                  gradient: const LinearGradient(
+                    colors: [Colors.white, Colors.white],
+                  ),
+                  borderRadius: BorderRadius.circular(14),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
                 indicatorSize: TabBarIndicatorSize.tab,
                 labelColor: const Color(0xFF104f22),
                 unselectedLabelColor: Colors.white,
                 labelStyle: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
                 ),
-                tabs: const [
+                unselectedLabelStyle: const TextStyle(
+                  fontWeight: FontWeight.w500,
+                  fontSize: 11,
+                ),
+                dividerColor: Colors.transparent,
+                padding: const EdgeInsets.all(4),
+                tabs: [
                   Tab(
-                    child: Row(
+                    height: 52,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(Icons.eco, size: 18),
-                        SizedBox(width: 8),
-                        Text("Order Saplings"),
+                        SizedBox(height: 4),
+                        Text("Saplings"),
                       ],
                     ),
                   ),
                   Tab(
-                    child: Row(
+                    height: 52,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(Icons.science, size: 18),
-                        SizedBox(width: 8),
+                        SizedBox(height: 4),
                         Text("Tests"),
                       ],
                     ),

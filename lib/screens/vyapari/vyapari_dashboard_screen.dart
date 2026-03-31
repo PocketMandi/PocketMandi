@@ -24,8 +24,9 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
   String traderName = "Vyapari";
   String traderPhone = "";
   String traderImage = "https://i.pravatar.cc/300";
-  // simple in-memory cache to reduce repeated DB reads during a session
+  // Enhanced caching with timestamp for better performance
   static List<Map<String, dynamic>>? _cropsCache;
+  static DateTime? _cropsCacheTime;
   List<Map<String, dynamic>> crops = [];
   bool isLoading = true;
   bool isGuest = false;
@@ -79,8 +80,10 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
 
   Future<void> _loadCrops() async {
     try {
-      // return cached data if available
-      if (_cropsCache != null) {
+      // return cached data if available and not expired (5 minutes)
+      if (_cropsCache != null &&
+          _cropsCacheTime != null &&
+          DateTime.now().difference(_cropsCacheTime!).inMinutes < 5) {
         setState(() {
           crops = List<Map<String, dynamic>>.from(_cropsCache!);
           isLoading = false;
@@ -88,11 +91,11 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
         return;
       }
 
-      // limit query to the latest 100 entries to avoid fetching the entire dataset
+      // Optimized query with indexed ordering and increased limit for better UX
       final ref = FirebaseDatabase.instance
           .ref('allcrops')
-          .orderByKey()
-          .limitToLast(100);
+          .orderByChild('createdAt')
+          .limitToLast(200);
       final snapshot = await ref.once();
 
       if (snapshot.snapshot.value != null) {
@@ -112,6 +115,10 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
           } else {
             crops = [];
           }
+
+          // Cache the results with timestamp
+          _cropsCache = List<Map<String, dynamic>>.from(crops);
+          _cropsCacheTime = DateTime.now();
           isLoading = false;
         });
       } else {
@@ -972,11 +979,23 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
   }
 
   Widget _buildOrdersScreen() {
-    return MyOrdersVyapariWidget();
+    return MyOrdersVyapariWidget(
+      onBackPressed: () {
+        setState(() {
+          _selectedIndex = 0; // Go back to home tab
+        });
+      },
+    );
   }
 
   Widget _buildHistoryScreen() {
-    return const MyOrdersVyapariHistoryWidget();
+    return MyOrdersVyapariHistoryWidget(
+      onBackPressed: () {
+        setState(() {
+          _selectedIndex = 0; // Go back to home tab
+        });
+      },
+    );
   }
 
   Widget _buildProfileScreen() {
@@ -1235,7 +1254,9 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
 }
 
 class MyOrdersVyapariWidget extends StatefulWidget {
-  const MyOrdersVyapariWidget({super.key});
+  final VoidCallback? onBackPressed;
+  
+  const MyOrdersVyapariWidget({super.key, this.onBackPressed});
 
   @override
   State<MyOrdersVyapariWidget> createState() => _MyOrdersVyapariWidgetState();
@@ -1422,7 +1443,16 @@ class _MyOrdersVyapariWidgetState extends State<MyOrdersVyapariWidget> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
             children: [
-              const Icon(Icons.shopping_bag, color: Colors.white, size: 24),
+              IconButton(
+                onPressed: () {
+                  if (widget.onBackPressed != null) {
+                    widget.onBackPressed!();
+                  } else {
+                    Navigator.of(context).pop();
+                  }
+                },
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+              ),
               const SizedBox(width: 12),
               const Expanded(
                 child: Column(
@@ -2000,7 +2030,9 @@ class _MyOrdersVyapariWidgetState extends State<MyOrdersVyapariWidget> {
 }
 
 class MyOrdersVyapariHistoryWidget extends StatefulWidget {
-  const MyOrdersVyapariHistoryWidget({super.key});
+  final VoidCallback? onBackPressed;
+  
+  const MyOrdersVyapariHistoryWidget({super.key, this.onBackPressed});
 
   @override
   State<MyOrdersVyapariHistoryWidget> createState() =>
@@ -2029,9 +2061,19 @@ class _MyOrdersVyapariHistoryWidgetState
         return;
       }
 
-      final snapshot = await FirebaseDatabase.instance
+      // Try optimized query first, fallback to basic query if no data
+      var snapshot = await FirebaseDatabase.instance
           .ref("requestednewcropbyvyapari/$userId")
+          .orderByChild('createdAt')
+          .limitToLast(100)
           .get();
+
+      // If no data with createdAt ordering, try basic query
+      if (snapshot.value == null) {
+        snapshot = await FirebaseDatabase.instance
+            .ref("requestednewcropbyvyapari/$userId")
+            .get();
+      }
 
       if (snapshot.value != null) {
         final data = snapshot.value as Map;
@@ -2152,7 +2194,16 @@ class _MyOrdersVyapariHistoryWidgetState
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
             children: [
-              const Icon(Icons.history, color: Colors.white, size: 24),
+              IconButton(
+                onPressed: () {
+                  if (widget.onBackPressed != null) {
+                    widget.onBackPressed!();
+                  } else {
+                    Navigator.of(context).pop();
+                  }
+                },
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+              ),
               const SizedBox(width: 12),
               const Expanded(
                 child: Column(
