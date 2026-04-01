@@ -235,23 +235,22 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
               child: Row(
                 children: [
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: IconButton(
-                      onPressed: () {
-                        if (widget.onBackPressed != null) {
-                          widget.onBackPressed!();
-                        } else {
-                          // Fallback navigation
-                          Navigator.of(context).pop();
-                        }
-                      },
-                      icon: const Icon(
+                  GestureDetector(
+                    onTap: () {
+                      if (widget.onBackPressed != null) {
+                        widget.onBackPressed!();
+                      } else {
+                        Navigator.of(context).pop();
+                      }
+                    },
+                    child: Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
                         Icons.arrow_back_ios_new,
                         color: Colors.white,
                         size: 20,

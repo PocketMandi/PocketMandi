@@ -1255,7 +1255,7 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
 
 class MyOrdersVyapariWidget extends StatefulWidget {
   final VoidCallback? onBackPressed;
-  
+
   const MyOrdersVyapariWidget({super.key, this.onBackPressed});
 
   @override
@@ -1443,15 +1443,24 @@ class _MyOrdersVyapariWidgetState extends State<MyOrdersVyapariWidget> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
             children: [
-              IconButton(
-                onPressed: () {
-                  if (widget.onBackPressed != null) {
-                    widget.onBackPressed!();
-                  } else {
-                    Navigator.of(context).pop();
-                  }
-                },
-                icon: const Icon(Icons.arrow_back, color: Colors.white),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: IconButton(
+                  onPressed: () {
+                    if (widget.onBackPressed != null) {
+                      widget.onBackPressed!();
+                    } else {
+                      Navigator.of(context).pop();
+                    }
+                  },
+                  icon: const Icon(
+                    Icons.arrow_back_ios_new,
+                    color: Colors.white,
+                  ),
+                ),
               ),
               const SizedBox(width: 12),
               const Expanded(
@@ -2031,7 +2040,7 @@ class _MyOrdersVyapariWidgetState extends State<MyOrdersVyapariWidget> {
 
 class MyOrdersVyapariHistoryWidget extends StatefulWidget {
   final VoidCallback? onBackPressed;
-  
+
   const MyOrdersVyapariHistoryWidget({super.key, this.onBackPressed});
 
   @override
@@ -2061,19 +2070,10 @@ class _MyOrdersVyapariHistoryWidgetState
         return;
       }
 
-      // Try optimized query first, fallback to basic query if no data
-      var snapshot = await FirebaseDatabase.instance
+      // Load all requested crops for this user
+      final snapshot = await FirebaseDatabase.instance
           .ref("requestednewcropbyvyapari/$userId")
-          .orderByChild('createdAt')
-          .limitToLast(100)
           .get();
-
-      // If no data with createdAt ordering, try basic query
-      if (snapshot.value == null) {
-        snapshot = await FirebaseDatabase.instance
-            .ref("requestednewcropbyvyapari/$userId")
-            .get();
-      }
 
       if (snapshot.value != null) {
         final data = snapshot.value as Map;
@@ -2085,6 +2085,7 @@ class _MyOrdersVyapariHistoryWidgetState
           temp.add(request);
         });
 
+        // Sort by createdAt in descending order (newest first)
         temp.sort(
           (a, b) => (b['createdAt'] ?? 0).compareTo(a['createdAt'] ?? 0),
         );
@@ -2100,6 +2101,7 @@ class _MyOrdersVyapariHistoryWidgetState
         });
       }
     } catch (e) {
+      print('Error loading requested crops: $e'); // Debug print
       setState(() {
         requestedCrops = [];
         isLoading = false;
@@ -2194,15 +2196,24 @@ class _MyOrdersVyapariHistoryWidgetState
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
             children: [
-              IconButton(
-                onPressed: () {
-                  if (widget.onBackPressed != null) {
-                    widget.onBackPressed!();
-                  } else {
-                    Navigator.of(context).pop();
-                  }
-                },
-                icon: const Icon(Icons.arrow_back, color: Colors.white),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: IconButton(
+                  onPressed: () {
+                    if (widget.onBackPressed != null) {
+                      widget.onBackPressed!();
+                    } else {
+                      Navigator.of(context).pop();
+                    }
+                  },
+                  icon: const Icon(
+                    Icons.arrow_back_ios_new,
+                    color: Colors.white,
+                  ),
+                ),
               ),
               const SizedBox(width: 12),
               const Expanded(
