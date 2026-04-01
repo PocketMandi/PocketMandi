@@ -281,27 +281,45 @@ class _CropNotListedScreenState extends State<CropNotListedScreen> {
             ),
           ),
 
-          /// 🔙 Back Button
-          Positioned(
-            top: 50,
-            left: 16,
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.3),
-                shape: BoxShape.circle,
-              ),
-              child: IconButton(
-                onPressed: isLoading ? null : () => Navigator.pop(context),
-                icon: const Icon(Icons.arrow_back, color: Colors.white),
-              ),
-            ),
-          ),
-
           SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                children: [
+            child: Column(
+              children: [
+                // Back button row
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: isLoading ? null : () {
+                            print('Back button tapped in crop not listed screen');
+                            Navigator.of(context).pop();
+                          },
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(
+                              Icons.arrow_back_ios_new,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Content
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      children: [
                   const SizedBox(height: 20),
 
                   /// Title
@@ -676,8 +694,11 @@ class _CropNotListedScreenState extends State<CropNotListedScreen> {
                       ),
                     ),
                   ),
-                ],
-              ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
 

@@ -726,20 +726,12 @@ class _AddNewCropScreenState extends State<AddNewCropScreen> {
                           width: 48,
                           height: 48,
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.9),
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.3),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(12),
                           ),
                           child: const Icon(
-                            Icons.arrow_back,
-                            color: Color(0xFF104f22),
-                            size: 24,
+                            Icons.arrow_back_ios_new,
+                            color: Colors.white,
                           ),
                         ),
                       ),

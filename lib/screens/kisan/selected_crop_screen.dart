@@ -108,13 +108,12 @@ class _SelectedCropScreenState extends State<SelectedCropScreen> {
                           width: 48,
                           height: 48,
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.9),
-                            shape: BoxShape.circle,
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(12),
                           ),
                           child: const Icon(
-                            Icons.arrow_back,
-                            color: Color(0xFF104f22),
-                            size: 24,
+                            Icons.arrow_back_ios_new,
+                            color: Colors.white,
                           ),
                         ),
                       ),
