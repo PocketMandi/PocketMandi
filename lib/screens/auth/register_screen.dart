@@ -39,21 +39,18 @@ class RegisterScreen extends StatelessWidget {
                   alignment: Alignment.topLeft,
                   child: Padding(
                     padding: const EdgeInsets.all(20),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: Colors.white.withOpacity(0.3),
-                          width: 1,
+                    child: GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                      ),
-                      child: IconButton(
-                        onPressed: () => Navigator.pop(context),
-                        icon: const Icon(
+                        child: const Icon(
                           Icons.arrow_back_ios_new,
                           color: Colors.white,
-                          size: 20,
                         ),
                       ),
                     ),
