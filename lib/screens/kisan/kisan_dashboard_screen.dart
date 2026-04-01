@@ -12,8 +12,6 @@ import 'package:poket_mandi/screens/kisan/add_new_crop_screen.dart';
 import 'package:poket_mandi/screens/kisan/selected_crop_screen.dart';
 import 'package:poket_mandi/screens/kisan/services_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:poket_mandi/services/optimized_farmer_trader_service.dart';
-import 'package:poket_mandi/utils/farmer_trader_performance_utils.dart';
 
 class KisanDashboardScreen extends StatefulWidget {
   const KisanDashboardScreen({super.key});
@@ -29,10 +27,7 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
   // Enhanced caching with timestamp for better performance
   static List<Map<String, dynamic>>? _cropsCache;
   static DateTime? _cropsCacheTime;
-  
-  // Optimized services
-  final _optimizedService = OptimizedFarmerTraderService();
-  final _performanceUtils = FarmerTraderPerformanceUtils();
+
   List<Map<String, dynamic>> crops = [];
   bool isLoading = true;
   bool isGuest = false;
@@ -1030,7 +1025,7 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
 
 class KisanHistoryWidget extends StatefulWidget {
   final VoidCallback? onBackPressed;
-  
+
   const KisanHistoryWidget({super.key, this.onBackPressed});
 
   @override

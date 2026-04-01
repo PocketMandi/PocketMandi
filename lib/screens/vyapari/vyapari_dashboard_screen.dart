@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:poket_mandi/utils/performance_monitor.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:poket_mandi/screens/auth/landing_screen.dart';
 import 'package:poket_mandi/screens/vyapari/crop_detail_screen.dart';
@@ -80,53 +81,57 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
 
   Future<void> _loadCrops() async {
     try {
-      // return cached data if available and not expired (5 minutes)
-      if (_cropsCache != null &&
-          _cropsCacheTime != null &&
-          DateTime.now().difference(_cropsCacheTime!).inMinutes < 5) {
-        setState(() {
-          crops = List<Map<String, dynamic>>.from(_cropsCache!);
-          isLoading = false;
-        });
-        return;
-      }
+      // Use performance monitoring
+      await PerformanceMonitor.monitorDatabaseOperation('load_crops', () async {
+        // Enhanced caching with timestamp for better performance
+        if (_cropsCache != null &&
+            _cropsCacheTime != null &&
+            DateTime.now().difference(_cropsCacheTime!).inMinutes < 5) {
+          setState(() {
+            crops = List<Map<String, dynamic>>.from(_cropsCache!);
+            isLoading = false;
+          });
+          return;
+        }
 
-      // Optimized query with indexed ordering and increased limit for better UX
-      final ref = FirebaseDatabase.instance
-          .ref('allcrops')
-          .orderByChild('createdAt')
-          .limitToLast(200);
-      final snapshot = await ref.once();
+        // Optimized query with pagination for better performance
+        final ref = FirebaseDatabase.instance
+            .ref('allcrops')
+            .orderByChild('createdAt')
+            .limitToLast(100); // Reduced from 200 for better performance
 
-      if (snapshot.snapshot.value != null) {
-        final data = snapshot.snapshot.value;
+        final snapshot = await ref.once();
 
-        setState(() {
-          if (data is Map) {
-            crops = data.values
-                .where((e) => e != null)
-                .map((e) => Map<String, dynamic>.from(e as Map))
-                .toList();
-          } else if (data is List) {
-            crops = data
-                .where((e) => e != null)
-                .map((e) => Map<String, dynamic>.from(e as Map))
-                .toList();
-          } else {
+        if (snapshot.snapshot.value != null) {
+          final data = snapshot.snapshot.value;
+
+          setState(() {
+            if (data is Map) {
+              crops = data.values
+                  .where((e) => e != null)
+                  .map((e) => Map<String, dynamic>.from(e as Map))
+                  .toList();
+            } else if (data is List) {
+              crops = data
+                  .where((e) => e != null)
+                  .map((e) => Map<String, dynamic>.from(e as Map))
+                  .toList();
+            } else {
+              crops = [];
+            }
+
+            // Cache the results with timestamp
+            _cropsCache = List<Map<String, dynamic>>.from(crops);
+            _cropsCacheTime = DateTime.now();
+            isLoading = false;
+          });
+        } else {
+          setState(() {
             crops = [];
-          }
-
-          // Cache the results with timestamp
-          _cropsCache = List<Map<String, dynamic>>.from(crops);
-          _cropsCacheTime = DateTime.now();
-          isLoading = false;
-        });
-      } else {
-        setState(() {
-          crops = [];
-          isLoading = false;
-        });
-      }
+            isLoading = false;
+          });
+        }
+      });
     } catch (e) {
       setState(() {
         crops = [];
@@ -425,15 +430,6 @@ class _VyapariDashboardScreenState extends State<VyapariDashboardScreen> {
       _selectedIndex = index;
     });
   }
-
-  List<Map<String, String>> get cropNames => crops
-      .map(
-        (crop) => {
-          "name": crop["name"]?.toString() ?? "Unknown",
-          "image": crop["image"]?.toString() ?? "assets/images/login_bg.jpg",
-        },
-      )
-      .toList();
 
   @override
   Widget build(BuildContext context) {
@@ -1764,9 +1760,6 @@ class _MyOrdersVyapariWidgetState extends State<MyOrdersVyapariWidget> {
     final grades = source == 'added'
         ? ((order['qualityGrades'] as List?)?.join(", ") ?? "N/A")
         : "N/A";
-    final location = order['location'] != null
-        ? order['location']['deliveryAddress'] ?? "N/A"
-        : "N/A";
     final deliveryDate = order['requiredDeliveryDate'];
     final mandiName = order['location'] != null
         ? order['location']['mandiName'] ?? "N/A"
@@ -2066,7 +2059,9 @@ class _MyOrdersVyapariHistoryWidgetState
       final userId = prefs.getString('user_id');
 
       if (userId == null) {
-        setState(() => isLoading = false);
+        if (mounted) {
+          setState(() => isLoading = false);
+        }
         return;
       }
 
@@ -2090,29 +2085,37 @@ class _MyOrdersVyapariHistoryWidgetState
           (a, b) => (b['createdAt'] ?? 0).compareTo(a['createdAt'] ?? 0),
         );
 
-        setState(() {
-          requestedCrops = temp;
-          isLoading = false;
-        });
+        if (mounted) {
+          setState(() {
+            requestedCrops = temp;
+            isLoading = false;
+          });
+        }
       } else {
+        if (mounted) {
+          setState(() {
+            requestedCrops = [];
+            isLoading = false;
+          });
+        }
+      }
+    } catch (e) {
+      print('Error loading requested crops: $e'); // Debug print
+      if (mounted) {
         setState(() {
           requestedCrops = [];
           isLoading = false;
         });
       }
-    } catch (e) {
-      print('Error loading requested crops: $e'); // Debug print
-      setState(() {
-        requestedCrops = [];
-        isLoading = false;
-      });
     }
   }
 
   void _applyFilter(String filter) {
-    setState(() {
-      selectedFilter = filter;
-    });
+    if (mounted) {
+      setState(() {
+        selectedFilter = filter;
+      });
+    }
   }
 
   List<Map<String, dynamic>> get filteredRequests {
