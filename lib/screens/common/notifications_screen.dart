@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class NotificationsScreen extends StatefulWidget {
   final VoidCallback? onBackPressed;
-  
+
   const NotificationsScreen({Key? key, this.onBackPressed}) : super(key: key);
 
   @override
@@ -38,7 +38,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             .once();
 
         if (snapshot.snapshot.value != null) {
-          final data = Map<String, dynamic>.from(snapshot.snapshot.value as Map);
+          final data = Map<String, dynamic>.from(
+            snapshot.snapshot.value as Map,
+          );
           setState(() {
             notificationsEnabled = data['enabled'] ?? true;
             orderNotifications = data['orders'] ?? true;
@@ -64,12 +66,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       await FirebaseDatabase.instance
           .ref('users/$userId/notificationSettings')
           .set({
-        'enabled': notificationsEnabled,
-        'orders': orderNotifications,
-        'users': userNotifications,
-        'system': systemNotifications,
-        'updatedAt': ServerValue.timestamp,
-      });
+            'enabled': notificationsEnabled,
+            'orders': orderNotifications,
+            'users': userNotifications,
+            'system': systemNotifications,
+            'updatedAt': ServerValue.timestamp,
+          });
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -82,10 +84,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
         );
       }
     }
@@ -191,7 +190,9 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                   Container(
                                     padding: const EdgeInsets.all(12),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFF104f22).withOpacity(0.1),
+                                      color: const Color(
+                                        0xFF104f22,
+                                      ).withOpacity(0.1),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: const Icon(
@@ -203,7 +204,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                   const SizedBox(width: 16),
                                   const Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           'Enable Notifications',
@@ -263,7 +265,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                           },
                         ),
                         const SizedBox(height: 12),
-                        if (userRole == 'admin' || userRole == 'superadmin') ...[
+                        if (userRole == 'admin' ||
+                            userRole == 'superadmin') ...[
                           _buildNotificationOption(
                             icon: Icons.person_add,
                             title: 'User Notifications',

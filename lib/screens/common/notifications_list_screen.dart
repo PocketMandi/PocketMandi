@@ -7,7 +7,8 @@ class NotificationsListScreen extends StatefulWidget {
   const NotificationsListScreen({Key? key}) : super(key: key);
 
   @override
-  State<NotificationsListScreen> createState() => _NotificationsListScreenState();
+  State<NotificationsListScreen> createState() =>
+      _NotificationsListScreenState();
 }
 
 class _NotificationsListScreenState extends State<NotificationsListScreen> {
@@ -67,7 +68,7 @@ class _NotificationsListScreenState extends State<NotificationsListScreen> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final userId = prefs.getString('user_id');
-      
+
       if (userId != null) {
         await FirebaseDatabase.instance
             .ref('notifications/$userId/$notificationId')
@@ -93,7 +94,7 @@ class _NotificationsListScreenState extends State<NotificationsListScreen> {
     // Navigate based on notification type (only for admin notifications)
     if (type != null) {
       int tabIndex = 0;
-      
+
       switch (type) {
         case 'crop_request':
           tabIndex = 0; // Farmer Unlisted
@@ -195,50 +196,50 @@ class _NotificationsListScreenState extends State<NotificationsListScreen> {
                           ),
                         )
                       : notifications.isEmpty
-                          ? Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(24),
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey.shade100,
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: Icon(
-                                      Icons.notifications_off_outlined,
-                                      size: 64,
-                                      color: Colors.grey[400],
-                                    ),
-                                  ),
-                                  const SizedBox(height: 16),
-                                  Text(
-                                    'No notifications yet',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.grey[700],
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    'You\'ll see notifications here when you get them',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.grey[500],
-                                    ),
-                                  ),
-                                ],
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(24),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade100,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  Icons.notifications_off_outlined,
+                                  size: 64,
+                                  color: Colors.grey[400],
+                                ),
                               ),
-                            )
-                          : ListView.builder(
-                              padding: const EdgeInsets.all(16),
-                              itemCount: notifications.length,
-                              itemBuilder: (context, index) {
-                                final notification = notifications[index];
-                                return _buildNotificationCard(notification);
-                              },
-                            ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'No notifications yet',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.grey[700],
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'You\'ll see notifications here when you get them',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey[500],
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : ListView.builder(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: notifications.length,
+                          itemBuilder: (context, index) {
+                            final notification = notifications[index];
+                            return _buildNotificationCard(notification);
+                          },
+                        ),
                 ),
               ),
             ],
@@ -323,11 +324,7 @@ class _NotificationsListScreenState extends State<NotificationsListScreen> {
                   color: iconColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(
-                  icon,
-                  color: iconColor,
-                  size: 24,
-                ),
+                child: Icon(icon, color: iconColor, size: 24),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -340,7 +337,9 @@ class _NotificationsListScreenState extends State<NotificationsListScreen> {
                           child: Text(
                             title,
                             style: TextStyle(
-                              fontWeight: isRead ? FontWeight.w600 : FontWeight.bold,
+                              fontWeight: isRead
+                                  ? FontWeight.w600
+                                  : FontWeight.bold,
                               fontSize: 16,
                               color: const Color(0xFF2E2E2E),
                             ),
@@ -402,10 +401,12 @@ class _NotificationsListScreenState extends State<NotificationsListScreen> {
 
   String _getTimeAgo(dynamic timestamp) {
     if (timestamp == null) return '';
-    
+
     try {
       final now = DateTime.now();
-      final notificationTime = DateTime.fromMillisecondsSinceEpoch(timestamp as int);
+      final notificationTime = DateTime.fromMillisecondsSinceEpoch(
+        timestamp as int,
+      );
       final difference = now.difference(notificationTime);
 
       if (difference.inDays > 0) {
@@ -426,21 +427,28 @@ class _NotificationsListScreenState extends State<NotificationsListScreen> {
 // Wrapper widget to open RequestsManagementScreen with specific tab
 class RequestsManagementScreenWithTab extends StatefulWidget {
   final int initialTab;
-  
-  const RequestsManagementScreenWithTab({Key? key, required this.initialTab}) : super(key: key);
+
+  const RequestsManagementScreenWithTab({Key? key, required this.initialTab})
+    : super(key: key);
 
   @override
-  State<RequestsManagementScreenWithTab> createState() => _RequestsManagementScreenWithTabState();
+  State<RequestsManagementScreenWithTab> createState() =>
+      _RequestsManagementScreenWithTabState();
 }
 
-class _RequestsManagementScreenWithTabState extends State<RequestsManagementScreenWithTab>
+class _RequestsManagementScreenWithTabState
+    extends State<RequestsManagementScreenWithTab>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 6, vsync: this, initialIndex: widget.initialTab);
+    _tabController = TabController(
+      length: 6,
+      vsync: this,
+      initialIndex: widget.initialTab,
+    );
   }
 
   @override
@@ -472,7 +480,10 @@ class _RequestsManagementScreenWithTabState extends State<RequestsManagementScre
                       children: [
                         IconButton(
                           onPressed: () => Navigator.pop(context),
-                          icon: const Icon(Icons.arrow_back, color: Colors.white),
+                          icon: const Icon(
+                            Icons.arrow_back,
+                            color: Colors.white,
+                          ),
                         ),
                         const SizedBox(width: 8),
                         const Expanded(
@@ -508,8 +519,14 @@ class _RequestsManagementScreenWithTabState extends State<RequestsManagementScre
                     indicatorPadding: const EdgeInsets.symmetric(horizontal: 8),
                     labelColor: Colors.white,
                     unselectedLabelColor: Colors.white60,
-                    labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                    unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal, fontSize: 13),
+                    labelStyle: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                    unselectedLabelStyle: const TextStyle(
+                      fontWeight: FontWeight.normal,
+                      fontSize: 13,
+                    ),
                     labelPadding: const EdgeInsets.symmetric(horizontal: 12),
                     tabs: const [
                       Tab(text: 'Farmer\nUnlisted'),

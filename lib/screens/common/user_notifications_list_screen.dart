@@ -3,13 +3,17 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class UserNotificationsListScreen extends StatefulWidget {
-  const UserNotificationsListScreen({Key? key}) : super(key: key);
+  final VoidCallback? onBackPressed;
+  
+  const UserNotificationsListScreen({Key? key, this.onBackPressed}) : super(key: key);
 
   @override
-  State<UserNotificationsListScreen> createState() => _UserNotificationsListScreenState();
+  State<UserNotificationsListScreen> createState() =>
+      _UserNotificationsListScreenState();
 }
 
-class _UserNotificationsListScreenState extends State<UserNotificationsListScreen> {
+class _UserNotificationsListScreenState
+    extends State<UserNotificationsListScreen> {
   List<Map<String, dynamic>> notifications = [];
   bool isLoading = true;
   String? userRole;
@@ -64,15 +68,17 @@ class _UserNotificationsListScreenState extends State<UserNotificationsListScree
     try {
       final prefs = await SharedPreferences.getInstance();
       final userId = prefs.getString('user_id');
-      
+
       if (userId != null) {
         await FirebaseDatabase.instance
             .ref('notifications/$userId/$notificationId')
             .update({'read': true});
-        
+
         // Update local state
         setState(() {
-          final index = notifications.indexWhere((n) => n['id'] == notificationId);
+          final index = notifications.indexWhere(
+            (n) => n['id'] == notificationId,
+          );
           if (index != -1) {
             notifications[index]['read'] = true;
           }
@@ -86,7 +92,7 @@ class _UserNotificationsListScreenState extends State<UserNotificationsListScree
   void _handleNotificationTap(Map<String, dynamic> notification) {
     // Mark as read
     _markAsRead(notification['id']);
-    
+
     // Show notification details in a dialog
     _showNotificationDetails(notification);
   }
@@ -219,11 +225,29 @@ class _UserNotificationsListScreenState extends State<UserNotificationsListScree
                 padding: const EdgeInsets.all(20),
                 child: Row(
                   children: [
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    GestureDetector(
+                      onTap: () {
+                        if (widget.onBackPressed != null) {
+                          widget.onBackPressed!();
+                        } else {
+                          Navigator.of(context).pop();
+                        }
+                      },
+                      child: Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.arrow_back_ios_new,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                      ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 16),
                     const Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -266,54 +290,54 @@ class _UserNotificationsListScreenState extends State<UserNotificationsListScree
                           ),
                         )
                       : notifications.isEmpty
-                          ? Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(24),
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey.shade100,
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: Icon(
-                                      Icons.notifications_off_outlined,
-                                      size: 64,
-                                      color: Colors.grey[400],
-                                    ),
-                                  ),
-                                  const SizedBox(height: 16),
-                                  Text(
-                                    'No notifications yet',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.grey[700],
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    'You\'ll see notifications here when you get them',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.grey[500],
-                                    ),
-                                  ),
-                                ],
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(24),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade100,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  Icons.notifications_off_outlined,
+                                  size: 64,
+                                  color: Colors.grey[400],
+                                ),
                               ),
-                            )
-                          : RefreshIndicator(
-                              onRefresh: _loadNotifications,
-                              color: const Color(0xFF104f22),
-                              child: ListView.builder(
-                                padding: const EdgeInsets.all(16),
-                                itemCount: notifications.length,
-                                itemBuilder: (context, index) {
-                                  final notification = notifications[index];
-                                  return _buildNotificationCard(notification);
-                                },
+                              const SizedBox(height: 16),
+                              Text(
+                                'No notifications yet',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.grey[700],
+                                ),
                               ),
-                            ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'You\'ll see notifications here when you get them',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey[500],
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : RefreshIndicator(
+                          onRefresh: _loadNotifications,
+                          color: const Color(0xFF104f22),
+                          child: ListView.builder(
+                            padding: const EdgeInsets.all(16),
+                            itemCount: notifications.length,
+                            itemBuilder: (context, index) {
+                              final notification = notifications[index];
+                              return _buildNotificationCard(notification);
+                            },
+                          ),
+                        ),
                 ),
               ),
             ],
@@ -393,11 +417,7 @@ class _UserNotificationsListScreenState extends State<UserNotificationsListScree
                   color: iconColor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(
-                  icon,
-                  color: iconColor,
-                  size: 24,
-                ),
+                child: Icon(icon, color: iconColor, size: 24),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -410,7 +430,9 @@ class _UserNotificationsListScreenState extends State<UserNotificationsListScree
                           child: Text(
                             title,
                             style: TextStyle(
-                              fontWeight: isRead ? FontWeight.w600 : FontWeight.bold,
+                              fontWeight: isRead
+                                  ? FontWeight.w600
+                                  : FontWeight.bold,
                               fontSize: 16,
                               color: const Color(0xFF2E2E2E),
                             ),
@@ -474,10 +496,12 @@ class _UserNotificationsListScreenState extends State<UserNotificationsListScree
 
   String _getTimeAgo(dynamic timestamp) {
     if (timestamp == null) return '';
-    
+
     try {
       final now = DateTime.now();
-      final notificationTime = DateTime.fromMillisecondsSinceEpoch(timestamp as int);
+      final notificationTime = DateTime.fromMillisecondsSinceEpoch(
+        timestamp as int,
+      );
       final difference = now.difference(notificationTime);
 
       if (difference.inDays > 0) {

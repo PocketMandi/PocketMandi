@@ -98,6 +98,11 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
         // Save user data locally
         final prefs = await SharedPreferences.getInstance();
+        
+        // CRITICAL: Clear guest mode flags when user registers
+        await prefs.remove('is_guest');
+        await prefs.remove('guest_role');
+        
         await prefs.setString('user_id', newRef.key!);
         await prefs.setString(
           'user_role',
@@ -178,6 +183,11 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
           // Save user data locally
           final prefs = await SharedPreferences.getInstance();
+          
+          // CRITICAL: Clear guest mode flags when user logs in
+          await prefs.remove('is_guest');
+          await prefs.remove('guest_role');
+          
           await prefs.setString('user_id', userId);
           await prefs.setString('user_role', role);
           await prefs.setString('name', userData['name']?.toString() ?? '');
