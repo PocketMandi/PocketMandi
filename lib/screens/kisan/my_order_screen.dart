@@ -18,8 +18,12 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
   List<Map<String, dynamic>> myOrders = [];
   List<Map<String, dynamic>> filteredOrders = [];
   List<Map<String, dynamic>> crops = [];
+  List<Map<String, dynamic>> filteredSaplingOrders = [];
+  String selectedSaplingFilter = "All";
   List<Map<String, dynamic>> saplingOrders = [];
   List<Map<String, dynamic>> testRequests = [];
+  List<Map<String, dynamic>> filteredTestRequests = [];
+  String selectedTestFilter = "All";
   bool isLoading = true;
   bool isCropsLoading = true;
   String selectedFilter = "All";
@@ -165,6 +169,40 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
       } else {
         filteredOrders = myOrders
             .where((order) => order['status'] == filter.toLowerCase())
+            .toList();
+      }
+    });
+  }
+
+  void _applySaplingFilter(String filter) {
+    setState(() {
+      selectedSaplingFilter = filter;
+      if (filter == "All") {
+        filteredSaplingOrders = saplingOrders;
+      } else {
+        filteredSaplingOrders = saplingOrders
+            .where(
+              (order) =>
+                  (order['status'] ?? 'pending').toLowerCase() ==
+                  filter.toLowerCase(),
+            )
+            .toList();
+      }
+    });
+  }
+
+  void _applyTestFilter(String filter) {
+    setState(() {
+      selectedTestFilter = filter;
+      if (filter == "All") {
+        filteredTestRequests = testRequests;
+      } else {
+        filteredTestRequests = testRequests
+            .where(
+              (request) =>
+                  (request['status'] ?? 'pending').toLowerCase() ==
+                  filter.toLowerCase(),
+            )
             .toList();
       }
     });
@@ -1134,6 +1172,94 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
     return "${date.day}/${date.month}/${date.year}";
   }
 
+  // Test status helper methods
+  Color _getTestStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return Colors.orange;
+      case 'confirmed':
+        return Colors.blue;
+      case 'rejected':
+        return Colors.red;
+      case 'completed':
+        return Colors.green;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  IconData _getTestStatusIcon(String status) {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return Icons.schedule;
+      case 'confirmed':
+        return Icons.check_circle_outline;
+      case 'rejected':
+        return Icons.cancel_outlined;
+      case 'completed':
+        return Icons.done_all;
+      default:
+        return Icons.help_outline;
+    }
+  }
+
+  String _getStatusDisplayText(String status) {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return 'PENDING REVIEW';
+      case 'confirmed':
+        return 'CONFIRMED';
+      case 'rejected':
+        return 'REJECTED';
+      case 'completed':
+        return 'COMPLETED';
+      default:
+        return status.toUpperCase();
+    }
+  }
+
+  Widget _buildTestInfoRow(IconData icon, String label, String value) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: Colors.grey[100],
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, size: 16, color: Colors.grey[700]),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: Colors.grey[600],
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF2E2E2E),
+                ),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 2,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   Future<void> _loadSaplingOrders() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -1161,11 +1287,13 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
 
         setState(() {
           saplingOrders = temp;
+          filteredSaplingOrders = temp; // Initialize filtered list
         });
       }
     } catch (e) {
       setState(() {
         saplingOrders = [];
+        filteredSaplingOrders = [];
       });
     }
   }
@@ -1197,44 +1325,598 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
 
         setState(() {
           testRequests = temp;
+          filteredTestRequests = temp; // Initialize filtered list
         });
       }
     } catch (e) {
       setState(() {
         testRequests = [];
+        filteredTestRequests = [];
       });
     }
   }
 
   Widget _buildSaplingOrdersTab() {
+    return Column(
+      children: [
+        // Filter Dropdown Section
+        Container(
+          margin: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF104f22).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.filter_list,
+                  color: Color(0xFF104f22),
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Filter by Status:',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF2E2E2E),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF104f22).withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: const Color(0xFF104f22).withOpacity(0.2),
+                    ),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: selectedSaplingFilter,
+                      isExpanded: true,
+                      icon: const Icon(
+                        Icons.keyboard_arrow_down,
+                        color: Color(0xFF104f22),
+                      ),
+                      style: const TextStyle(
+                        color: Color(0xFF104f22),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      items:
+                          [
+                            'All',
+                            'Pending',
+                            'Confirmed',
+                            'Delivered',
+                            'Rejected',
+                          ].map((String value) {
+                            return DropdownMenuItem<String>(
+                              value: value,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (value != 'All') ...[
+                                    Container(
+                                      width: 6,
+                                      height: 6,
+                                      decoration: BoxDecoration(
+                                        color: _statusColor(
+                                          value.toLowerCase(),
+                                        ),
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                  ],
+                                  Flexible(
+                                    child: Text(
+                                      value,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                      onChanged: (String? newValue) {
+                        if (newValue != null) {
+                          _applySaplingFilter(newValue);
+                        }
+                      },
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // Orders List
+        Expanded(child: _buildSaplingOrdersList()),
+      ],
+    );
+  }
+
+  Widget _buildSaplingOrdersList() {
+    if (filteredSaplingOrders.isEmpty && saplingOrders.isNotEmpty) {
+      // Show filtered empty state
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: const Color(0xFF104f22).withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.filter_list_off,
+                size: 48,
+                color: const Color(0xFF104f22).withOpacity(0.7),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No $selectedSaplingFilter Orders',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey[700],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'No sapling orders found with "$selectedSaplingFilter" status',
+              style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            TextButton.icon(
+              onPressed: () => _applySaplingFilter('All'),
+              icon: const Icon(Icons.clear_all),
+              label: const Text('Show All Orders'),
+              style: TextButton.styleFrom(
+                foregroundColor: const Color(0xFF104f22),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     if (saplingOrders.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.eco_outlined, size: 80, color: Colors.grey[400]),
-            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: const Color(0xFF104f22).withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.eco_outlined,
+                size: 64,
+                color: const Color(0xFF104f22).withOpacity(0.7),
+              ),
+            ),
+            const SizedBox(height: 24),
             Text(
-              "No sapling orders",
+              'No Sapling Orders',
               style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
                 color: Colors.grey[700],
               ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Your sapling orders will appear here',
+              style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: saplingOrders.length,
-      itemBuilder: (context, index) {
-        final order = saplingOrders[index];
-        final status = order['status'] ?? 'pending';
-        return Container(
-          margin: const EdgeInsets.only(bottom: 16),
+    return RefreshIndicator(
+      onRefresh: _loadSaplingOrders,
+      color: const Color(0xFF104f22),
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: filteredSaplingOrders.length,
+        itemBuilder: (context, index) {
+          final order = filteredSaplingOrders[index];
+          final status = order['status']?.toString().toLowerCase() ?? 'pending';
+          final cropName = order['cropName'] ?? 'Unknown Crop';
+          final saplingType = order['saplingType'] ?? 'Standard';
+          final quantity = order['quantity']?.toString() ?? '0';
+          final createdAt = order['createdAt'] ?? 0;
+          final cropImage = order['cropImage'];
+          final pricePerUnit = order['pricePerUnit']?.toString() ?? 'N/A';
+          final totalAmount = order['totalAmount']?.toString() ?? 'N/A';
+          final deliveryAddress = order['deliveryAddress'] ?? 'N/A';
+          final contactNumber = order['contactNumber'] ?? 'N/A';
+
+          return Container(
+            margin: const EdgeInsets.only(bottom: 16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.12),
+                  blurRadius: 15,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                // Status Header with Crop Image
+                Container(
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        _statusColor(status).withOpacity(0.15),
+                        _statusColor(status).withOpacity(0.05),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(20),
+                      topRight: Radius.circular(20),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      // Crop Image
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: cropImage != null
+                            ? Image.network(
+                                cropImage,
+                                width: 50,
+                                height: 50,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    width: 50,
+                                    height: 50,
+                                    decoration: BoxDecoration(
+                                      color: const Color(
+                                        0xFF104f22,
+                                      ).withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: const Icon(
+                                      Icons.eco,
+                                      color: Color(0xFF104f22),
+                                      size: 24,
+                                    ),
+                                  );
+                                },
+                              )
+                            : Container(
+                                width: 50,
+                                height: 50,
+                                decoration: BoxDecoration(
+                                  color: const Color(
+                                    0xFF104f22,
+                                  ).withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Icon(
+                                  Icons.eco,
+                                  color: Color(0xFF104f22),
+                                  size: 24,
+                                ),
+                              ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              cropName,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF2E2E2E),
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Type: $saplingType',
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            Text(
+                              'Order #${order['id']?.toString().substring(0, 8) ?? 'N/A'}',
+                              style: TextStyle(
+                                color: Colors.grey[500],
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _statusColor(status),
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              _statusIcon(status),
+                              color: Colors.white,
+                              size: 14,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              status.toUpperCase(),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Order Details
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    children: [
+                      // First Row - Quantity and Date
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildInfoRow(
+                              Icons.eco,
+                              'Quantity',
+                              '$quantity saplings',
+                            ),
+                          ),
+                          Expanded(
+                            child: _buildInfoRow(
+                              Icons.calendar_today,
+                              'Order Date',
+                              _formatDate(createdAt),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Second Row - Price and Total
+                      if (pricePerUnit != 'N/A' || totalAmount != 'N/A')
+                        Row(
+                          children: [
+                            if (pricePerUnit != 'N/A')
+                              Expanded(
+                                child: _buildInfoRow(
+                                  Icons.currency_rupee,
+                                  'Price per Unit',
+                                  '₹$pricePerUnit',
+                                ),
+                              ),
+                            if (totalAmount != 'N/A')
+                              Expanded(
+                                child: _buildInfoRow(
+                                  Icons.account_balance_wallet,
+                                  'Total Amount',
+                                  '₹$totalAmount',
+                                ),
+                              ),
+                          ],
+                        ),
+
+                      if (pricePerUnit != 'N/A' || totalAmount != 'N/A')
+                        const SizedBox(height: 16),
+
+                      // Third Row - Contact and Address
+                      Row(
+                        children: [
+                          if (contactNumber != 'N/A')
+                            Expanded(
+                              child: _buildInfoRow(
+                                Icons.phone,
+                                'Contact',
+                                contactNumber,
+                              ),
+                            ),
+                          if (deliveryAddress != 'N/A')
+                            Expanded(
+                              child: _buildInfoRow(
+                                Icons.location_on,
+                                'Delivery Address',
+                                deliveryAddress,
+                              ),
+                            ),
+                        ],
+                      ),
+
+                      // Status-specific information
+                      if (status == 'confirmed') ...[
+                        const SizedBox(height: 16),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.shade50,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.blue.shade200),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.info_outline,
+                                color: Colors.blue.shade700,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Your sapling order has been confirmed. We will contact you for delivery arrangements.',
+                                  style: TextStyle(
+                                    color: Colors.blue.shade700,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ] else if (status == 'delivered') ...[
+                        const SizedBox(height: 16),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.green.shade50,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.green.shade200),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.check_circle_outline,
+                                color: Colors.green.shade700,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Your saplings have been successfully delivered. Thank you for your order!',
+                                  style: TextStyle(
+                                    color: Colors.green.shade700,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ] else if (status == 'rejected') ...[
+                        const SizedBox(height: 16),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.red.shade50,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.red.shade200),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.error_outline,
+                                color: Colors.red.shade700,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Unfortunately, your sapling order could not be processed. Please contact support for assistance.',
+                                  style: TextStyle(
+                                    color: Colors.red.shade700,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ] else if (status == 'pending') ...[
+                        const SizedBox(height: 16),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.shade50,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.orange.shade200),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.schedule,
+                                color: Colors.orange.shade700,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Your sapling order is being processed. We will update you soon with confirmation details.',
+                                  style: TextStyle(
+                                    color: Colors.orange.shade700,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildTestRequestsTab() {
+    return Column(
+      children: [
+        // Filter Dropdown Section
+        Container(
+          margin: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
@@ -1246,201 +1928,500 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
               ),
             ],
           ),
-          child: Column(
+          child: Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: _statusColor(status).withOpacity(0.1),
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(16),
-                    topRight: Radius.circular(16),
-                  ),
+                  color: const Color(0xFF104f22).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                child: Row(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: order['cropImage'] != null
-                          ? Image.network(
-                              order['cropImage'],
-                              width: 50,
-                              height: 50,
-                              fit: BoxFit.cover,
-                            )
-                          : Container(
-                              width: 50,
-                              height: 50,
-                              color: Colors.grey[300],
-                              child: const Icon(Icons.eco),
-                            ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            order['cropName'] ?? 'Unknown',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          Text(
-                            'Type: ${order['saplingType'] ?? 'N/A'}',
-                            style: TextStyle(
-                              color: Colors.grey[600],
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: _statusColor(status),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        status.toUpperCase(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ],
+                child: const Icon(
+                  Icons.filter_list,
+                  color: Color(0xFF104f22),
+                  size: 20,
                 ),
               ),
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: _buildInfoRow(
-                        Icons.numbers,
-                        'Quantity',
-                        '${order['quantity'] ?? 0}',
-                      ),
+              const SizedBox(width: 12),
+              const Text(
+                'Filter by Status:',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF2E2E2E),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF104f22).withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: const Color(0xFF104f22).withOpacity(0.2),
                     ),
-                    Expanded(
-                      child: _buildInfoRow(
-                        Icons.calendar_today,
-                        'Date',
-                        _formatDate(order['createdAt'] ?? 0),
+                  ),
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: selectedTestFilter,
+                      isExpanded: true,
+                      icon: const Icon(
+                        Icons.keyboard_arrow_down,
+                        color: Color(0xFF104f22),
                       ),
+                      style: const TextStyle(
+                        color: Color(0xFF104f22),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      items:
+                          [
+                            'All',
+                            'Pending',
+                            'Confirmed',
+                            'Completed',
+                            'Rejected',
+                          ].map((String value) {
+                            return DropdownMenuItem<String>(
+                              value: value,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (value != 'All') ...[
+                                    Container(
+                                      width: 6,
+                                      height: 6,
+                                      decoration: BoxDecoration(
+                                        color: _getTestStatusColor(
+                                          value.toLowerCase(),
+                                        ),
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                  ],
+                                  Flexible(
+                                    child: Text(
+                                      value,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                      onChanged: (String? newValue) {
+                        if (newValue != null) {
+                          _applyTestFilter(newValue);
+                        }
+                      },
                     ),
-                  ],
+                  ),
                 ),
               ),
             ],
           ),
-        );
-      },
+        ),
+
+        // Test Requests List
+        Expanded(child: _buildTestRequestsList()),
+      ],
     );
   }
 
-  Widget _buildTestRequestsTab() {
+  Widget _buildTestRequestsList() {
+    if (filteredTestRequests.isEmpty && testRequests.isNotEmpty) {
+      // Show filtered empty state
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: const Color(0xFF104f22).withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.filter_list_off,
+                size: 48,
+                color: const Color(0xFF104f22).withOpacity(0.7),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No $selectedTestFilter Requests',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.grey[700],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'No test requests found with "$selectedTestFilter" status',
+              style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            TextButton.icon(
+              onPressed: () => _applyTestFilter('All'),
+              icon: const Icon(Icons.clear_all),
+              label: const Text('Show All Requests'),
+              style: TextButton.styleFrom(
+                foregroundColor: const Color(0xFF104f22),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     if (testRequests.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.science_outlined, size: 80, color: Colors.grey[400]),
-            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: const Color(0xFF104f22).withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.science_outlined,
+                size: 64,
+                color: const Color(0xFF104f22).withOpacity(0.7),
+              ),
+            ),
+            const SizedBox(height: 24),
             Text(
-              "No test requests",
+              "No Test Requests",
               style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
                 color: Colors.grey[700],
               ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              "Your soil and crop test requests will appear here",
+              style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: testRequests.length,
-      itemBuilder: (context, index) {
-        final request = testRequests[index];
-        return Container(
-          margin: const EdgeInsets.only(bottom: 16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.08),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
+    return RefreshIndicator(
+      onRefresh: _loadTestRequests,
+      color: const Color(0xFF104f22),
+      child: ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: filteredTestRequests.length,
+        itemBuilder: (context, index) {
+          final request = filteredTestRequests[index];
+          final status =
+              request['status']?.toString().toLowerCase() ?? 'pending';
+          final testType = request['testType'] ?? 'Soil Test';
+          final requestId =
+              request['requestId']?.toString() ??
+              request['id']?.toString() ??
+              'N/A';
+          final createdAt = request['createdAt'] ?? 0;
+          final address = request['address'] ?? 'N/A';
+          final notes = request['notes'] ?? 'No additional notes';
+          final contactNumber = request['contactNumber'] ?? 'N/A';
+          final preferredDate = request['preferredDate'];
+
+          return Container(
+            margin: const EdgeInsets.only(bottom: 16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.12),
+                  blurRadius: 15,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF104f22).withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(
-                        Icons.science,
-                        color: Color(0xFF104f22),
-                        size: 24,
-                      ),
+                // Status Header
+                Container(
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        _getTestStatusColor(status).withOpacity(0.15),
+                        _getTestStatusColor(status).withOpacity(0.05),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(20),
+                      topRight: Radius.circular(20),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: _getTestStatusColor(status).withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          _getTestStatusIcon(status),
+                          color: _getTestStatusColor(status),
+                          size: 24,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _getStatusDisplayText(status),
+                              style: TextStyle(
+                                color: _getTestStatusColor(status),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Request #${requestId.length > 8 ? requestId.substring(0, 8) : requestId}',
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _getTestStatusColor(status),
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        child: Text(
+                          testType,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Request Details
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    children: [
+                      // First Row - Date and Contact
+                      Row(
                         children: [
-                          Text(
-                            'Request #${request['requestId']?.toString().substring(0, 8) ?? 'N/A'}',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
+                          Expanded(
+                            child: _buildTestInfoRow(
+                              Icons.calendar_today,
+                              'Requested On',
+                              _formatDate(createdAt),
                             ),
                           ),
-                          Text(
-                            _formatDate(request['createdAt'] ?? 0),
-                            style: TextStyle(
-                              color: Colors.grey[600],
-                              fontSize: 12,
+                          Expanded(
+                            child: _buildTestInfoRow(
+                              Icons.phone,
+                              'Contact',
+                              contactNumber,
                             ),
                           ),
                         ],
                       ),
-                    ),
-                  ],
+
+                      const SizedBox(height: 16),
+
+                      // Second Row - Address
+                      _buildTestInfoRow(
+                        Icons.location_on,
+                        'Test Location',
+                        address,
+                      ),
+
+                      if (preferredDate != null) ...[
+                        const SizedBox(height: 16),
+                        _buildTestInfoRow(
+                          Icons.event,
+                          'Preferred Date',
+                          _formatDate(preferredDate),
+                        ),
+                      ],
+
+                      const SizedBox(height: 16),
+
+                      // Notes Section
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[50],
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.grey[200]!,
+                            width: 1,
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.notes,
+                                  size: 16,
+                                  color: Colors.grey[600],
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Additional Notes',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[600],
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              notes,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: Color(0xFF2E2E2E),
+                                height: 1.4,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // Status-specific information
+                      if (status == 'confirmed') ...[
+                        const SizedBox(height: 16),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.shade50,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.blue.shade200),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.info_outline,
+                                color: Colors.blue.shade700,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Your test has been confirmed. Our team will contact you soon to schedule the sample collection.',
+                                  style: TextStyle(
+                                    color: Colors.blue.shade700,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ] else if (status == 'rejected') ...[
+                        const SizedBox(height: 16),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.red.shade50,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.red.shade200),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.error_outline,
+                                color: Colors.red.shade700,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Unfortunately, your test request could not be processed. Please contact support for more information.',
+                                  style: TextStyle(
+                                    color: Colors.red.shade700,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ] else if (status == 'pending') ...[
+                        const SizedBox(height: 16),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.shade50,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.orange.shade200),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.schedule,
+                                color: Colors.orange.shade700,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Your test request is being reviewed. We will update you within 24-48 hours.',
+                                  style: TextStyle(
+                                    color: Colors.orange.shade700,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 12),
-                _buildInfoRow(
-                  Icons.location_on,
-                  'Address',
-                  request['address'] ?? 'N/A',
-                ),
-                const SizedBox(height: 8),
-                _buildInfoRow(Icons.notes, 'Notes', request['notes'] ?? 'N/A'),
               ],
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }
