@@ -89,6 +89,85 @@ class _UserNotificationsListScreenState
     }
   }
 
+  Future<void> _deleteNotification(String notificationId) async {
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 28),
+            SizedBox(width: 12),
+            Expanded(child: Text('Delete Notification?')),
+          ],
+        ),
+        content: const Text(
+          'Are you sure you want to delete this notification? This action cannot be undone.',
+          style: TextStyle(fontSize: 15),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: Colors.grey),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Text(
+              'Delete',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getString('user_id');
+
+      if (userId != null) {
+        await FirebaseDatabase.instance
+            .ref('notifications/$userId/$notificationId')
+            .remove();
+
+        setState(() {
+          notifications.removeWhere((n) => n['id'] == notificationId);
+        });
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Notification deleted'),
+              duration: Duration(seconds: 2),
+              backgroundColor: Color(0xFF104f22),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error deleting notification: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   void _handleNotificationTap(Map<String, dynamic> notification) {
     // Mark as read
     _markAsRead(notification['id']);
@@ -334,7 +413,123 @@ class _UserNotificationsListScreenState
                             itemCount: notifications.length,
                             itemBuilder: (context, index) {
                               final notification = notifications[index];
-                              return _buildNotificationCard(notification);
+                              return Dismissible(
+                                key: Key(notification['id']),
+                                direction: DismissDirection.endToStart,
+                                confirmDismiss: (direction) async {
+                                  return await showDialog<bool>(
+                                    context: context,
+                                    builder: (context) => AlertDialog(
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                      title: const Row(
+                                        children: [
+                                          Icon(
+                                            Icons.warning_amber_rounded,
+                                            color: Colors.orange,
+                                            size: 28,
+                                          ),
+                                          SizedBox(width: 12),
+                                          Expanded(
+                                            child: Text('Delete Notification?'),
+                                          ),
+                                        ],
+                                      ),
+                                      content: const Text(
+                                        'Are you sure you want to delete this notification? This action cannot be undone.',
+                                        style: TextStyle(fontSize: 15),
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () =>
+                                              Navigator.pop(context, false),
+                                          child: const Text(
+                                            'Cancel',
+                                            style: TextStyle(color: Colors.grey),
+                                          ),
+                                        ),
+                                        ElevatedButton(
+                                          onPressed: () =>
+                                              Navigator.pop(context, true),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.red,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
+                                          ),
+                                          child: const Text(
+                                            'Delete',
+                                            style:
+                                                TextStyle(color: Colors.white),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                                background: Container(
+                                  margin: const EdgeInsets.only(bottom: 12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red,
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  alignment: Alignment.centerRight,
+                                  padding: const EdgeInsets.only(right: 20),
+                                  child: const Icon(
+                                    Icons.delete,
+                                    color: Colors.white,
+                                    size: 28,
+                                  ),
+                                ),
+                                onDismissed: (direction) async {
+                                  try {
+                                    final prefs =
+                                        await SharedPreferences.getInstance();
+                                    final userId = prefs.getString('user_id');
+
+                                    if (userId != null) {
+                                      await FirebaseDatabase.instance
+                                          .ref(
+                                            'notifications/$userId/${notification['id']}',
+                                          )
+                                          .remove();
+
+                                      setState(() {
+                                        notifications.removeWhere(
+                                          (n) => n['id'] == notification['id'],
+                                        );
+                                      });
+
+                                      if (mounted) {
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          const SnackBar(
+                                            content:
+                                                Text('Notification deleted'),
+                                            duration: Duration(seconds: 2),
+                                            backgroundColor: Color(0xFF104f22),
+                                          ),
+                                        );
+                                      }
+                                    }
+                                  } catch (e) {
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            'Error deleting notification: $e',
+                                          ),
+                                          backgroundColor: Colors.red,
+                                        ),
+                                      );
+                                    }
+                                  }
+                                },
+                                child: _buildNotificationCard(notification),
+                              );
                             },
                           ),
                         ),
@@ -477,6 +672,18 @@ class _UserNotificationsListScreenState
                           ),
                         ),
                         const Spacer(),
+                        GestureDetector(
+                          onTap: () => _deleteNotification(notification['id']),
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            child: Icon(
+                              Icons.delete_outline,
+                              size: 18,
+                              color: Colors.grey[400],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
                         Icon(
                           Icons.arrow_forward_ios,
                           size: 14,

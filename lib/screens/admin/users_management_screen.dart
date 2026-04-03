@@ -57,10 +57,7 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
                     const SizedBox(height: 4),
                     const Text(
                       'Manage all platform users',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.white70,
-                      ),
+                      style: TextStyle(fontSize: 14, color: Colors.white70),
                     ),
                   ],
                 ),
@@ -75,19 +72,24 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
                   int traders = 0;
                   int pendingKyc = 0;
 
-                  if (statsSnapshot.hasData && statsSnapshot.data!.snapshot.value != null) {
-                    var usersData = statsSnapshot.data!.snapshot.value as Map<dynamic, dynamic>;
-                    
+                  if (statsSnapshot.hasData &&
+                      statsSnapshot.data!.snapshot.value != null) {
+                    var usersData =
+                        statsSnapshot.data!.snapshot.value
+                            as Map<dynamic, dynamic>;
+
                     // Optimize counting with single iteration
                     usersData.forEach((key, userData) {
                       if (userData is Map) {
                         totalUsers++;
                         final role = userData['role'];
                         final kycStatus = userData['kycStatus'];
-                        
-                        if (role == 'farmer') farmers++;
-                        else if (role == 'trader') traders++;
-                        
+
+                        if (role == 'farmer')
+                          farmers++;
+                        else if (role == 'trader')
+                          traders++;
+
                         if (kycStatus == 'pending') pendingKyc++;
                       }
                     });
@@ -167,10 +169,16 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
                               decoration: InputDecoration(
                                 hintText: 'Search by name or phone...',
                                 hintStyle: TextStyle(color: Colors.grey[500]),
-                                prefixIcon: Icon(Icons.search, color: Colors.grey[600]),
+                                prefixIcon: Icon(
+                                  Icons.search,
+                                  color: Colors.grey[600],
+                                ),
                                 suffixIcon: _searchQuery.isNotEmpty
                                     ? IconButton(
-                                        icon: Icon(Icons.clear, color: Colors.grey[600]),
+                                        icon: Icon(
+                                          Icons.clear,
+                                          color: Colors.grey[600],
+                                        ),
                                         onPressed: () {
                                           _searchController.clear();
                                           setState(() => _searchQuery = '');
@@ -178,9 +186,14 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
                                       )
                                     : null,
                                 border: InputBorder.none,
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 16,
+                                ),
                               ),
-                              onChanged: (val) => setState(() => _searchQuery = val.toLowerCase()),
+                              onChanged: (val) => setState(
+                                () => _searchQuery = val.toLowerCase(),
+                              ),
                             ),
                           ),
                           const SizedBox(height: 16),
@@ -223,11 +236,15 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
                 child: Container(
                   color: Colors.white,
                   child: StreamBuilder(
-                    stream: _usersRef.orderByChild('role').onValue, // Add indexing
+                    stream: _usersRef
+                        .orderByChild('role')
+                        .onValue, // Add indexing
                     builder: (context, AsyncSnapshot<DatabaseEvent> snapshot) {
                       if (!snapshot.hasData) {
                         return const Center(
-                          child: CircularProgressIndicator(color: Color(0xFF104f22)),
+                          child: CircularProgressIndicator(
+                            color: Color(0xFF104f22),
+                          ),
                         );
                       }
 
@@ -235,26 +252,37 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
                         return _buildEmptyState();
                       }
 
-                      var usersData = snapshot.data!.snapshot.value as Map<dynamic, dynamic>;
-                      
+                      var usersData =
+                          snapshot.data!.snapshot.value
+                              as Map<dynamic, dynamic>;
+
                       // Optimize filtering with early returns
                       var usersList = <MapEntry>[];
-                      
+
                       for (var entry in usersData.entries) {
                         var user = entry.value as Map<dynamic, dynamic>;
-                        
+
                         // Apply filters efficiently
-                        if (_filterRole != 'all' && user['role'] != _filterRole) continue;
-                        if (_filterKyc != 'all' && user['kycStatus'] != _filterKyc) continue;
-                        
+                        if (_filterRole != 'all' && user['role'] != _filterRole)
+                          continue;
+                        if (_filterKyc != 'all' &&
+                            user['kycStatus'] != _filterKyc)
+                          continue;
+
                         if (_searchQuery.isNotEmpty) {
-                          var name = (user['name'] ?? '').toString().toLowerCase();
-                          var phone = (user['phone'] ?? '').toString().toLowerCase();
-                          if (!name.contains(_searchQuery) && !phone.contains(_searchQuery)) continue;
+                          var name = (user['name'] ?? '')
+                              .toString()
+                              .toLowerCase();
+                          var phone = (user['phone'] ?? '')
+                              .toString()
+                              .toLowerCase();
+                          if (!name.contains(_searchQuery) &&
+                              !phone.contains(_searchQuery))
+                            continue;
                         }
-                        
+
                         usersList.add(entry);
-                        
+
                         // Limit results for better performance
                         if (usersList.length >= 100) break;
                       }
@@ -268,7 +296,8 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
                         itemCount: usersList.length,
                         itemBuilder: (context, index) {
                           var userId = usersList[index].key;
-                          var user = usersList[index].value as Map<dynamic, dynamic>;
+                          var user =
+                              usersList[index].value as Map<dynamic, dynamic>;
                           return _buildUserCard(userId, user);
                         },
                       );
@@ -283,7 +312,12 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
     );
   }
 
-  Widget _buildMiniStatCard(String value, String label, IconData icon, Color color) {
+  Widget _buildMiniStatCard(
+    String value,
+    String label,
+    IconData icon,
+    Color color,
+  ) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
       decoration: BoxDecoration(
@@ -365,10 +399,8 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
       ),
       itemBuilder: (context) => List.generate(
         values.length,
-        (index) => PopupMenuItem(
-          value: values[index],
-          child: Text(labels[index]),
-        ),
+        (index) =>
+            PopupMenuItem(value: values[index], child: Text(labels[index])),
       ),
     );
   }
@@ -423,7 +455,9 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
                           : null,
                       child: user['profileImage'] == null
                           ? Icon(
-                              role == 'farmer' ? Icons.agriculture : Icons.store,
+                              role == 'farmer'
+                                  ? Icons.agriculture
+                                  : Icons.store,
                               size: 36,
                               color: roleColor,
                             )
@@ -453,7 +487,10 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
                             ),
                             const SizedBox(width: 8),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
                               decoration: BoxDecoration(
                                 color: roleColor.withOpacity(0.15),
                                 borderRadius: BorderRadius.circular(8),
@@ -472,7 +509,11 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
                         const SizedBox(height: 6),
                         Row(
                           children: [
-                            Icon(Icons.phone, size: 14, color: Colors.grey[600]),
+                            Icon(
+                              Icons.phone,
+                              size: 14,
+                              color: Colors.grey[600],
+                            ),
                             const SizedBox(width: 4),
                             Text(
                               user['phone'] ?? 'N/A',
@@ -486,7 +527,11 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
                         const SizedBox(height: 4),
                         Row(
                           children: [
-                            Icon(Icons.location_on, size: 14, color: Colors.grey[600]),
+                            Icon(
+                              Icons.location_on,
+                              size: 14,
+                              color: Colors.grey[600],
+                            ),
                             const SizedBox(width: 4),
                             Expanded(
                               child: Text(
@@ -505,7 +550,11 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
                           const SizedBox(height: 4),
                           Row(
                             children: [
-                              Icon(Icons.store, size: 14, color: Colors.grey[600]),
+                              Icon(
+                                Icons.store,
+                                size: 14,
+                                color: Colors.grey[600],
+                              ),
                               const SizedBox(width: 4),
                               Expanded(
                                 child: Text(
@@ -527,7 +576,10 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
 
                   // KYC Badge
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: _getKycColor(kycStatus).withOpacity(0.15),
                       borderRadius: BorderRadius.circular(20),
@@ -586,7 +638,10 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
                     child: ElevatedButton.icon(
                       onPressed: () => _updateKycStatus(userId, 'approved'),
                       icon: const Icon(Icons.check_circle, size: 16),
-                      label: const Text('Approve', style: TextStyle(fontSize: 13)),
+                      label: const Text(
+                        'Approve',
+                        style: TextStyle(fontSize: 13),
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green,
                         foregroundColor: Colors.white,
@@ -603,7 +658,10 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
                     child: ElevatedButton.icon(
                       onPressed: () => _updateKycStatus(userId, 'rejected'),
                       icon: const Icon(Icons.cancel, size: 16),
-                      label: const Text('Reject', style: TextStyle(fontSize: 13)),
+                      label: const Text(
+                        'Reject',
+                        style: TextStyle(fontSize: 13),
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.red,
                         foregroundColor: Colors.white,
@@ -629,7 +687,9 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
                       style: const TextStyle(fontSize: 13),
                     ),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: isBlocked ? Colors.orange : Colors.grey[700],
+                      foregroundColor: isBlocked
+                          ? Colors.orange
+                          : Colors.grey[700],
                       side: BorderSide(
                         color: isBlocked ? Colors.orange : Colors.grey[400]!,
                         width: 1.5,
@@ -660,7 +720,11 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
               color: Colors.grey[100],
               shape: BoxShape.circle,
             ),
-            child: Icon(Icons.people_outline, size: 64, color: Colors.grey[400]),
+            child: Icon(
+              Icons.people_outline,
+              size: 64,
+              color: Colors.grey[400],
+            ),
           ),
           const SizedBox(height: 16),
           Text(
@@ -697,14 +761,16 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
       'kycStatus': status,
       'updatedAt': ServerValue.timestamp,
     });
-    
+
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('KYC status updated to $status'),
           backgroundColor: const Color(0xFF104f22),
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
         ),
       );
     }
@@ -715,14 +781,20 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
       'isBlocked': !isBlocked,
       'updatedAt': ServerValue.timestamp,
     });
-    
+
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(isBlocked ? 'User unblocked successfully' : 'User blocked successfully'),
+          content: Text(
+            isBlocked
+                ? 'User unblocked successfully'
+                : 'User blocked successfully',
+          ),
           backgroundColor: isBlocked ? Colors.orange : Colors.red,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
         ),
       );
     }
@@ -733,7 +805,8 @@ class _UsersManagementScreenState extends State<UsersManagementScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => UserProfileBottomSheet(userId: userId, userData: user),
+      builder: (context) =>
+          UserProfileBottomSheet(userId: userId, userData: user),
     );
   }
 }
@@ -789,7 +862,11 @@ class UserProfileBottomSheet extends StatelessWidget {
                               ? NetworkImage(userData['profileImage'])
                               : null,
                           child: userData['profileImage'] == null
-                              ? Icon(Icons.person, size: 40, color: Colors.green.shade700)
+                              ? Icon(
+                                  Icons.person,
+                                  size: 40,
+                                  color: Colors.green.shade700,
+                                )
                               : null,
                         ),
                         const SizedBox(width: 16),
@@ -806,7 +883,10 @@ class UserProfileBottomSheet extends StatelessWidget {
                               ),
                               const SizedBox(height: 4),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 4,
+                                ),
                                 decoration: BoxDecoration(
                                   color: Colors.green.shade50,
                                   borderRadius: BorderRadius.circular(12),
@@ -834,11 +914,27 @@ class UserProfileBottomSheet extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    _buildInfoTile(Icons.phone, 'Phone', userData['phone'] ?? 'N/A'),
-                    _buildInfoTile(Icons.location_on, 'Village', userData['village'] ?? 'N/A'),
-                    _buildInfoTile(Icons.map, 'State', userData['state'] ?? 'N/A'),
+                    _buildInfoTile(
+                      Icons.phone,
+                      'Phone',
+                      userData['phone'] ?? 'N/A',
+                    ),
+                    _buildInfoTile(
+                      Icons.location_on,
+                      'Village',
+                      userData['village'] ?? 'N/A',
+                    ),
+                    _buildInfoTile(
+                      Icons.map,
+                      'State',
+                      userData['state'] ?? 'N/A',
+                    ),
                     if (role == 'trader' && userData['mandiName'] != null)
-                      _buildInfoTile(Icons.store, 'Mandi', userData['mandiName']),
+                      _buildInfoTile(
+                        Icons.store,
+                        'Mandi',
+                        userData['mandiName'],
+                      ),
                     const SizedBox(height: 24),
                     if (canMakeAdmin)
                       SizedBox(
@@ -890,10 +986,7 @@ class UserProfileBottomSheet extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                 ),
                 Text(
                   value,
@@ -910,7 +1003,11 @@ class UserProfileBottomSheet extends StatelessWidget {
     );
   }
 
-  Future<void> _makeAdmin(BuildContext context, String userId, Map<dynamic, dynamic> user) async {
+  Future<void> _makeAdmin(
+    BuildContext context,
+    String userId,
+    Map<dynamic, dynamic> user,
+  ) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -934,7 +1031,9 @@ class UserProfileBottomSheet extends StatelessWidget {
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.purple,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
             child: const Text('Confirm'),
           ),
@@ -944,7 +1043,7 @@ class UserProfileBottomSheet extends StatelessWidget {
 
     if (confirm == true) {
       await FirebaseDatabase.instance.ref('users').child(userId).update({
-        'role': 'Admin',
+        'role': 'admin',
         'updatedAt': ServerValue.timestamp,
       });
 
