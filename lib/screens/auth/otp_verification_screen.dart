@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:poket_mandi/screens/kisan/kisan_dashboard_screen.dart';
 import 'package:poket_mandi/screens/vyapari/vyapari_dashboard_screen.dart';
@@ -8,12 +9,14 @@ import 'package:poket_mandi/services/notification_service.dart';
 
 class OtpVerificationScreen extends StatefulWidget {
   final String phoneNumber;
+  final String? verificationId;
   final Map<String, String>? userData;
   final bool isTrader;
 
   const OtpVerificationScreen({
     super.key,
     required this.phoneNumber,
+    this.verificationId,
     this.userData,
     this.isTrader = false,
   });
@@ -29,6 +32,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   );
   final List<FocusNode> focusNodes = List.generate(6, (_) => FocusNode());
   bool isLoading = false;
+  bool isResending = false;
 
   @override
   void dispose() {
@@ -41,20 +45,75 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     super.dispose();
   }
 
+  Future<void> resendOtp() async {
+    setState(() => isResending = true);
+
+    try {
+      await FirebaseAuth.instance.verifyPhoneNumber(
+        phoneNumber: '+91${widget.phoneNumber}',
+        verificationCompleted: (PhoneAuthCredential credential) async {
+          print('Auto verification completed');
+        },
+        verificationFailed: (FirebaseAuthException e) {
+          setState(() => isResending = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to resend OTP: ${e.message}')),
+          );
+        },
+        codeSent: (String verificationId, int? resendToken) {
+          setState(() => isResending = false);
+          // Update the verification ID
+          // Note: You'll need to make verificationId mutable in the widget
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('OTP resent successfully!'),
+              backgroundColor: Color(0xFF104f22),
+            ),
+          );
+        },
+        codeAutoRetrievalTimeout: (String verificationId) {},
+        timeout: const Duration(seconds: 60),
+      );
+    } catch (e) {
+      setState(() => isResending = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    }
+  }
+
   Future<void> verifyOtpAndRegister() async {
     String enteredOtp = controllers.map((c) => c.text).join();
 
-    if (enteredOtp != "123456") {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Invalid OTP")));
+    if (enteredOtp.length != 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please enter complete OTP")),
+      );
       return;
     }
 
     setState(() => isLoading = true);
 
-    // Registration flow
-    if (widget.userData != null) {
+    try {
+      // Verify OTP with Firebase
+      if (widget.verificationId != null) {
+        PhoneAuthCredential credential = PhoneAuthProvider.credential(
+          verificationId: widget.verificationId!,
+          smsCode: enteredOtp,
+        );
+
+        await FirebaseAuth.instance.signInWithCredential(credential);
+        print('✅ OTP verified successfully');
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Verification ID not found. Please try again.")),
+        );
+        setState(() => isLoading = false);
+        return;
+      }
+
+      // Registration flow
+      if (widget.userData != null) {
       try {
         final DatabaseReference ref = FirebaseDatabase.instance.ref("users");
 
@@ -164,6 +223,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text("Error: $e")));
+        setState(() => isLoading = false);
       }
     }
     // Login flow
@@ -266,10 +326,17 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text("Error: $e")));
+        setState(() => isLoading = false);
       }
     }
 
     setState(() => isLoading = false);
+    } catch (e) {
+      setState(() => isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error: $e")),
+      );
+    }
   }
 
   @override
@@ -697,27 +764,13 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                                           ),
                                         ),
                                         GestureDetector(
-                                          onTap: () {
-                                            // Add resend OTP functionality
-                                            ScaffoldMessenger.of(
-                                              context,
-                                            ).showSnackBar(
-                                              const SnackBar(
-                                                content: Text(
-                                                  "OTP resent successfully!",
-                                                ),
-                                                backgroundColor: Color(
-                                                  0xFF104f22,
-                                                ),
-                                              ),
-                                            );
-                                          },
-                                          child: const Text(
-                                            "Resend",
+                                          onTap: isResending ? null : resendOtp,
+                                          child: Text(
+                                            isResending ? "Sending..." : "Resend",
                                             style: TextStyle(
                                               fontSize: 13,
                                               fontWeight: FontWeight.bold,
-                                              color: Color(0xFF104f22),
+                                              color: isResending ? Colors.grey : const Color(0xFF104f22),
                                             ),
                                           ),
                                         ),

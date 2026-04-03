@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:poket_mandi/screens/auth/otp_verification_screen.dart';
 import 'package:poket_mandi/screens/auth/register_screen.dart';
 
@@ -13,6 +14,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController phoneController = TextEditingController();
   bool isLoading = false;
+  String _verificationId = '';
 
   Future<void> sendOtp() async {
     if (phoneController.text.isEmpty || phoneController.text.length != 10) {
@@ -65,11 +67,37 @@ class _LoginScreenState extends State<LoginScreen> {
         return;
       }
 
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => OtpVerificationScreen(phoneNumber: phone),
-        ),
+      // Send OTP via Firebase Phone Auth
+      await FirebaseAuth.instance.verifyPhoneNumber(
+        phoneNumber: '+91$phone',
+        verificationCompleted: (PhoneAuthCredential credential) async {
+          // Auto-verification (Android only)
+          print('Auto verification completed');
+        },
+        verificationFailed: (FirebaseAuthException e) {
+          setState(() => isLoading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Verification failed: ${e.message}')),
+          );
+        },
+        codeSent: (String verificationId, int? resendToken) {
+          setState(() => isLoading = false);
+          _verificationId = verificationId;
+          
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => OtpVerificationScreen(
+                phoneNumber: phone,
+                verificationId: verificationId,
+              ),
+            ),
+          );
+        },
+        codeAutoRetrievalTimeout: (String verificationId) {
+          _verificationId = verificationId;
+        },
+        timeout: const Duration(seconds: 60),
       );
     } catch (e) {
       ScaffoldMessenger.of(

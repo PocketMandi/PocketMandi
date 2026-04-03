@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:csc_picker_plus/csc_picker_plus.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
@@ -562,30 +563,65 @@ class _VyapariRegisterScreenState extends State<VyapariRegisterScreen> {
       setState(() => isLoading = false);
       return;
     }
-    setState(() => isLoading = false);
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => OtpVerificationScreen(
-          phoneNumber: phoneController.text,
-          userData: {
-            "name": nameController.text,
-            "phone": phoneController.text,
-            "mandiName": mandiNameController.text,
-            "village": villageController.text,
-            "pincode": pincodeController.text,
-            "state": stateValue.isEmpty ? "Uttar Pradesh" : stateValue,
-            "country": "India",
-            "profileImage": imageUrl!,
-            "latitude": userLatitude?.toString() ?? "",
-            "longitude": userLongitude?.toString() ?? "",
-            "address": userAddress ?? "",
-          },
-          isTrader: true,
+    // Send OTP via Firebase Phone Auth
+    final phone = phoneController.text;
+    try {
+      await FirebaseAuth.instance.verifyPhoneNumber(
+        phoneNumber: '+91$phone',
+        verificationCompleted: (PhoneAuthCredential credential) async {
+          print('Auto verification completed');
+        },
+        verificationFailed: (FirebaseAuthException e) {
+          setState(() => isLoading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Verification failed: ${e.message}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        },
+        codeSent: (String verificationId, int? resendToken) {
+          setState(() => isLoading = false);
+          
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => OtpVerificationScreen(
+                phoneNumber: phone,
+                verificationId: verificationId,
+                userData: {
+                  "name": nameController.text,
+                  "phone": phone,
+                  "mandiName": mandiNameController.text,
+                  "village": villageController.text,
+                  "pincode": pincodeController.text,
+                  "state": stateValue.isEmpty ? "Uttar Pradesh" : stateValue,
+                  "country": "India",
+                  "profileImage": imageUrl!,
+                  "latitude": userLatitude?.toString() ?? "",
+                  "longitude": userLongitude?.toString() ?? "",
+                  "address": userAddress ?? "",
+                },
+                isTrader: true,
+              ),
+            ),
+          );
+        },
+        codeAutoRetrievalTimeout: (String verificationId) {
+          print('Auto retrieval timeout');
+        },
+        timeout: const Duration(seconds: 60),
+      );
+    } catch (e) {
+      setState(() => isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error sending OTP: $e'),
+          backgroundColor: Colors.red,
         ),
-      ),
-    );
+      );
+    }
   }
 
   @override
