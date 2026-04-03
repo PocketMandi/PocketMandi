@@ -3,6 +3,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:poket_mandi/services/notification_service.dart';
+import 'package:poket_mandi/screens/kisan/my_order_screen.dart';
 
 class OrderSaplingsScreen extends StatefulWidget {
   const OrderSaplingsScreen({super.key});
@@ -14,6 +15,7 @@ class OrderSaplingsScreen extends StatefulWidget {
 class _OrderSaplingsScreenState extends State<OrderSaplingsScreen> {
   List<Map<String, dynamic>> crops = [];
   bool isLoading = true;
+  bool isSubmitting = false;
 
   @override
   void initState() {
@@ -239,6 +241,10 @@ class _OrderSaplingsScreenState extends State<OrderSaplingsScreen> {
     String saplingType,
     int quantity,
   ) async {
+    setState(() {
+      isSubmitting = true;
+    });
+
     try {
       final prefs = await SharedPreferences.getInstance();
       final userId = prefs.getString('user_id');
@@ -280,9 +286,15 @@ class _OrderSaplingsScreenState extends State<OrderSaplingsScreen> {
       );
 
       if (mounted) {
+        setState(() {
+          isSubmitting = false;
+        });
         _showThankYouDialog();
       }
     } catch (e) {
+      setState(() {
+        isSubmitting = false;
+      });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -350,7 +362,17 @@ class _OrderSaplingsScreenState extends State<OrderSaplingsScreen> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () {
+                Navigator.pop(context); // Close dialog
+                // Pop back to dashboard and navigate to My Orders with Saplings tab
+                Navigator.of(context).popUntil((route) => route.isFirst);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const MyOrdersScreen(initialTab: 1),
+                  ),
+                );
+              },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF104f22),
                 padding: const EdgeInsets.symmetric(vertical: 14),
@@ -359,7 +381,7 @@ class _OrderSaplingsScreenState extends State<OrderSaplingsScreen> {
                 ),
               ),
               child: const Text(
-                "OK",
+                "View My Orders",
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 16,
@@ -406,36 +428,79 @@ class _OrderSaplingsScreenState extends State<OrderSaplingsScreen> {
       );
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Stack(
       children: [
-        const Padding(
-          padding: EdgeInsets.all(16),
-          child: Text(
-            "Select a crop to order saplings",
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF2E2E2E),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text(
+                "Select a crop to order saplings",
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF2E2E2E),
+                ),
+              ),
+            ),
+            Expanded(
+              child: GridView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                  childAspectRatio: 0.85,
+                ),
+                itemCount: crops.length,
+                itemBuilder: (context, index) {
+                  final crop = crops[index];
+                  return _buildCropCard(crop);
+                },
+              ),
+            ),
+          ],
+        ),
+
+        /// Upload Progress Overlay
+        if (isSubmitting)
+          Container(
+            color: Colors.black.withOpacity(0.7),
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.all(30),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    CircularProgressIndicator(
+                      color: Color(0xFF104f22),
+                      strokeWidth: 3,
+                    ),
+                    SizedBox(height: 20),
+                    Text(
+                      "Hold on!",
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF104f22),
+                      ),
+                    ),
+                    SizedBox(height: 10),
+                    Text(
+                      "We are placing your order...",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 14, color: Colors.black87),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
-        ),
-        Expanded(
-          child: GridView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
-              childAspectRatio: 0.85,
-            ),
-            itemCount: crops.length,
-            itemBuilder: (context, index) {
-              final crop = crops[index];
-              return _buildCropCard(crop);
-            },
-          ),
-        ),
       ],
     );
   }

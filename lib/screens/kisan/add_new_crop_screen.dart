@@ -4,6 +4,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:poket_mandi/services/notification_service.dart';
+import 'package:poket_mandi/screens/kisan/kisan_dashboard_screen.dart';
 import 'dart:io';
 import 'package:video_player/video_player.dart';
 
@@ -665,7 +666,14 @@ class _AddNewCropScreenState extends State<AddNewCropScreen> {
             behavior: SnackBarBehavior.floating,
           ),
         );
-        Navigator.pop(context);
+        // Pop back to dashboard and navigate to Request History
+        Navigator.of(context).popUntil((route) => route.isFirst);
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const KisanDashboardScreenWithTab(initialTab: 2),
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {

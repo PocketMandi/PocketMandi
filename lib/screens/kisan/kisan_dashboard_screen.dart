@@ -291,15 +291,6 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
       return;
     }
 
-    // Handle Services navigation separately
-    if (index == 4) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => const ServicesScreen()),
-      );
-      return;
-    }
-
     setState(() {
       _selectedIndex = index;
     });
@@ -315,7 +306,9 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
           ? _buildOrdersScreen()
           : _selectedIndex == 2
           ? _buildHistoryScreen()
-          : _buildProfileScreen(),
+          : _selectedIndex == 3
+          ? _buildProfileScreen()
+          : _buildServicesScreen(),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -748,6 +741,16 @@ class _KisanDashboardScreenState extends State<KisanDashboardScreen> {
 
   Widget _buildHistoryScreen() {
     return KisanHistoryWidget(
+      onBackPressed: () {
+        setState(() {
+          _selectedIndex = 0; // Go back to home tab
+        });
+      },
+    );
+  }
+
+  Widget _buildServicesScreen() {
+    return ServicesScreen(
       onBackPressed: () {
         setState(() {
           _selectedIndex = 0; // Go back to home tab
@@ -1202,7 +1205,7 @@ class _KisanHistoryWidgetState extends State<KisanHistoryWidget> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      "Request History",
+                      "Requested Crop History",
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 20,

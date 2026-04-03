@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:poket_mandi/services/notification_service.dart';
+import 'package:poket_mandi/screens/kisan/my_order_screen.dart';
 
 class TestsScreen extends StatefulWidget {
   const TestsScreen({super.key});
@@ -168,14 +169,21 @@ class _TestsScreenState extends State<TestsScreen> {
             width: double.infinity,
             child: ElevatedButton(
               onPressed: () {
-                Navigator.pop(context);
-                // Reset form
+                // Reset form but keep address
                 setState(() {
                   soilTest = false;
                   waterTest = false;
-                  addressController.clear();
                   notesController.clear();
                 });
+                Navigator.pop(context); // Close dialog
+                // Pop back to dashboard and navigate to My Orders with Tests tab
+                Navigator.of(context).popUntil((route) => route.isFirst);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const MyOrdersScreen(initialTab: 2),
+                  ),
+                );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF104f22),
@@ -185,7 +193,7 @@ class _TestsScreenState extends State<TestsScreen> {
                 ),
               ),
               child: const Text(
-                "OK",
+                "View My Requests",
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 16,

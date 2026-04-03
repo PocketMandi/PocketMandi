@@ -5,8 +5,9 @@ import 'package:poket_mandi/screens/kisan/selected_crop_screen.dart';
 
 class MyOrdersScreen extends StatefulWidget {
   final VoidCallback? onBackPressed;
+  final int initialTab;
 
-  const MyOrdersScreen({super.key, this.onBackPressed});
+  const MyOrdersScreen({super.key, this.onBackPressed, this.initialTab = 0});
 
   @override
   State<MyOrdersScreen> createState() => _MyOrdersScreenState();
@@ -37,7 +38,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 3, vsync: this, initialIndex: widget.initialTab);
     _loadMyOrders();
     _loadCrops();
     _loadSaplingOrders();
@@ -245,7 +246,6 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
             child: TabBarView(
               controller: _tabController,
               children: [
-                _buildPlaceNewOrderTab(),
                 _buildOrderDashboardTab(),
                 _buildSaplingOrdersTab(),
                 _buildTestRequestsTab(),
@@ -366,21 +366,9 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
                       mainAxisSize: MainAxisSize.min,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.add_shopping_cart, size: 18),
+                        Icon(Icons.shopping_cart, size: 18),
                         SizedBox(height: 4),
-                        Text("Order"),
-                      ],
-                    ),
-                  ),
-                  Tab(
-                    height: 52,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.dashboard, size: 18),
-                        SizedBox(height: 4),
-                        Text("Dashboard"),
+                        Text("Orders"),
                       ],
                     ),
                   ),

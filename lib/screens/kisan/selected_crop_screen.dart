@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:video_player/video_player.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:poket_mandi/services/notification_service.dart';
+import 'package:poket_mandi/screens/kisan/my_order_screen.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 
@@ -1049,7 +1050,14 @@ class _SelectedCropScreenState extends State<SelectedCropScreen> {
           ),
         );
 
-        Navigator.pop(context, true);
+        // Pop back to dashboard and navigate to My Orders with Orders tab
+        Navigator.of(context).popUntil((route) => route.isFirst);
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const MyOrdersScreen(initialTab: 0),
+          ),
+        );
       }
     } catch (e) {
       ScaffoldMessenger.of(
