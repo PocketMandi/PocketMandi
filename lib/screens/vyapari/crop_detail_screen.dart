@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:poket_mandi/screens/vyapari/vyapari_dashboard_screen.dart';
 
 class CropDetailScreen extends StatefulWidget {
   final String cropName;
@@ -1028,7 +1029,14 @@ class _CropDetailScreenState extends State<CropDetailScreen> {
           ),
         );
 
-        Navigator.pop(context, true);
+        // Pop back to dashboard and navigate to My Orders
+        Navigator.of(context).popUntil((route) => route.isFirst);
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const VyapariDashboardScreen(initialTab: 1),
+          ),
+        );
       }
     } catch (e) {
       ScaffoldMessenger.of(

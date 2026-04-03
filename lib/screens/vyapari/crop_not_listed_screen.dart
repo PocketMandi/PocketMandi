@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:poket_mandi/screens/vyapari/vyapari_dashboard_screen.dart';
 
 class CropNotListedScreen extends StatefulWidget {
   const CropNotListedScreen({super.key});
@@ -237,7 +238,14 @@ class _CropNotListedScreenState extends State<CropNotListedScreen> {
       });
 
       if (mounted) {
-        Navigator.pop(context);
+        // Pop back to dashboard and navigate to History
+        Navigator.of(context).popUntil((route) => route.isFirst);
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const VyapariDashboardScreenWithTab(initialTab: 2),
+          ),
+        );
       }
     } catch (e) {
       _showError("Failed to save request: ${e.toString()}");
