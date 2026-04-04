@@ -29,49 +29,9 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       final phone = phoneController.text;
 
-      // Check if phone exists in users collection
-      final snapshot = await FirebaseDatabase.instance
-          .ref("users")
-          .orderByChild("phone")
-          .equalTo(phone)
-          .once();
-
-      if (snapshot.snapshot.value == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              "Phone number not registered. Please register first.",
-            ),
-          ),
-        );
-        setState(() => isLoading = false);
-        return;
-      }
-
-      // Check if user is blocked
-      final userData = Map<String, dynamic>.from(
-        (snapshot.snapshot.value as Map).values.first as Map,
-      );
-      
-      if (userData['isBlocked'] == true) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              "You are blocked by Super Admin. You cannot login.",
-            ),
-            backgroundColor: Colors.red,
-            duration: Duration(seconds: 4),
-          ),
-        );
-        setState(() => isLoading = false);
-        return;
-      }
-
-      // Send OTP via Firebase Phone Auth
       await FirebaseAuth.instance.verifyPhoneNumber(
         phoneNumber: '+91$phone',
         verificationCompleted: (PhoneAuthCredential credential) async {
-          // Auto-verification (Android only)
           print('Auto verification completed');
         },
         verificationFailed: (FirebaseAuthException e) {
@@ -82,8 +42,6 @@ class _LoginScreenState extends State<LoginScreen> {
         },
         codeSent: (String verificationId, int? resendToken) {
           setState(() => isLoading = false);
-          _verificationId = verificationId;
-          
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -100,12 +58,11 @@ class _LoginScreenState extends State<LoginScreen> {
         timeout: const Duration(seconds: 60),
       );
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Error: $e")));
+      setState(() => isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error: $e")),
+      );
     }
-
-    setState(() => isLoading = false);
   }
 
   @override

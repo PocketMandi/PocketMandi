@@ -95,16 +95,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     setState(() => isLoading = true);
 
     try {
-      // Verify OTP with Firebase
-      if (widget.verificationId != null) {
-        PhoneAuthCredential credential = PhoneAuthProvider.credential(
-          verificationId: widget.verificationId!,
-          smsCode: enteredOtp,
-        );
-
-        await FirebaseAuth.instance.signInWithCredential(credential);
-        print('✅ OTP verified successfully');
-      } else {
+      if (widget.verificationId == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Verification ID not found. Please try again.")),
         );
@@ -112,225 +103,161 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
         return;
       }
 
+      PhoneAuthCredential credential = PhoneAuthProvider.credential(
+        verificationId: widget.verificationId!,
+        smsCode: enteredOtp,
+      );
+
+      await FirebaseAuth.instance.signInWithCredential(credential);
+      final uid = FirebaseAuth.instance.currentUser!.uid;
+
       // Registration flow
       if (widget.userData != null) {
-      try {
-        final DatabaseReference ref = FirebaseDatabase.instance.ref("users");
+        final snapshot = await FirebaseDatabase.instance
+            .ref("users/$uid")
+            .get();
 
-        final snapshot = await ref
-            .orderByChild("phone")
-            .equalTo(widget.userData!["phone"])
-            .once();
-
-        if (snapshot.snapshot.value != null) {
+        if (snapshot.exists) {
+          await FirebaseAuth.instance.signOut();
           setState(() => isLoading = false);
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text(
-                "This phone number is already registered. Please login instead.",
-              ),
+              content: Text("This phone number is already registered. Please login instead."),
             ),
           );
           return;
         }
 
-        final newRef = ref.push();
-        await newRef.set({
+        await FirebaseDatabase.instance.ref("users/$uid").set({
           ...widget.userData!,
-          "id": newRef.key,
+          "id": uid,
           "role": widget.isTrader ? "trader" : "farmer",
           "isBlocked": false,
           "kycStatus": "pending",
           "createdAt": DateTime.now().toIso8601String(),
         });
 
-        // Send notification to all admins about new user
         await NotificationService.sendNotificationToAdmins(
           title: 'New User Registered',
           body: '${widget.userData!["name"]} registered as ${widget.isTrader ? "Trader" : "Farmer"}',
           type: 'new_user',
-          data: {
-            'userId': newRef.key,
-            'userRole': widget.isTrader ? 'trader' : 'farmer',
-          },
+          data: {'userId': uid, 'userRole': widget.isTrader ? 'trader' : 'farmer'},
         );
 
-        // Save user data locally
         final prefs = await SharedPreferences.getInstance();
-        
-        // CRITICAL: Clear guest mode flags when user registers
         await prefs.remove('is_guest');
         await prefs.remove('guest_role');
-        
-        await prefs.setString('user_id', newRef.key!);
-        await prefs.setString(
-          'user_role',
-          widget.isTrader ? 'trader' : 'farmer',
-        );
+        await prefs.setString('user_id', uid);
+        await prefs.setString('user_role', widget.isTrader ? 'trader' : 'farmer');
         await prefs.setString('name', widget.userData!['name'] ?? '');
         await prefs.setString('phone', widget.userData!['phone'] ?? '');
         await prefs.setString('state', widget.userData!['state'] ?? '');
         await prefs.setString('district', widget.userData!['district'] ?? '');
         await prefs.setString('address', widget.userData!['address'] ?? '');
-        await prefs.setString(
-          'profileImageUrl',
-          widget.userData!['profileImageUrl'] ?? '',
-        );
+        await prefs.setString('profileImageUrl', widget.userData!['profileImageUrl'] ?? '');
 
-        // CRITICAL: Save FCM token for new user
-        print('DEBUG: Saving FCM token for new user: ${newRef.key}');
         final fcmToken = await NotificationService.getFCMToken();
         if (fcmToken != null) {
-          // Remove this token from other users first
-          print('DEBUG: Checking for duplicate tokens in other users...');
-          final allUsersSnapshot = await FirebaseDatabase.instance.ref('users').once();
-          
-          if (allUsersSnapshot.snapshot.value != null) {
-            final allUsers = Map<String, dynamic>.from(allUsersSnapshot.snapshot.value as Map);
-            
-            for (var entry in allUsers.entries) {
-              final otherUserId = entry.key;
-              final otherUserData = entry.value as Map;
-              final otherToken = otherUserData['fcmToken'];
-              
-              // If another user has the same token, remove it
-              if (otherToken == fcmToken && otherUserId != newRef.key) {
-                print('DEBUG: Removing duplicate token from user: $otherUserId');
-                await FirebaseDatabase.instance
-                    .ref('users/$otherUserId/fcmToken')
-                    .remove();
-              }
-            }
-          }
-          
-          // Now save token to new user
-          await FirebaseDatabase.instance
-              .ref('users/${newRef.key}/fcmToken')
-              .set(fcmToken);
-          print('DEBUG: FCM token saved for new user');
+          await FirebaseDatabase.instance.ref('users/$uid/fcmToken').set(fcmToken);
         }
 
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(
-            builder: (_) => widget.isTrader
-                ? VyapariDashboardScreen()
-                : KisanDashboardScreen(),
+            builder: (_) => widget.isTrader ? VyapariDashboardScreen() : KisanDashboardScreen(),
           ),
           (route) => false,
         );
-      } catch (e) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Error: $e")));
-        setState(() => isLoading = false);
       }
-    }
-    // Login flow
-    else {
-      try {
-        final snapshot = await FirebaseDatabase.instance
-            .ref("users")
-            .orderByChild("phone")
-            .equalTo(widget.phoneNumber)
-            .once();
+      // Login flow - Check if user exists by phone number
+      else {
+        try {
+          final phoneSnapshot = await FirebaseDatabase.instance
+              .ref("users")
+              .orderByChild("phone")
+              .equalTo(widget.phoneNumber)
+              .once();
 
-        if (snapshot.snapshot.value != null) {
-          final data = snapshot.snapshot.value as Map;
-          final userId = data.keys.first;
-          final userData = data.values.first as Map;
+          if (phoneSnapshot.snapshot.value == null) {
+            await FirebaseAuth.instance.signOut();
+            setState(() => isLoading = false);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text("Phone number not registered. Please register as Kisan or Vyapari first."),
+                duration: Duration(seconds: 3),
+              ),
+            );
+            return;
+          }
+
+          final data = phoneSnapshot.snapshot.value as Map;
+          final oldUserId = data.keys.first;
+          final userData = Map<String, dynamic>.from(data.values.first as Map);
+
+          if (userData['isBlocked'] == true) {
+            await FirebaseAuth.instance.signOut();
+            setState(() => isLoading = false);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text("You are blocked by Super Admin. You cannot login."),
+                backgroundColor: Colors.red,
+                duration: Duration(seconds: 4),
+              ),
+            );
+            return;
+          }
+
           final role = userData['role'] as String;
-
-          // Save user data locally
           final prefs = await SharedPreferences.getInstance();
-          
-          // CRITICAL: Clear guest mode flags when user logs in
           await prefs.remove('is_guest');
           await prefs.remove('guest_role');
-          
-          await prefs.setString('user_id', userId);
+          await prefs.setString('user_id', oldUserId);
           await prefs.setString('user_role', role);
           await prefs.setString('name', userData['name']?.toString() ?? '');
           await prefs.setString('phone', userData['phone']?.toString() ?? '');
           await prefs.setString('state', userData['state']?.toString() ?? '');
-          await prefs.setString(
-            'village',
-            userData['village']?.toString() ?? '',
-          );
-          await prefs.setString(
-            'profileImage',
-            userData['profileImage']?.toString() ?? '',
-          );
+          await prefs.setString('village', userData['village']?.toString() ?? '');
+          await prefs.setString('profileImage', userData['profileImage']?.toString() ?? '');
 
-          // CRITICAL: Update FCM token for this user
-          print('DEBUG: Updating FCM token for logged-in user: $userId');
           final fcmToken = await NotificationService.getFCMToken();
           if (fcmToken != null) {
-            // Remove this token from other users first
-            print('DEBUG: Checking for duplicate tokens in other users...');
-            final allUsersSnapshot = await FirebaseDatabase.instance.ref('users').once();
-            
-            if (allUsersSnapshot.snapshot.value != null) {
-              final allUsers = Map<String, dynamic>.from(allUsersSnapshot.snapshot.value as Map);
-              
-              for (var entry in allUsers.entries) {
-                final otherUserId = entry.key;
-                final otherUserData = entry.value as Map;
-                final otherToken = otherUserData['fcmToken'];
-                
-                // If another user has the same token, remove it
-                if (otherToken == fcmToken && otherUserId != userId) {
-                  print('DEBUG: Removing duplicate token from user: $otherUserId');
-                  await FirebaseDatabase.instance
-                      .ref('users/$otherUserId/fcmToken')
-                      .remove();
-                }
-              }
-            }
-            
-            // Now save token to current user
-            await FirebaseDatabase.instance
-                .ref('users/$userId/fcmToken')
-                .set(fcmToken);
-            print('DEBUG: FCM token updated successfully for user: $userId');
-            print('DEBUG: New FCM token: ${fcmToken.substring(0, 20)}...');
+            await FirebaseDatabase.instance.ref('users/$oldUserId/fcmToken').set(fcmToken);
           }
 
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(
               builder: (_) {
-                if (role == "farmer") {
-                  return KisanDashboardScreen();
-                } else if (role == "trader") {
-                  return VyapariDashboardScreen();
-                } else if (role == "admin" || role == "superadmin") {
-                  return const AdminDashboardScreen();
-                } else {
-                  return KisanDashboardScreen();
-                }
+                if (role == "farmer") return KisanDashboardScreen();
+                if (role == "trader") return VyapariDashboardScreen();
+                if (role == "admin" || role == "superadmin") return const AdminDashboardScreen();
+                return KisanDashboardScreen();
               },
             ),
             (route) => false,
           );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                "Phone number not registered. Please register first.",
+        } catch (e) {
+          await FirebaseAuth.instance.signOut();
+          setState(() => isLoading = false);
+          
+          // Check if it's a permission error
+          if (e.toString().contains('permission') || e.toString().contains('PERMISSION_DENIED')) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  "Database permission error. Please contact support or check Firebase rules.",
+                ),
+                backgroundColor: Colors.red,
+                duration: Duration(seconds: 4),
               ),
-            ),
-          );
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text("Login error: $e")),
+            );
+          }
         }
-      } catch (e) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Error: $e")));
-        setState(() => isLoading = false);
       }
-    }
-
-    setState(() => isLoading = false);
     } catch (e) {
       setState(() => isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
