@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -33,9 +34,37 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   final List<FocusNode> focusNodes = List.generate(6, (_) => FocusNode());
   bool isLoading = false;
   bool isResending = false;
+  String? _currentVerificationId;
+  int _resendToken = 0;
+  int resendCountdown = 60;
+  Timer? _countdownTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentVerificationId = widget.verificationId;
+    _startResendCountdown();
+  }
+
+  void _startResendCountdown() {
+    setState(() => resendCountdown = 60);
+    _countdownTimer?.cancel();
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted) {
+        if (resendCountdown > 0) {
+          setState(() => resendCountdown--);
+        } else {
+          timer.cancel();
+        }
+      } else {
+        timer.cancel();
+      }
+    });
+  }
 
   @override
   void dispose() {
+    _countdownTimer?.cancel();
     for (var controller in controllers) {
       controller.dispose();
     }
@@ -46,38 +75,84 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   }
 
   Future<void> resendOtp() async {
+    if (resendCountdown > 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Please wait $resendCountdown seconds before resending OTP'),
+          backgroundColor: Colors.orange,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
     setState(() => isResending = true);
 
     try {
+      for (var controller in controllers) {
+        controller.clear();
+      }
+      
       await FirebaseAuth.instance.verifyPhoneNumber(
         phoneNumber: '+91${widget.phoneNumber}',
         verificationCompleted: (PhoneAuthCredential credential) async {
-          print('Auto verification completed');
+          print('Auto verification completed on resend');
         },
         verificationFailed: (FirebaseAuthException e) {
           setState(() => isResending = false);
+          
+          String errorMessage = 'Failed to resend OTP';
+          if (e.code == 'too-many-requests') {
+            errorMessage = 'Too many requests. Please wait 1-2 hours and try again.\n\nIf urgent, contact support.';
+          } else if (e.code == 'invalid-phone-number') {
+            errorMessage = 'Invalid phone number format.';
+          } else if (e.code == 'quota-exceeded') {
+            errorMessage = 'SMS quota exceeded. Please try again later.';
+          } else {
+            errorMessage = 'Failed to resend OTP: ${e.message}';
+          }
+          
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to resend OTP: ${e.message}')),
-          );
-        },
-        codeSent: (String verificationId, int? resendToken) {
-          setState(() => isResending = false);
-          // Update the verification ID
-          // Note: You'll need to make verificationId mutable in the widget
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('OTP resent successfully!'),
-              backgroundColor: Color(0xFF104f22),
+            SnackBar(
+              content: Text(errorMessage),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 5),
             ),
           );
         },
-        codeAutoRetrievalTimeout: (String verificationId) {},
+        codeSent: (String verificationId, int? resendToken) {
+          setState(() {
+            isResending = false;
+            _currentVerificationId = verificationId;
+            if (resendToken != null) {
+              _resendToken = resendToken;
+            }
+          });
+          
+          _startResendCountdown();
+          
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('OTP resent successfully! It may take up to 2 minutes to arrive.'),
+              backgroundColor: Color(0xFF104f22),
+              duration: Duration(seconds: 3),
+            ),
+          );
+        },
+        codeAutoRetrievalTimeout: (String verificationId) {
+          _currentVerificationId = verificationId;
+        },
+        forceResendingToken: _resendToken > 0 ? _resendToken : null,
         timeout: const Duration(seconds: 60),
       );
     } catch (e) {
       setState(() => isResending = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
+        SnackBar(
+          content: Text('Error resending OTP: $e'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 4),
+        ),
       );
     }
   }
@@ -87,7 +162,10 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
     if (enteredOtp.length != 6) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter complete OTP")),
+        const SnackBar(
+          content: Text("Please enter complete 6-digit OTP"),
+          backgroundColor: Colors.orange,
+        ),
       );
       return;
     }
@@ -95,79 +173,142 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
     setState(() => isLoading = true);
 
     try {
-      if (widget.verificationId == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Verification ID not found. Please try again.")),
-        );
+      if (_currentVerificationId == null) {
         setState(() => isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Verification ID not found. Please try again."),
+            backgroundColor: Colors.red,
+          ),
+        );
         return;
       }
 
       PhoneAuthCredential credential = PhoneAuthProvider.credential(
-        verificationId: widget.verificationId!,
+        verificationId: _currentVerificationId!,
         smsCode: enteredOtp,
       );
 
-      await FirebaseAuth.instance.signInWithCredential(credential);
+      // Verify OTP
+      try {
+        await FirebaseAuth.instance.signInWithCredential(credential);
+      } on FirebaseAuthException catch (e) {
+        setState(() => isLoading = false);
+        String errorMessage = "OTP verification failed";
+        
+        if (e.code == 'invalid-verification-code') {
+          errorMessage = "Invalid OTP. Please check and try again.";
+        } else if (e.code == 'session-expired') {
+          errorMessage = "OTP expired. Please request a new one.";
+        } else if (e.code == 'too-many-requests') {
+          errorMessage = "Too many attempts. Please try again later.";
+        } else {
+          errorMessage = "OTP verification failed: ${e.message}";
+        }
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+        return;
+      }
+
       final uid = FirebaseAuth.instance.currentUser!.uid;
 
       // Registration flow
       if (widget.userData != null) {
-        final snapshot = await FirebaseDatabase.instance
-            .ref("users/$uid")
-            .get();
+        try {
+          final snapshot = await FirebaseDatabase.instance
+              .ref("users/$uid")
+              .get();
 
-        if (snapshot.exists) {
+          if (snapshot.exists) {
+            await FirebaseAuth.instance.signOut();
+            setState(() => isLoading = false);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text("This phone number is already registered. Please login instead."),
+                backgroundColor: Colors.orange,
+                duration: Duration(seconds: 3),
+              ),
+            );
+            return;
+          }
+
+          await FirebaseDatabase.instance.ref("users/$uid").set({
+            ...widget.userData!,
+            "id": uid,
+            "role": widget.isTrader ? "trader" : "farmer",
+            "isBlocked": false,
+            "kycStatus": "pending",
+            "createdAt": DateTime.now().toIso8601String(),
+          });
+
+          await NotificationService.sendNotificationToAdmins(
+            title: 'New User Registered',
+            body: '${widget.userData!["name"]} registered as ${widget.isTrader ? "Trader" : "Farmer"}',
+            type: 'new_user',
+            data: {'userId': uid, 'userRole': widget.isTrader ? 'trader' : 'farmer'},
+          );
+
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.remove('is_guest');
+          await prefs.remove('guest_role');
+          await prefs.setString('user_id', uid);
+          await prefs.setString('user_role', widget.isTrader ? 'trader' : 'farmer');
+          await prefs.setString('name', widget.userData!['name'] ?? '');
+          await prefs.setString('phone', widget.userData!['phone'] ?? '');
+          await prefs.setString('state', widget.userData!['state'] ?? '');
+          await prefs.setString('district', widget.userData!['district'] ?? '');
+          await prefs.setString('address', widget.userData!['address'] ?? '');
+          await prefs.setString('profileImageUrl', widget.userData!['profileImageUrl'] ?? '');
+
+          final fcmToken = await NotificationService.getFCMToken();
+          if (fcmToken != null) {
+            await FirebaseDatabase.instance.ref('users/$uid/fcmToken').set(fcmToken);
+          }
+
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(
+              builder: (_) => widget.isTrader ? VyapariDashboardScreen() : KisanDashboardScreen(),
+            ),
+            (route) => false,
+          );
+        } on FirebaseException catch (e) {
+          await FirebaseAuth.instance.signOut();
+          setState(() => isLoading = false);
+          
+          String errorMessage = "Registration failed";
+          if (e.code == 'permission-denied') {
+            errorMessage = "Database permission denied. Please contact support.";
+          } else if (e.code == 'network-request-failed') {
+            errorMessage = "Network error. Please check your internet connection.";
+          } else {
+            errorMessage = "Registration failed: ${e.message}";
+          }
+          
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(errorMessage),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        } catch (e) {
           await FirebaseAuth.instance.signOut();
           setState(() => isLoading = false);
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("This phone number is already registered. Please login instead."),
+            SnackBar(
+              content: Text("Unexpected error during registration: $e"),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 4),
             ),
           );
-          return;
         }
-
-        await FirebaseDatabase.instance.ref("users/$uid").set({
-          ...widget.userData!,
-          "id": uid,
-          "role": widget.isTrader ? "trader" : "farmer",
-          "isBlocked": false,
-          "kycStatus": "pending",
-          "createdAt": DateTime.now().toIso8601String(),
-        });
-
-        await NotificationService.sendNotificationToAdmins(
-          title: 'New User Registered',
-          body: '${widget.userData!["name"]} registered as ${widget.isTrader ? "Trader" : "Farmer"}',
-          type: 'new_user',
-          data: {'userId': uid, 'userRole': widget.isTrader ? 'trader' : 'farmer'},
-        );
-
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.remove('is_guest');
-        await prefs.remove('guest_role');
-        await prefs.setString('user_id', uid);
-        await prefs.setString('user_role', widget.isTrader ? 'trader' : 'farmer');
-        await prefs.setString('name', widget.userData!['name'] ?? '');
-        await prefs.setString('phone', widget.userData!['phone'] ?? '');
-        await prefs.setString('state', widget.userData!['state'] ?? '');
-        await prefs.setString('district', widget.userData!['district'] ?? '');
-        await prefs.setString('address', widget.userData!['address'] ?? '');
-        await prefs.setString('profileImageUrl', widget.userData!['profileImageUrl'] ?? '');
-
-        final fcmToken = await NotificationService.getFCMToken();
-        if (fcmToken != null) {
-          await FirebaseDatabase.instance.ref('users/$uid/fcmToken').set(fcmToken);
-        }
-
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(
-            builder: (_) => widget.isTrader ? VyapariDashboardScreen() : KisanDashboardScreen(),
-          ),
-          (route) => false,
-        );
       }
       // Login flow - Check if user exists by phone number
       else {
@@ -184,7 +325,8 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text("Phone number not registered. Please register as Kisan or Vyapari first."),
-                duration: Duration(seconds: 3),
+                backgroundColor: Colors.orange,
+                duration: Duration(seconds: 4),
               ),
             );
             return;
@@ -224,6 +366,14 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
             await FirebaseDatabase.instance.ref('users/$oldUserId/fcmToken').set(fcmToken);
           }
 
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("Welcome back, ${userData['name']}!"),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(
@@ -236,32 +386,48 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
             ),
             (route) => false,
           );
-        } catch (e) {
+        } on FirebaseException catch (e) {
           await FirebaseAuth.instance.signOut();
           setState(() => isLoading = false);
           
-          // Check if it's a permission error
-          if (e.toString().contains('permission') || e.toString().contains('PERMISSION_DENIED')) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                  "Database permission error. Please contact support or check Firebase rules.",
-                ),
-                backgroundColor: Colors.red,
-                duration: Duration(seconds: 4),
-              ),
-            );
+          String errorMessage = "Login failed";
+          if (e.code == 'permission-denied') {
+            errorMessage = "Database permission denied. Please update Firebase rules or contact support.";
+          } else if (e.code == 'network-request-failed') {
+            errorMessage = "Network error. Please check your internet connection.";
+          } else if (e.code == 'unavailable') {
+            errorMessage = "Database unavailable. Please try again later.";
           } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text("Login error: $e")),
-            );
+            errorMessage = "Login failed: ${e.message}";
           }
+          
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(errorMessage),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        } catch (e) {
+          await FirebaseAuth.instance.signOut();
+          setState(() => isLoading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("Unexpected error during login: $e"),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 4),
+            ),
+          );
         }
       }
     } catch (e) {
       setState(() => isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $e")),
+        SnackBar(
+          content: Text("An unexpected error occurred: $e"),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 4),
+        ),
       );
     }
   }
@@ -691,13 +857,19 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                                           ),
                                         ),
                                         GestureDetector(
-                                          onTap: isResending ? null : resendOtp,
+                                          onTap: (isResending || resendCountdown > 0) ? null : resendOtp,
                                           child: Text(
-                                            isResending ? "Sending..." : "Resend",
+                                            isResending 
+                                              ? "Sending..." 
+                                              : resendCountdown > 0
+                                                ? "Resend (${resendCountdown}s)"
+                                                : "Resend",
                                             style: TextStyle(
                                               fontSize: 13,
                                               fontWeight: FontWeight.bold,
-                                              color: isResending ? Colors.grey : const Color(0xFF104f22),
+                                              color: (isResending || resendCountdown > 0) 
+                                                ? Colors.grey 
+                                                : const Color(0xFF104f22),
                                             ),
                                           ),
                                         ),

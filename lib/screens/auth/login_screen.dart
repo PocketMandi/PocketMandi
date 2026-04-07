@@ -19,7 +19,10 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> sendOtp() async {
     if (phoneController.text.isEmpty || phoneController.text.length != 10) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please enter a valid 10-digit number")),
+        const SnackBar(
+          content: Text("Please enter a valid 10-digit number"),
+          backgroundColor: Colors.orange,
+        ),
       );
       return;
     }
@@ -36,12 +39,37 @@ class _LoginScreenState extends State<LoginScreen> {
         },
         verificationFailed: (FirebaseAuthException e) {
           setState(() => isLoading = false);
+          
+          String errorMessage = 'Verification failed';
+          if (e.code == 'too-many-requests') {
+            errorMessage = 'Too many requests. Your device has been temporarily blocked. Please try again after 1-2 hours.';
+          } else if (e.code == 'invalid-phone-number') {
+            errorMessage = 'Invalid phone number format.';
+          } else if (e.code == 'quota-exceeded') {
+            errorMessage = 'SMS quota exceeded. Please try again later.';
+          } else {
+            errorMessage = 'Verification failed: ${e.message}';
+          }
+          
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Verification failed: ${e.message}')),
+            SnackBar(
+              content: Text(errorMessage),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 5),
+            ),
           );
         },
         codeSent: (String verificationId, int? resendToken) {
           setState(() => isLoading = false);
+          
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('OTP sent successfully! Please check your messages.'),
+              backgroundColor: Color(0xFF104f22),
+              duration: Duration(seconds: 2),
+            ),
+          );
+          
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -60,7 +88,11 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       setState(() => isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error: $e")),
+        SnackBar(
+          content: Text("Error: $e"),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 4),
+        ),
       );
     }
   }
