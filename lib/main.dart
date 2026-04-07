@@ -8,6 +8,7 @@ import 'package:poket_mandi/screens/vyapari/vyapari_dashboard_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:poket_mandi/services/notification_service.dart';
+import 'package:poket_mandi/services/upload_queue_service.dart';
 import 'package:poket_mandi/screens/common/notifications_list_screen.dart';
 import 'firebase_options.dart';
 
@@ -67,12 +68,16 @@ class _AuthCheckState extends State<AuthCheck> {
     super.initState();
     _checkAuth();
     _setupNotificationHandlers();
-    // Set notification context after first frame
+    _processPendingUploads();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && _navigatorKey.currentContext != null) {
         NotificationService.setContext(_navigatorKey.currentContext!);
       }
     });
+  }
+
+  Future<void> _processPendingUploads() async {
+    await UploadQueueService.processPendingUploads();
   }
 
   void _setupNotificationHandlers() {

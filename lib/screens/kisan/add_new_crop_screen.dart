@@ -4,7 +4,9 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:poket_mandi/services/notification_service.dart';
+import 'package:poket_mandi/services/upload_queue_service.dart';
 import 'package:poket_mandi/screens/kisan/kisan_dashboard_screen.dart';
+import 'package:video_compress/video_compress.dart';
 import 'dart:io';
 import 'package:video_player/video_player.dart';
 
@@ -39,6 +41,7 @@ class _AddNewCropScreenState extends State<AddNewCropScreen> {
     cropNameController.dispose();
     quantityController.dispose();
     priceController.dispose();
+    VideoCompress.cancelCompression();
     super.dispose();
   }
 
@@ -92,26 +95,14 @@ class _AddNewCropScreenState extends State<AddNewCropScreen> {
     try {
       final pickedFile = await _picker.pickImage(
         source: source,
-        imageQuality: 60,
-        maxWidth: 1024,
-        maxHeight: 1024,
+        imageQuality: 50,
+        maxWidth: 800,
+        maxHeight: 800,
       );
 
       if (pickedFile != null && mounted) {
-        final file = File(pickedFile.path);
-        final fileSize = await file.length();
-
-        if (fileSize > 5 * 1024 * 1024) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Image too large. Please select a smaller image.'),
-            ),
-          );
-          return;
-        }
-
         setState(() {
-          _cropImage = file;
+          _cropImage = File(pickedFile.path);
         });
       }
     } catch (e) {
@@ -132,18 +123,18 @@ class _AddNewCropScreenState extends State<AddNewCropScreen> {
 
       if (pickedFile != null && mounted) {
         final file = File(pickedFile.path);
-        final size = await file.length();
-
-        if (size > 50 * 1024 * 1024) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Video too large (max 50MB)')),
-          );
-          return;
-        }
 
         setState(() {
           _cropVideo = file;
         });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✓ Video selected'),
+            duration: Duration(seconds: 1),
+            backgroundColor: Colors.green,
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -151,6 +142,26 @@ class _AddNewCropScreenState extends State<AddNewCropScreen> {
           SnackBar(content: Text('Failed to pick video: ${e.toString()}')),
         );
       }
+    }
+  }
+
+  Future<File> _compressVideo(File file) async {
+    try {
+      final info = await VideoCompress.compressVideo(
+        file.path,
+        quality: VideoQuality.LowQuality,
+        deleteOrigin: false,
+        includeAudio: true,
+      );
+
+      if (info != null && info.file != null) {
+        print('Video compressed: ${file.lengthSync()} -> ${info.file!.lengthSync()} bytes');
+        return info.file!;
+      }
+      return file;
+    } catch (e) {
+      print('Video compression error: $e');
+      return file;
     }
   }
 
@@ -588,49 +599,14 @@ class _AddNewCropScreenState extends State<AddNewCropScreen> {
         throw Exception("User not logged in");
       }
 
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-      String? imageUrl;
-      String? videoUrl;
-
-      // Parallel uploads for better performance
-      final uploadTasks = <Future>[];
-
-      if (_cropImage != null) {
-        final imageRef = FirebaseStorage.instance.ref(
-          'crop_images/${userId}_$timestamp.jpg',
-        );
-        uploadTasks.add(
-          imageRef.putFile(_cropImage!).then((_) => imageRef.getDownloadURL()),
-        );
-      }
-
-      if (_cropVideo != null) {
-        final videoRef = FirebaseStorage.instance.ref(
-          'crop_videos/${userId}_$timestamp.mp4',
-        );
-        uploadTasks.add(
-          videoRef.putFile(_cropVideo!).then((_) => videoRef.getDownloadURL()),
-        );
-      }
-
-      final results = await Future.wait(uploadTasks);
-
-      if (_cropImage != null && results.isNotEmpty) {
-        imageUrl = results[0] as String;
-      }
-      if (_cropVideo != null && results.length > 1) {
-        videoUrl = results[1] as String;
-      } else if (_cropVideo != null &&
-          _cropImage == null &&
-          results.isNotEmpty) {
-        videoUrl = results[0] as String;
-      }
-
-      // Save to database
       final ref = FirebaseDatabase.instance
           .ref('requestednewcrop/$userId')
           .push();
 
+      final requestId = ref.key!;
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+
+      /// ✅ STEP 1: SAVE DATA INSTANTLY (NO WAIT)
       await ref.set({
         "cropName": cropName,
         "userId": userId,
@@ -639,34 +615,16 @@ class _AddNewCropScreenState extends State<AddNewCropScreen> {
         "quantity": int.tryParse(quantityController.text.trim()) ?? 0,
         "unit": selectedUnit,
         "qualityGrades": selectedQualities.toList(),
-        "imageUrl": imageUrl ?? "",
-        "videoUrl": videoUrl ?? "",
+        "imageUrl": null,
+        "videoUrl": null,
+        "uploadStatus": (_cropImage != null || _cropVideo != null) ? "uploading" : "completed",
         "expectedPrice": double.tryParse(priceController.text.trim()) ?? 0.0,
         "status": "pending",
         "createdAt": ServerValue.timestamp,
       });
 
-      // Send notification to all admins
-      await NotificationService.sendNotificationToAdmins(
-        title: 'New Crop Request',
-        body: '$userName has requested $cropName (${quantityController.text} $selectedUnit)',
-        type: 'crop_request',
-        data: {
-          'cropName': cropName,
-          'userId': userId,
-          'requestId': ref.key,
-        },
-      );
-
+      /// ✅ STEP 2: NAVIGATE IMMEDIATELY (FAST UX)
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Your crop request has been submitted!"),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-        // Pop back to dashboard and navigate to Request History
         Navigator.of(context).popUntil((route) => route.isFirst);
         Navigator.push(
           context,
@@ -675,6 +633,31 @@ class _AddNewCropScreenState extends State<AddNewCropScreen> {
           ),
         );
       }
+
+      /// ✅ STEP 3: ADD TO UPLOAD QUEUE
+      if (_cropImage != null || _cropVideo != null) {
+        await UploadQueueService.addToQueue(
+          userId: userId,
+          recordId: requestId,
+          recordPath: 'requestednewcrop/$userId/$requestId',
+          timestamp: timestamp,
+          imagePath: _cropImage?.path,
+          videoPath: _cropVideo?.path,
+          userName: userName,
+          cropName: cropName,
+          notificationType: 'crop_request',
+        );
+
+        UploadQueueService.processPendingUploads();
+      } else {
+        await NotificationService.sendNotificationToAdmins(
+          title: 'New Crop Request',
+          body: '$userName has requested $cropName',
+          type: 'crop_request',
+          data: {"requestId": requestId},
+        );
+      }
+
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -689,6 +672,79 @@ class _AddNewCropScreenState extends State<AddNewCropScreen> {
       if (mounted) {
         setState(() => isUploading = false);
       }
+    }
+  }
+
+  Future<void> _uploadMediaInBackground(
+    String userId,
+    String requestId,
+    int timestamp,
+    DatabaseReference ref,
+    String userName,
+    String cropName,
+  ) async {
+    try {
+      String? imageUrl;
+      String? videoUrl;
+
+      /// IMAGE
+      if (_cropImage != null) {
+        final imageRef = FirebaseStorage.instance
+            .ref()
+            .child('crop_images/${userId}_$timestamp.jpg');
+
+        await imageRef.putFile(_cropImage!).timeout(
+          const Duration(seconds: 60),
+          onTimeout: () => throw Exception('Image upload timeout'),
+        );
+        imageUrl = await imageRef.getDownloadURL();
+      }
+
+      /// VIDEO - COMPRESS THEN UPLOAD
+      if (_cropVideo != null) {
+        File videoToUpload = _cropVideo!;
+        
+        try {
+          final compressed = await _compressVideo(_cropVideo!);
+          videoToUpload = compressed;
+        } catch (e) {
+          print('Compression failed, uploading original: $e');
+        }
+
+        final videoRef = FirebaseStorage.instance
+            .ref()
+            .child('crop_videos/${userId}_$timestamp.mp4');
+
+        await videoRef.putFile(videoToUpload).timeout(
+          const Duration(seconds: 120),
+          onTimeout: () => throw Exception('Video upload timeout'),
+        );
+        videoUrl = await videoRef.getDownloadURL();
+      }
+
+      /// UPDATE DB AFTER UPLOAD
+      await ref.update({
+        if (imageUrl != null) "imageUrl": imageUrl,
+        if (videoUrl != null) "videoUrl": videoUrl,
+        "uploadStatus": "completed",
+        "updatedAt": ServerValue.timestamp,
+      });
+
+      /// SEND NOTIFICATION AFTER SUCCESS
+      await NotificationService.sendNotificationToAdmins(
+        title: 'New Crop Request',
+        body: '$userName has requested $cropName',
+        type: 'crop_request',
+        data: {"requestId": requestId},
+      );
+
+    } catch (e) {
+      print('Upload failed: $e');
+      await ref.update({
+        "uploadStatus": "failed",
+        "uploadError": e.toString(),
+        "updatedAt": ServerValue.timestamp,
+      });
     }
   }
 

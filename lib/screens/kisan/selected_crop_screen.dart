@@ -4,8 +4,10 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:video_player/video_player.dart';
+import 'package:video_compress/video_compress.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:poket_mandi/services/notification_service.dart';
+import 'package:poket_mandi/services/upload_queue_service.dart';
 import 'package:poket_mandi/screens/kisan/my_order_screen.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
@@ -50,6 +52,7 @@ class _SelectedCropScreenState extends State<SelectedCropScreen> {
     quantityController.dispose();
     priceController.dispose();
     specialInstructionsController.dispose();
+    VideoCompress.cancelCompression();
     super.dispose();
   }
 
@@ -639,47 +642,65 @@ class _SelectedCropScreenState extends State<SelectedCropScreen> {
       final result = await FlutterImageCompress.compressAndGetFile(
         file.absolute.path,
         targetPath,
-        quality: 70, // 70% quality - good balance
-        minWidth: 1024, // Max width 1024px
-        minHeight: 1024, // Max height 1024px
+        quality: 50,
+        minWidth: 800,
+        minHeight: 800,
       );
 
       return result != null ? File(result.path) : file;
     } catch (e) {
       print('Compression error: $e');
-      return file; // Return original if compression fails
+      return file;
     }
   }
 
   Future<void> _pickVideo(ImageSource source) async {
-    final pickedFile = await _picker.pickVideo(
-      source: source,
-      maxDuration: const Duration(minutes: 1),
-    );
+    try {
+      final pickedFile = await _picker.pickVideo(
+        source: source,
+        maxDuration: const Duration(minutes: 1),
+      );
 
-    if (pickedFile != null) {
-      final file = File(pickedFile.path);
+      if (pickedFile != null) {
+        final file = File(pickedFile.path);
 
-      final controller = VideoPlayerController.file(file);
-      await controller.initialize();
+        setState(() {
+          selectedVideo = file;
+        });
 
-      final duration = controller.value.duration;
-
-      if (duration.inSeconds > 60) {
-        controller.dispose();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Video must be 1 minute or less")),
-          );
-        }
-        return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✓ Video selected'),
+            duration: Duration(seconds: 1),
+            backgroundColor: Colors.green,
+          ),
+        );
       }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error picking video: $e')),
+        );
+      }
+    }
+  }
 
-      setState(() {
-        selectedVideo = file;
-        videoController?.dispose();
-        videoController = controller;
-      });
+  Future<File> _compressVideo(File file) async {
+    try {
+      final info = await VideoCompress.compressVideo(
+        file.path,
+        quality: VideoQuality.LowQuality,
+        deleteOrigin: false,
+        includeAudio: true,
+      );
+
+      if (info != null && info.file != null) {
+        return info.file!;
+      }
+      return file;
+    } catch (e) {
+      print('Video compression error: $e');
+      return file;
     }
   }
 
@@ -904,38 +925,21 @@ class _SelectedCropScreenState extends State<SelectedCropScreen> {
       return;
     }
 
-    // Validate minimum quantity
     if (!_validateMinimumQuantity()) {
       _showMinimumQuantityError();
       return;
     }
 
-    if (selectedQualities.isEmpty) {
+    if (selectedQualities.isEmpty ||
+        selectedLocation == null ||
+        selectedDeliveryDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select at least one quality grade'),
-        ),
+        const SnackBar(content: Text('Please complete all fields')),
       );
       return;
     }
 
-    if (selectedLocation == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a delivery location')),
-      );
-      return;
-    }
-
-    if (selectedDeliveryDate == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a required delivery date')),
-      );
-      return;
-    }
-
-    setState(() {
-      isLoading = true;
-    });
+    setState(() => isLoading = true);
 
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -947,63 +951,14 @@ class _SelectedCropScreenState extends State<SelectedCropScreen> {
 
       if (userId == null) throw Exception("User not logged in");
 
-      final timestamp = DateTime.now().millisecondsSinceEpoch;
-
-      UploadTask? imageTask;
-      UploadTask? videoTask;
-
-      Reference? imageRef;
-      Reference? videoRef;
-
-      /// IMAGE UPLOAD
-      if (selectedImage != null) {
-        imageRef = FirebaseStorage.instance
-            .ref()
-            .child('crop_images')
-            .child('${userId}_$timestamp.jpg');
-
-        imageTask = imageRef.putFile(
-          selectedImage!,
-          SettableMetadata(contentType: 'image/jpeg'),
-        );
-      }
-
-      /// VIDEO UPLOAD
-      if (selectedVideo != null) {
-        videoRef = FirebaseStorage.instance
-            .ref()
-            .child('crop_videos')
-            .child('${userId}_$timestamp.mp4');
-
-        videoTask = videoRef.putFile(
-          selectedVideo!,
-          SettableMetadata(contentType: 'video/mp4'),
-        );
-      }
-
-      /// RUN UPLOADS IN PARALLEL
-      await Future.wait([
-        if (imageTask != null) imageTask,
-        if (videoTask != null) videoTask,
-      ]);
-
-      String? imageUrl;
-      String? videoUrl;
-
-      if (imageRef != null) {
-        imageUrl = await imageRef.getDownloadURL();
-      }
-
-      if (videoRef != null) {
-        videoUrl = await videoRef.getDownloadURL();
-      }
-
-      /// SAVE TO GLOBAL ADDEDCROPSBYKISSAAN COLLECTION
       final ref = FirebaseDatabase.instance
           .ref('addedcropsbykissan/$userId')
           .push();
-      final cropId = ref.key!;
 
+      final cropId = ref.key!;
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+
+      /// ✅ STEP 1: SAVE DATA INSTANTLY (NO WAIT)
       await ref.set({
         "cropId": cropId,
         "userId": userId,
@@ -1014,43 +969,27 @@ class _SelectedCropScreenState extends State<SelectedCropScreen> {
         "unit": selectedUnit,
         "pricePerUnit": double.parse(priceController.text.trim()),
         "qualityGrades": selectedQualities.toList(),
-        "imageUrl": imageUrl ?? widget.cropImage,
-        "videoUrl": videoUrl,
+        "imageUrl": selectedImage != null ? null : widget.cropImage,
+        "videoUrl": null,
+        "uploadStatus": (selectedImage != null || selectedVideo != null) ? "uploading" : "completed",
         "location": {
           "state": userState,
           "village": village,
           "deliveryLocation": selectedLocation,
         },
-        "requiredDeliveryDate": selectedDeliveryDate!.millisecondsSinceEpoch,
-        "specialInstructions": specialInstructionsController.text.trim().isEmpty
-            ? null
-            : specialInstructionsController.text.trim(),
+        "requiredDeliveryDate":
+            selectedDeliveryDate!.millisecondsSinceEpoch,
+        "specialInstructions":
+            specialInstructionsController.text.trim().isEmpty
+                ? null
+                : specialInstructionsController.text.trim(),
         "status": "pending",
         "createdAt": ServerValue.timestamp,
         "updatedAt": ServerValue.timestamp,
       });
 
-      // Send notification to all admins
-      await NotificationService.sendNotificationToAdmins(
-        title: 'New Crop Order',
-        body: '$userName ordered ${widget.cropName} (${quantityController.text} $selectedUnit)',
-        type: 'crop_order',
-        data: {
-          'cropName': widget.cropName,
-          'userId': userId,
-          'orderId': cropId,
-        },
-      );
-
+      /// ✅ STEP 2: NAVIGATE IMMEDIATELY (FAST UX)
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Order placed successfully! Status: Pending"),
-            backgroundColor: Colors.green,
-          ),
-        );
-
-        // Pop back to dashboard and navigate to My Orders with Orders tab
         Navigator.of(context).popUntil((route) => route.isFirst);
         Navigator.push(
           context,
@@ -1059,16 +998,108 @@ class _SelectedCropScreenState extends State<SelectedCropScreen> {
           ),
         );
       }
-    } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Error: $e")));
-    } finally {
-      if (mounted) {
-        setState(() {
-          isLoading = false;
-        });
+
+      /// ✅ STEP 3: ADD TO UPLOAD QUEUE
+      if (selectedImage != null || selectedVideo != null) {
+        await UploadQueueService.addToQueue(
+          userId: userId,
+          recordId: cropId,
+          recordPath: 'addedcropsbykissan/$userId/$cropId',
+          timestamp: timestamp,
+          imagePath: selectedImage?.path,
+          videoPath: selectedVideo?.path,
+          userName: userName,
+          cropName: widget.cropName,
+          notificationType: 'crop_order',
+        );
+
+        UploadQueueService.processPendingUploads();
+      } else {
+        await NotificationService.sendNotificationToAdmins(
+          title: 'New Crop Order',
+          body: '$userName ordered ${widget.cropName}',
+          type: 'crop_order',
+          data: {"orderId": cropId},
+        );
       }
+
+    } catch (e) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("Error: $e")));
+    } finally {
+      if (mounted) setState(() => isLoading = false);
+    }
+  }
+
+  Future<void> _uploadMediaInBackground(
+    String userId,
+    String cropId,
+    int timestamp,
+    DatabaseReference ref,
+    String userName,
+  ) async {
+    try {
+      String? imageUrl;
+      String? videoUrl;
+
+      /// IMAGE
+      if (selectedImage != null) {
+        final imageRef = FirebaseStorage.instance
+            .ref()
+            .child('crop_images/${userId}_$timestamp.jpg');
+
+        await imageRef.putFile(selectedImage!).timeout(
+          const Duration(seconds: 60),
+          onTimeout: () => throw Exception('Image upload timeout'),
+        );
+        imageUrl = await imageRef.getDownloadURL();
+      }
+
+      /// VIDEO - COMPRESS THEN UPLOAD
+      if (selectedVideo != null) {
+        File videoToUpload = selectedVideo!;
+        
+        try {
+          final compressed = await _compressVideo(selectedVideo!);
+          videoToUpload = compressed;
+        } catch (e) {
+          print('Compression failed, uploading original: $e');
+        }
+
+        final videoRef = FirebaseStorage.instance
+            .ref()
+            .child('crop_videos/${userId}_$timestamp.mp4');
+
+        await videoRef.putFile(videoToUpload).timeout(
+          const Duration(seconds: 120),
+          onTimeout: () => throw Exception('Video upload timeout'),
+        );
+        videoUrl = await videoRef.getDownloadURL();
+      }
+
+      /// UPDATE DB AFTER UPLOAD
+      await ref.update({
+        if (imageUrl != null) "imageUrl": imageUrl,
+        if (videoUrl != null) "videoUrl": videoUrl,
+        "uploadStatus": "completed",
+        "updatedAt": ServerValue.timestamp,
+      });
+
+      /// SEND NOTIFICATION AFTER SUCCESS
+      await NotificationService.sendNotificationToAdmins(
+        title: 'New Crop Order',
+        body: '$userName ordered ${widget.cropName}',
+        type: 'crop_order',
+        data: {"orderId": cropId},
+      );
+
+    } catch (e) {
+      print('Upload failed: $e');
+      await ref.update({
+        "uploadStatus": "failed",
+        "uploadError": e.toString(),
+        "updatedAt": ServerValue.timestamp,
+      });
     }
   }
 }
