@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Download Poket Mandi App</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #104f22 0%, #1a7a33 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 30px;
+            padding: 50px 40px;
+            max-width: 500px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            animation: slideUp 0.5s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .logo {
+            font-size: 60px;
+            margin-bottom: 10px;
+        }
+
+        h1 {
+            color: #104f22;
+            font-size: 32px;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 16px;
+            margin-bottom: 30px;
+        }
+
+        .qr-container {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 20px;
+            margin: 30px 0;
+            border: 3px dashed #104f22;
+        }
+
+        .qr-container img {
+            width: 250px;
+            height: 250px;
+            border-radius: 10px;
+        }
+
+        .qr-text {
+            color: #104f22;
+            font-weight: 600;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+
+        .download-btn {
+            background: #104f22;
+            color: white;
+            padding: 18px 50px;
+            border-radius: 15px;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 18px;
+            font-weight: 600;
+            margin: 20px 0;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(16, 79, 34, 0.3);
+        }
+
+        .download-btn:hover {
+            background: #0d3d1a;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(16, 79, 34, 0.4);
+        }
+
+        .download-btn:active {
+            transform: translateY(0);
+        }
+
+        .info {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 30px;
+        }
+
+        .info-item {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            color: #666;
+            font-size: 14px;
+            margin: 10px 0;
+        }
+
+        .info-item strong {
+            color: #104f22;
+        }
+
+        .icon {
+            font-size: 20px;
+        }
+
+        .footer {
+            margin-top: 30px;
+            color: #999;
+            font-size: 12px;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 30px 20px;
+            }
+
+            h1 {
+                font-size: 26px;
+            }
+
+            .qr-container img {
+                width: 200px;
+                height: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <img src="logo.png" alt="Poket Mandi Logo" style="width: 120px; height: 120px; margin-bottom: 20px; border-radius: 20px;">
+        <h1>Poket Mandi</h1>
+        <p class="subtitle">Connect Farmers & Traders Directly</p>
+
+        <div class="qr-container">
+            <img id="qrCode" src="" alt="QR Code">
+            <p class="qr-text">📱 Scan to Download</p>
+        </div>
+
+        <a href="https://firebasestorage.googleapis.com/v0/b/mypocketmandi.firebasestorage.app/o/app-release.apk?alt=media&token=6d9d249d-5b73-48bf-ada1-38fc0c4eb14a" class="download-btn" id="downloadBtn" download>
+            📥 Download APK
+        </a>
+
+        <div class="info">
+            <div class="info-item">
+                <span class="icon">📦</span>
+                <span><strong>Version:</strong> 1.0.0</span>
+            </div>
+            <div class="info-item">
+                <span class="icon">💾</span>
+                <span><strong>Size:</strong> ~80 MB</span>
+            </div>
+            <div class="info-item">
+                <span class="icon">📱</span>
+                <span><strong>Android:</strong> 5.0+</span>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>© 2025 Poket Mandi. All rights reserved.</p>
+        </div>
+    </div>
+
+    <script>
+        // Replace this with your actual APK download link
+        const APK_DOWNLOAD_LINK = 'https://firebasestorage.googleapis.com/v0/b/mypocketmandi.firebasestorage.app/o/app-release.apk?alt=media&token=6d9d249d-5b73-48bf-ada1-38fc0c4eb14a';
+        
+        // Generate QR code
+        const qrCodeImg = document.getElementById('qrCode');
+        qrCodeImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(APK_DOWNLOAD_LINK)}`;
+        
+        // Set download button link
+        document.getElementById('downloadBtn').href = APK_DOWNLOAD_LINK;
+    </script>
+</body>
+</html>
